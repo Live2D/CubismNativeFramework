@@ -119,12 +119,12 @@ csmBool CubismUserModel::IsHit(CubismIdHandle drawableId, csmFloat32 pointX, csm
     const csmInt32    count = _model->GetDrawableVertexCount(drawIndex);
     const csmFloat32* vertices = _model->GetDrawableVertices(drawIndex);
 
-    csmFloat32 left = _model->GetCanvasWidth();
-    csmFloat32 right = 0.0f;
-    csmFloat32 top = _model->GetCanvasHeight();
-    csmFloat32 bottom = 0.0f;
+    csmFloat32 left = vertices[0];
+    csmFloat32 right = vertices[0];
+    csmFloat32 top = vertices[1];
+    csmFloat32 bottom = vertices[1];
 
-    for (csmInt32 j = 0; j < count; ++j)
+    for (csmInt32 j = 1; j < count; ++j)
     {
         csmFloat32 x = vertices[Constant::VertexOffset + j * Constant::VertexStep];
         csmFloat32 y = vertices[Constant::VertexOffset + j * Constant::VertexStep + 1];
