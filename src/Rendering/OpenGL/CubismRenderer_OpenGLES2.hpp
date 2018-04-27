@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -11,6 +11,7 @@
 #include "CubismFramework.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
+#include "Type/csmMap.hpp"
 
 #ifdef CSM_TARGET_ANDROID_ES2
 #include <jni.h>
@@ -292,23 +293,23 @@ private:
     /**
      * @brief   シェーダプログラムの一連のセットアップを実行する
      *
-     * @param[in]   renderer            ->  レンダラのインスタンス
-     * @param[in]   texture             ->  GPUのテクスチャアドレス
-     * @param[in]   textureNo           ->  描画するテクスチャ番号
-     * @param[in]   vertexCount         ->  ポリゴンメッシュの頂点数
-     * @param[in]   vertexArray         ->  ポリゴンメッシュの頂点配列
-     * @param[in]   uvArray             ->  uv配列
-     * @param[in]   opacity             ->  不透明度
-     * @param[in]   colorBlendMode      ->  カラーブレンディングのタイプ
-     * @param[in]   premultipliedAlpha  ->  乗算済みアルファかどうか
-     * @param[in]   matrix4x4           ->  Model-View-Projection行列
+     * @param[in]   renderer              ->  レンダラのインスタンス
+     * @param[in]   textureId             ->  GPUのテクスチャID
+     * @param[in]   vertexCount           ->  ポリゴンメッシュの頂点数
+     * @param[in]   vertexArray           ->  ポリゴンメッシュの頂点配列
+     * @param[in]   uvArray               ->  uv配列
+     * @param[in]   opacity               ->  不透明度
+     * @param[in]   colorBlendMode        ->  カラーブレンディングのタイプ
+     * @param[in]   baseColor             ->  ベースカラー
+     * @param[in]   isPremultipliedAlpha  ->  乗算済みアルファかどうか
+     * @param[in]   matrix4x4             ->  Model-View-Projection行列
      */
-    void SetupShaderProgram(CubismRenderer_OpenGLES2* renderer, GLuint texture, csmInt32 textureNo
+    void SetupShaderProgram(CubismRenderer_OpenGLES2* renderer, GLuint textureId
                             , csmInt32 vertexCount, csmFloat32* vertexArray
                             , csmFloat32* uvArray, csmFloat32 opacity
                             , CubismRenderer::CubismBlendMode colorBlendMode
-                            , CubismRenderer::CubismTextureColor color
-                            , csmBool premultipliedAlpha, CubismMatrix44 matrix4x4);
+                            , CubismRenderer::CubismTextureColor baseColor
+                            , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4);
 
     /**
      * @brief   シェーダプログラムを解放する
@@ -478,7 +479,7 @@ public:
      *
      * @return  テクスチャのアドレスのリスト
      */
-    const csmVector<GLuint>& GetBindedTextures() const;
+    const csmMap<csmInt32, GLuint>& GetBindedTextures() const;
 
     /**
      * @brief  クリッピングマスクバッファのサイズを設定する<br>
@@ -526,7 +527,7 @@ protected:
      * @param[in]   vertexArray     ->  ポリゴンメッシュの頂点配列
      * @param[in]   uvArray         ->  uv配列
      * @param[in]   opacity         ->  不透明度
-     * @param[in]   colorBlendingType   ->  カラー合成タイプ
+     * @param[in]   colorBlendMode  ->  カラー合成タイプ
      *
      */
     void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
@@ -624,7 +625,7 @@ private:
     void  CheckGlError(const csmChar* message);
 #endif
 
-    csmVector<GLuint>                   _textures;                      ///< レンダラでバインドしているテクスチャのリスト
+    csmMap<csmInt32, GLuint>            _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
     csmVector<csmInt32>                 _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
     CubismRendererProfile_OpenGLES2     _rendererProfile;               ///< OpenGLのステートを保持するオブジェクト
     CubismClippingManager_OpenGLES2*    _clippingManager;               ///< クリッピングマスク管理オブジェクト

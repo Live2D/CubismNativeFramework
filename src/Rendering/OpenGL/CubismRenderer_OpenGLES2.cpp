@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -1269,12 +1269,12 @@ void CubismShader_OpenGLES2::GenerateShaders()
     _shaderSets[12]->UniformBaseColorLocation = glGetUniformLocation(_shaderSets[12]->ShaderProgram, "u_baseColor");
 }
 
-void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* renderer, GLuint texture, csmInt32 textureNo
+void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* renderer, GLuint textureId
                                                 , csmInt32 vertexCount, csmFloat32* vertexArray
                                                 , csmFloat32* uvArray, csmFloat32 opacity
                                                 , CubismRenderer::CubismBlendMode colorBlendMode
-                                                , CubismRenderer::CubismTextureColor color
-                                                , csmBool premultipliedAlpha, CubismMatrix44 matrix4x4)
+                                                , CubismRenderer::CubismTextureColor baseColor
+                                                , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4)
 {
     if (_shaderSets.GetSize() == 0)
     {
@@ -1294,7 +1294,7 @@ void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* render
 
         //テクスチャ設定
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, textureId);
         glUniform1i(shaderSet->SamplerTexture0Location, 0);
 
         // 頂点配列の設定
@@ -1327,7 +1327,7 @@ void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* render
     else // マスク生成以外の場合
     {
         const csmBool masked = renderer->GetClippingContextBufferForDraw() != NULL;  // この描画オブジェクトはマスク対象か
-        const csmInt32 offset = (masked ? 1 : 0) + (premultipliedAlpha ? 2 : 0);
+        const csmInt32 offset = (masked ? 1 : 0) + (isPremultipliedAlpha ? 2 : 0);
 
         CubismShaderSet* shaderSet;
         switch (colorBlendMode)
@@ -1385,13 +1385,13 @@ void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* render
 
         //テクスチャ設定
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, textureId);
         glUniform1i(shaderSet->SamplerTexture0Location, 0);
 
         //座標変換
         glUniformMatrix4fv(shaderSet->UniformMatrixLocation, 1, 0, matrix4x4.GetArray()); //
 
-        glUniform4f(shaderSet->UniformBaseColorLocation, color.R, color.G, color.B, color.A);
+        glUniform4f(shaderSet->UniformBaseColorLocation, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
     }
 
     glBlendFuncSeparate(SRC_COLOR, DST_COLOR, SRC_ALPHA, DST_ALPHA);
@@ -1417,7 +1417,7 @@ csmBool CubismShader_OpenGLES2::CompileShaderSource(GLuint* outShader, GLenum sh
     }
 
     glGetShaderiv(*outShader, GL_COMPILE_STATUS, &status);
-    if (status == 0)
+    if (status == GL_FALSE)
     {
         glDeleteShader(*outShader);
         return false;
@@ -1442,7 +1442,7 @@ csmBool CubismShader_OpenGLES2::LinkProgram(GLuint shaderProgram)
     }
 
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
-    if (status == 0)
+    if (status == GL_FALSE)
     {
         return false;
     }
@@ -1465,8 +1465,7 @@ csmBool CubismShader_OpenGLES2::ValidateProgram(GLuint shaderProgram)
     }
 
     glGetProgramiv(shaderProgram, GL_VALIDATE_STATUS, &status);
-
-    if (status == 0)
+    if (status == GL_FALSE)
     {
         return false;
     }
@@ -1702,7 +1701,10 @@ void CubismRenderer::StaticRelease()
 CubismRenderer_OpenGLES2::CubismRenderer_OpenGLES2() : _clippingContextBufferForMask(NULL)
                                                      , _clippingContextBufferForDraw(NULL)
                                                      , _clippingManager(NULL)
-{}
+{
+    // テクスチャ対応マップの容量を確保しておく.
+    _textures.PrepareCapacity(32, true);
+}
 
 CubismRenderer_OpenGLES2::~CubismRenderer_OpenGLES2()
 {
@@ -1829,6 +1831,10 @@ void CubismRenderer_OpenGLES2::DrawMesh(csmInt32 textureNo, csmInt32 indexCount,
     if (s_isFirstInitializeGlFunctions) return;  // WindowsプラットフォームではGL命令のバインドを済ませておく必要がある
 #endif
 
+#ifndef CSM_DEBUG
+    if (_textures[textureNo] == NULL) return;    // モデルが参照するテクスチャがバインドされていない場合は描画をスキップする
+#endif
+
     // 描画不要なら描画処理をスキップする
     if (opacity <= 0.0f && GetClippingContextBufferForMask() == NULL) return;
 
@@ -1857,11 +1863,23 @@ void CubismRenderer_OpenGLES2::DrawMesh(csmInt32 textureNo, csmInt32 indexCount,
         }
     }
 
+    GLuint drawTextureId;   // シェーダに渡すテクスチャID
+
+    // テクスチャマップからバインド済みテクスチャIDを取得
+    // バインドされていなければダミーのテクスチャIDをセットする
+    if(_textures[textureNo] != NULL)
+    {
+        drawTextureId = _textures[textureNo];
+    }
+    else
+    {
+        drawTextureId = -1;
+    }
+
     CubismShader_OpenGLES2::GetInstance()->SetupShaderProgram(
-        this, _textures[textureNo], textureNo
-        , vertexCount, vertexArray, uvArray
-        , opacity, colorBlendMode, modelColorRGBA
-        , IsPremultipliedAlpha(), GetMvpMatrix()
+        this, drawTextureId, vertexCount, vertexArray, uvArray
+        , opacity, colorBlendMode, modelColorRGBA, IsPremultipliedAlpha()
+        , GetMvpMatrix()
     );
 
     // ポリゴンメッシュを描画する
@@ -1885,15 +1903,10 @@ void CubismRenderer_OpenGLES2::RestoreProfile()
 
 void CubismRenderer_OpenGLES2::BindTexture(csmUint32 modelTextureNo, GLuint glTextureNo)
 {
-    if (_textures.GetSize() < (modelTextureNo + 1))
-    {
-        _textures.Resize(modelTextureNo + 1, 0);
-    }
-
     _textures[modelTextureNo] = glTextureNo;
 }
 
-const csmVector<GLuint>& CubismRenderer_OpenGLES2::GetBindedTextures() const
+const csmMap<csmInt32, GLuint>& CubismRenderer_OpenGLES2::GetBindedTextures() const
 {
     return _textures;
 }
