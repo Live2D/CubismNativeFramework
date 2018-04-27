@@ -63,6 +63,11 @@ JSONパーサーやログ出力などのユーティリティ機能を提供し�
 [Cubism SDK Manual](http://docs.live2d.com/cubism-sdk-manual/top/)
 
 
+# 変更履歴
+
+当リポジトリの変更履歴については[コミットログ](https://github.com/Live2D/CubismNativeFramework/commits/master)を参照ください。
+
+
 # TODO
 
 - レンダラの追加実装（DirectX、他）
