@@ -384,6 +384,73 @@ public:
     Rendering::CubismRenderer::CubismBlendMode   GetDrawableBlendMode(csmInt32 drawableIndex) const;
 
     /**
+    * @brief Drawableの表示情報の取得
+    *
+    * Drawableの表示情報を取得する。
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @return  true    Drawableが表示
+    * @retval  false   Drawableが非表示
+    */
+    csmBool                  GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const;
+
+    /**
+    * @brief Drawableの表示状態の変化の取得
+    *
+    * 直近のCubismModel::Update関数でDrawableの表示状態が変化したかを取得する。
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @retval  true    Drawableの表示状態が直近のCubismModel::Update関数で変化した
+    * @retval  false   Drawableの表示状態が直近のCubismModel::Update関数で変化していない
+    */
+    csmBool                  GetDrawableDynamicFlagVisibilityDidChange(csmInt32 drawableIndex) const;
+
+    /**
+    * @brief Drawableの不透明度の変化情報の取得
+    *
+    * 直近のCubismModel::Update関数でDrawableの不透明度が変化したかを取得する。
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @retval  true    Drawableの不透明度が直近のCubismModel::Update関数で変化した
+    * @retval  false   Drawableの不透明度が直近のCubismModel::Update関数で変化していない
+    */
+    csmBool                  GetDrawableDynamicFlagOpacityDidChange(csmInt32 drawableIndex) const;
+
+    /**
+    * @brief DrawableのDrawOrderの変化情報の取得
+    *
+    * 直近のCubismModel::Update関数でDrawableのDrawOrderが変化したかを取得する。
+    * DrawOrderはArtMesh上で指定する0から1000の情報
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @retval  true    Drawableの不透明度が直近のCubismModel::Update関数で変化した
+    * @retval  false   Drawableの不透明度が直近のCubismModel::Update関数で変化していない
+    */
+    csmBool                  GetDrawableDynamicFlagDrawOrderDidChange(csmInt32 drawableIndex) const;
+
+    /**
+    * @brief Drawableの描画順序の変化情報の取得
+    *
+    * 直近のCubismModel::Update関数でDrawableの描画の順序が変化したかを取得する。
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @retval  true    Drawableの描画の順序が直近のCubismModel::Update関数で変化した
+    * @retval  false   Drawableの描画の順序が直近のCubismModel::Update関数で変化していない
+    */
+    csmBool                  GetDrawableDynamicFlagRenderOrderDidChange(csmInt32 drawableIndex) const;
+
+    /**
+    * @brief DrawableのVertexPositionsの変化情報の取得
+    *
+    * 直近のCubismModel::Update関数でDrawableの頂点情報が変化したかを取得する。
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @retval  true    Drawableの頂点情報が直近のCubismModel::Update関数で変化した
+    * @retval  false   Drawableの頂点情報が直近のCubismModel::Update関数で変化していない
+    */
+    csmBool                  GetDrawableDynamicFlagVertexPositionsDidChange(csmInt32 drawableIndex) const;
+
+    /**
      * @brief Drawableのクリッピングマスクリストの取得
      *
      * Drawableのクリッピングマスクリストを取得する。

@@ -306,6 +306,12 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
             {
                 const csmInt32 clipDrawIndex = clipContext->_clippingIdList[i];
 
+                // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                if (!model.GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                {
+                    continue;
+                }
+
                 renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
 
                 // 今回専用の変換を適用して描く
