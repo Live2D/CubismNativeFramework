@@ -80,7 +80,7 @@ CubismPose* CubismPose::Create(const csmByte* pose3json, csmSizeInt size)
     {
         ret->_fadeTimeSeconds = root[FadeIn].ToFloat(DefaultFadeInSeconds);
 
-        if (ret->_fadeTimeSeconds <= 0.0f)
+        if (ret->_fadeTimeSeconds < 0.0f)
         {
             ret->_fadeTimeSeconds = DefaultFadeInSeconds;
         }
