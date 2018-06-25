@@ -402,6 +402,42 @@ csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
     return !IsBitSet(constantFlags[drawableIndex], Core::csmIsDoubleSided);
 }
 
+csmBool CubismModel::GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const
+{
+    const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmIsVisible);
+}
+
+csmBool CubismModel::GetDrawableDynamicFlagVisibilityDidChange(csmInt32 drawableIndex) const
+{
+    const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmVisibilityDidChange);
+}
+
+csmBool CubismModel::GetDrawableDynamicFlagOpacityDidChange(csmInt32 drawableIndex) const
+{
+    const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmOpacityDidChange);
+}
+
+csmBool CubismModel::GetDrawableDynamicFlagDrawOrderDidChange(csmInt32 drawableIndex) const
+{
+    const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmDrawOrderDidChange);
+}
+
+csmBool CubismModel::GetDrawableDynamicFlagRenderOrderDidChange(csmInt32 drawableIndex) const
+{
+    const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmRenderOrderDidChange);
+}
+
+csmBool CubismModel::GetDrawableDynamicFlagVertexPositionsDidChange(csmInt32 drawableIndex) const
+{
+    const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmVertexPositionsDidChange);
+}
+
 Rendering::CubismRenderer::CubismBlendMode CubismModel::GetDrawableBlendMode(csmInt32 drawableIndex) const
 {
     const csmUint8* constantFlags = Core::csmGetDrawableConstantFlags(_model);
