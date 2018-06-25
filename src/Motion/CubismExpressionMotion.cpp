@@ -12,8 +12,8 @@ namespace Live2D { namespace Cubism { namespace Framework {
 
 namespace {
 // exp3.jsonのキーとデフォルト値
-const csmChar* ExpressionKeyFadeIn = "FadeIn";
-const csmChar* ExpressionKeyFadeOut = "FadeOut";
+const csmChar* ExpressionKeyFadeIn = "FadeInTime";
+const csmChar* ExpressionKeyFadeOut = "FadeOutTime";
 const csmChar* ExpressionKeyParameters = "Parameters";
 const csmChar* ExpressionKeyId = "Id";
 const csmChar* ExpressionKeyValue = "Value";
