@@ -95,6 +95,9 @@ void CubismModel::SetPartOpacity(csmInt32 partIndex, csmFloat32 opacity)
         return;
     }
 
+    //インデックスの範囲内検知
+    CSM_ASSERT(0 <= partIndex && partIndex < GetPartCount());
+
     _partOpacities[partIndex] = opacity;
 }
 
@@ -118,6 +121,9 @@ csmFloat32 CubismModel::GetPartOpacity(csmInt32 partIndex)
         // モデルに存在しないパーツIDの場合、非存在パーツリストから不透明度を返す
         return _notExistPartOpacities[partIndex];
     }
+
+    //インデックスの範囲内検知
+    CSM_ASSERT(0 <= partIndex && partIndex < GetPartCount());
 
     return _partOpacities[partIndex];
 }
@@ -180,6 +186,9 @@ csmFloat32 CubismModel::GetParameterValue(csmInt32 parameterIndex)
         return _notExistParameterValues[parameterIndex];
     }
 
+    //インデックスの範囲内検知
+    CSM_ASSERT(0 <= parameterIndex && parameterIndex < GetParameterCount());
+
     return _parameterValues[parameterIndex];
 }
 
@@ -194,6 +203,9 @@ void CubismModel::SetParameterValue(csmInt32 parameterIndex, csmFloat32 value, c
         return;
     }
 
+    //インデックスの範囲内検知
+    CSM_ASSERT(0 <= parameterIndex && parameterIndex < GetParameterCount());
+    
     if (Core::csmGetParameterMaximumValues(_model)[parameterIndex] < value)
     {
         value = Core::csmGetParameterMaximumValues(_model)[parameterIndex];
@@ -437,6 +449,7 @@ csmBool CubismModel::GetDrawableDynamicFlagVertexPositionsDidChange(csmInt32 dra
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
     return IsBitSet(dynamicFlags[drawableIndex], Core::csmVertexPositionsDidChange);
 }
+
 
 Rendering::CubismRenderer::CubismBlendMode CubismModel::GetDrawableBlendMode(csmInt32 drawableIndex) const
 {
