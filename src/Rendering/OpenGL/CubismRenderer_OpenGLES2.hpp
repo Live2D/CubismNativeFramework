@@ -30,6 +30,11 @@
 #include <GL/gl.h>
 #endif
 
+#ifdef CSM_TARGET_MAC_GL
+#include <GL/glew.h>
+#include <OpenGL/gl.h>
+#endif
+
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
