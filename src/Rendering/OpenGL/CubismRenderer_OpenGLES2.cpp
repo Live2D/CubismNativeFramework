@@ -1804,6 +1804,12 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
     {
         const csmInt32 drawableIndex = _sortedDrawableIndexList[i];
 
+        // Drawableが表示状態でなければ処理をパスする
+        if (!GetModel()->GetDrawableDynamicFlagIsVisible(drawableIndex))
+        {
+            continue;
+        }
+
         // クリッピングマスクをセットする
         SetClippingContextBufferForDraw((_clippingManager != NULL)
             ? (*_clippingManager->GetClippingContextListForDraw())[drawableIndex]
@@ -1840,9 +1846,6 @@ void CubismRenderer_OpenGLES2::DrawMesh(csmInt32 textureNo, csmInt32 indexCount,
 #ifndef CSM_DEBUG
     if (_textures[textureNo] == NULL) return;    // モデルが参照するテクスチャがバインドされていない場合は描画をスキップする
 #endif
-
-    // 描画不要なら描画処理をスキップする
-    if (opacity <= 0.0f && GetClippingContextBufferForMask() == NULL) return;
 
     // 裏面描画の有効・無効
     if (IsCulling())
