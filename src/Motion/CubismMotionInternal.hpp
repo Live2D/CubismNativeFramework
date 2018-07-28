@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -44,8 +44,13 @@ enum CubismMotionSegmentType
  */
 struct CubismMotionPoint
 {
-    csmFloat32 Time = 0.0f;         ///< 時間[秒]
-    csmFloat32 Value = 0.0f;        ///< 値
+    CubismMotionPoint()
+        : Time(0.0f)
+        , Value(0.0f)
+    { }
+            
+    csmFloat32 Time;         ///< 時間[秒]
+    csmFloat32 Value;        ///< 値
 };
 
 /**
@@ -112,7 +117,11 @@ struct CubismMotionCurve
 */
 struct CubismMotionEvent
 {
-    csmFloat32  FireTime = 0.0f;
+    CubismMotionEvent()
+        : FireTime(0.0f)
+    { }
+        
+    csmFloat32  FireTime;
     csmString   Value;
 };
 
@@ -129,15 +138,13 @@ struct CubismMotionData
         , CurveCount(0)
         , Fps(0.0f)
         , EventCount(0)
-    {
-        
-    }
+    { }
 
     csmFloat32 Duration;                                ///< モーションの長さ[秒]
-    csmInt16 Loop = 0;                                  ///< ループするかどうか
-    csmInt16 CurveCount = 0;                            ///< カーブの個数
-    csmInt32 EventCount = 0;                         ///< UserDataの個数
-    csmFloat32 Fps = 0.0f;                              ///< フレームレート
+    csmInt16 Loop;                                  ///< ループするかどうか
+    csmInt16 CurveCount;                            ///< カーブの個数
+    csmInt32 EventCount;                         ///< UserDataの個数
+    csmFloat32 Fps;                              ///< フレームレート
     csmVector<CubismMotionCurve> Curves;                ///< カーブのリスト
     csmVector<CubismMotionSegment> Segments;            ///< セグメントのリスト
     csmVector<CubismMotionPoint> Points;                ///< ポイントのリスト
