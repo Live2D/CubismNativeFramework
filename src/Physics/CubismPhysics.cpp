@@ -423,25 +423,25 @@ void CubismPhysics::Initialize()
         strand = &_physicsRig->Particles[currentSetting->BaseParticleIndex];
 
         // Initialize the top of particle.
-        strand[0].InitialPosition = { 0.0f, 0.0f };
+        strand[0].InitialPosition = CubismVector2(0.0f, 0.0f);
         strand[0].LastPosition = strand[0].InitialPosition;
-        strand[0].LastGravity = { 0.0f, -1.0f };
+        strand[0].LastGravity = CubismVector2(0.0f, -1.0f);
         strand[0].LastGravity.Y *= -1.0f;
-        strand[0].Velocity = { 0.0f, 0.0f };
-        strand[0].Force = { 0.0f, 0.0f };
+        strand[0].Velocity = CubismVector2(0.0f, 0.0f);
+        strand[0].Force = CubismVector2(0.0f, 0.0f);
 
         // Initialize paritcles.
         for (i = 1; i < currentSetting->ParticleCount; ++i)
         {
-            radius = { 0.0f, 0.0f };
+            radius = CubismVector2(0.0f, 0.0f);
             radius.Y = strand[i].Radius;
 			strand[i].InitialPosition = strand[i - 1].InitialPosition + radius;
             strand[i].Position = strand[i].InitialPosition;
             strand[i].LastPosition = strand[i].InitialPosition;
-            strand[i].LastGravity = { 0.0f, -1.0f };
+            strand[i].LastGravity = CubismVector2(0.0f, -1.0f);
             strand[i].LastGravity.Y *= -1.0f;
-            strand[i].Velocity = { 0.0f, 0.0f };
-            strand[i].Force = { 0.0f, 0.0f };
+            strand[i].Velocity = CubismVector2(0.0f, 0.0f);
+            strand[i].Force = CubismVector2(0.0f, 0.0f);
         }
     }
 }
