@@ -455,10 +455,10 @@ Rendering::CubismRenderer::CubismBlendMode CubismModel::GetDrawableBlendMode(csm
 {
     const csmUint8* constantFlags = Core::csmGetDrawableConstantFlags(_model);
     return (IsBitSet(constantFlags[drawableIndex], Core::csmBlendAdditive))
-               ? Rendering::CubismRenderer::CubismBlendMode::CubismBlendMode_Additive
+               ? Rendering::CubismRenderer::CubismBlendMode_Additive
                : (IsBitSet(constantFlags[drawableIndex], Core::csmBlendMultiplicative))
-               ? Rendering::CubismRenderer::CubismBlendMode::CubismBlendMode_Multiplicative
-               : Rendering::CubismRenderer::CubismBlendMode::CubismBlendMode_Normal;
+               ? Rendering::CubismRenderer::CubismBlendMode_Multiplicative
+               : Rendering::CubismRenderer::CubismBlendMode_Normal;
 }
 
 const csmInt32** CubismModel::GetDrawableMasks() const
