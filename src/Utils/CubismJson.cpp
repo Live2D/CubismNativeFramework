@@ -151,7 +151,7 @@ csmString CubismJson::ParseString(const csmChar* string, csmInt32 length, csmInt
         case '\\': {//エスケープの場合
             i++; //２文字をセットで扱う
 
-            if (i - 1 > buf_start) ret.Append(static_cast<const csmChar*>(string + buf_start), (i - buf_start - 1)); //前の文字までを登録する
+            if (i - 1 > buf_start) ret.Append(static_cast<const csmChar*>(string + buf_start), (i - buf_start)); //前の文字までを登録する
             buf_start = i + 1; //エスケープ（２文字）の次の文字から
 
             if (i < length)

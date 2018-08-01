@@ -303,7 +303,7 @@ csmString& csmString::Append(csmInt32 len2, const csmChar c)
     csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC( sizeof(csmChar) * (len1 + len2 + 1)));
 
     memcpy(newptr, this->_ptr, len1); //nullを含めない
-    for (csmInt32 i = len1 + len2 - 1; i >= len1; --i) newptr[i] = c;
+    for (csmInt32 i = len1 + len2 - 1; i >= 0; --i) newptr[i] = c;
 
     Clear(); //現在のポインタを開放してから処理する
 
