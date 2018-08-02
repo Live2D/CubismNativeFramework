@@ -711,7 +711,7 @@ static const csmChar* VertShaderSrcSetupMask =
         "v_texCoord.y = 1.0 - v_texCoord.y;"
         "}";
 static const csmChar* FragShaderSrcSetupMask =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -766,7 +766,7 @@ static const csmChar* VertShaderSrcMasked =
 //----- フラグメントシェーダプログラム -----
 // Normal & Add & Mult 共通
 static const csmChar* FragShaderSrc =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -783,7 +783,7 @@ static const csmChar* FragShaderSrc =
 
 // Normal & Add & Mult 共通 （PremultipliedAlpha）
 static const csmChar* FragShaderSrcPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -799,7 +799,7 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
 
 // Normal （クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcNormalMask =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -823,7 +823,7 @@ static const csmChar* FragShaderSrcNormalMask =
 
 // Normal （クリッピングされたものの描画用、PremultipliedAlpha兼用）
 static const csmChar* FragShaderSrcNormalMaskPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -846,7 +846,7 @@ static const csmChar* FragShaderSrcNormalMaskPremultipliedAlpha =
 
 // Add （クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcAddMask =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -870,7 +870,7 @@ static const csmChar* FragShaderSrcAddMask =
 
 // Add （クリッピングされたものの描画用、テクスチャがPremultipliedAlphaの場合）
 static const csmChar* FragShaderSrcAddMaskPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -893,7 +893,7 @@ static const csmChar* FragShaderSrcAddMaskPremultipliedAlpha =
 
 // Mult （クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcMultMask =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -917,7 +917,7 @@ static const csmChar* FragShaderSrcMultMask =
 
 // Mult （クリッピングされたものの描画用、テクスチャがPremultipliedAlphaの場合）
 static const csmChar* FragShaderSrcMultMaskPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -949,7 +949,7 @@ static const csmChar* VertShaderSrcDebug =
         "}";
 
 static const csmChar* FragShaderSrcDebug =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
         "precision mediump float;"
 #endif
 #ifdef CSM_TARGET_ANDROID_ES2
