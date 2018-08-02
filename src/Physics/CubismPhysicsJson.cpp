@@ -223,9 +223,7 @@ csmInt32 CubismPhysicsJson::GetParticleRadius(csmInt32 physicsSettingIndex, csmI
 
 CubismVector2 CubismPhysicsJson::GetParticlePosition(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const
 {
-    CubismVector2 ret = {
-        _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Position][X].ToFloat(),
-        _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Position][Y].ToFloat() };
-    return ret;
+    return CubismVector2(_json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Position][X].ToFloat(),
+        _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Position][Y].ToFloat() );
 }
 }}}

@@ -325,7 +325,7 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
                     const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
                     reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
                     model.GetDrawableOpacity(clipDrawIndex),
-                    CubismRenderer::CubismBlendMode::CubismBlendMode_Normal   //クリッピングは通常描画を強制
+                    CubismRenderer::CubismBlendMode_Normal   //クリッピングは通常描画を強制
                 );
             }
         }
@@ -714,6 +714,9 @@ static const csmChar* FragShaderSrcSetupMask =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
+#ifdef CSM_TARGET_ANDROID_ES2
+        "precision mediump float;"
+#endif
         "varying vec2 v_texCoord;"
         "varying vec4 v_myPos;"
         "uniform sampler2D s_texture0;"
@@ -766,6 +769,9 @@ static const csmChar* FragShaderSrc =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
+#ifdef CSM_TARGET_ANDROID_ES2
+        "precision mediump float;"
+#endif
         "varying vec2 v_texCoord;" //v2f.texcoord
         "uniform sampler2D s_texture0;" //_MainTex
         "uniform vec4 u_baseColor;" //v2f.color
@@ -780,6 +786,9 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
+#ifdef CSM_TARGET_ANDROID_ES2
+        "precision mediump float;"
+#endif
         "varying vec2 v_texCoord;" //v2f.texcoord
         "uniform sampler2D s_texture0;" //_MainTex
         "uniform vec4 u_baseColor;" //v2f.color
@@ -791,6 +800,9 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
 // Normal （クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcNormalMask =
 #ifdef CSM_TARGET_IPHONE_ES2
+        "precision mediump float;"
+#endif
+#ifdef CSM_TARGET_ANDROID_ES2
         "precision mediump float;"
 #endif
         "varying vec2 v_texCoord;"
@@ -814,6 +826,9 @@ static const csmChar* FragShaderSrcNormalMaskPremultipliedAlpha =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
+#ifdef CSM_TARGET_ANDROID_ES2
+        "precision mediump float;"
+#endif
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"
@@ -832,6 +847,9 @@ static const csmChar* FragShaderSrcNormalMaskPremultipliedAlpha =
 // Add （クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcAddMask =
 #ifdef CSM_TARGET_IPHONE_ES2
+        "precision mediump float;"
+#endif
+#ifdef CSM_TARGET_ANDROID_ES2
         "precision mediump float;"
 #endif
         "varying vec2 v_texCoord;"
@@ -855,6 +873,9 @@ static const csmChar* FragShaderSrcAddMaskPremultipliedAlpha =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
+#ifdef CSM_TARGET_ANDROID_ES2
+        "precision mediump float;"
+#endif
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"
@@ -873,6 +894,9 @@ static const csmChar* FragShaderSrcAddMaskPremultipliedAlpha =
 // Mult （クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcMultMask =
 #ifdef CSM_TARGET_IPHONE_ES2
+        "precision mediump float;"
+#endif
+#ifdef CSM_TARGET_ANDROID_ES2
         "precision mediump float;"
 #endif
         "varying vec2 v_texCoord;"
@@ -894,6 +918,9 @@ static const csmChar* FragShaderSrcMultMask =
 // Mult （クリッピングされたものの描画用、テクスチャがPremultipliedAlphaの場合）
 static const csmChar* FragShaderSrcMultMaskPremultipliedAlpha =
 #ifdef CSM_TARGET_IPHONE_ES2
+        "precision mediump float;"
+#endif
+#ifdef CSM_TARGET_ANDROID_ES2
         "precision mediump float;"
 #endif
         "varying vec2 v_texCoord;"
@@ -923,6 +950,9 @@ static const csmChar* VertShaderSrcDebug =
 
 static const csmChar* FragShaderSrcDebug =
 #ifdef CSM_TARGET_IPHONE_ES2
+        "precision mediump float;"
+#endif
+#ifdef CSM_TARGET_ANDROID_ES2
         "precision mediump float;"
 #endif
         "varying lowp vec4 colorVarying; "
@@ -1338,7 +1368,7 @@ void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* render
         CubismShaderSet* shaderSet;
         switch (colorBlendMode)
         {
-        case CubismRenderer::CubismBlendMode::CubismBlendMode_Normal:
+        case CubismRenderer::CubismBlendMode_Normal:
         default:
             shaderSet = _shaderSets[ShaderNames_Normal + offset];
             SRC_COLOR = GL_ONE;
@@ -1347,7 +1377,7 @@ void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* render
             DST_ALPHA = GL_ONE_MINUS_SRC_ALPHA;
             break;
 
-        case CubismRenderer::CubismBlendMode::CubismBlendMode_Additive:
+        case CubismRenderer::CubismBlendMode_Additive:
             shaderSet = _shaderSets[ShaderNames_Add + offset];
             SRC_COLOR = GL_ONE;
             DST_COLOR = GL_ONE;
@@ -1355,7 +1385,7 @@ void CubismShader_OpenGLES2::SetupShaderProgram(CubismRenderer_OpenGLES2* render
             DST_ALPHA = GL_ONE;
             break;
 
-        case CubismRenderer::CubismBlendMode::CubismBlendMode_Multiplicative:
+        case CubismRenderer::CubismBlendMode_Multiplicative:
             shaderSet = _shaderSets[ShaderNames_Mult + offset];
             SRC_COLOR = GL_DST_COLOR;
             DST_COLOR = GL_ONE_MINUS_SRC_ALPHA;

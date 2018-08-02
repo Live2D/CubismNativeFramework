@@ -93,6 +93,18 @@ csmBool CubismFramework::StartUp(ICubismAllocator* allocator, const Option* opti
     return s_isStarted;
 }
 
+void CubismFramework::CleanUp()
+{
+    s_isStarted = false;
+    s_isInitialized = false;
+    s_allocator = NULL;
+    s_option = NULL;
+    s_cubismIdManager = NULL;
+#ifdef CSM_DEBUG_MEMORY_LEAKING
+    s_allocationList = NULL;
+#endif
+}
+
 csmBool CubismFramework::IsStarted()
 {
     return s_isStarted;

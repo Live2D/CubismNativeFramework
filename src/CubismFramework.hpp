@@ -208,18 +208,25 @@ public:
         LogLevel LoggingLevel;                  ///< ログ出力レベル設定
     };
 
-    /**
-     * @brief    Cubism FrameworkのAPIを使用可能にする。<br>
-     *            APIを実行する前に必ずこの関数を実行すること。<br>
-     *            引数に必ずメモリアロケータを渡してください。<br>
-     *            一度準備が完了して以降は、再び実行しても内部処理がスキップされます。
-     *
-     * @param    allocator   ICubismAllocatorクラスのインスタンス
-     * @param    option      Optionクラスのインスタンス
-     *
-     * @return   準備処理が完了したらtrueが返ります。
-     */
+   /**
+    * @brief    Cubism FrameworkのAPIを使用可能にする。<br>
+    *            APIを実行する前に必ずこの関数を実行すること。<br>
+    *            引数に必ずメモリアロケータを渡してください。<br>
+    *            一度準備が完了して以降は、再び実行しても内部処理がスキップされます。
+    *
+    * @param    allocator   ICubismAllocatorクラスのインスタンス
+    * @param    option      Optionクラスのインスタンス
+    *
+    * @return   準備処理が完了したらtrueが返ります。
+    */
     static csmBool StartUp(ICubismAllocator* allocator, const Option* option = NULL);
+
+    /**
+    * @brief    StartUp()で初期化したCubismFrameworkの各パラメータをクリアします。<br>
+    *            Dispose()したCubismFrameworkを再利用する際に利用してください。<br>
+    *
+    */
+    static void CleanUp();
 
     /**
      * @brief   Cubism FrameworkのAPIを使用する準備が完了したかどうか？
