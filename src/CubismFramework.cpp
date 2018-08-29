@@ -171,7 +171,7 @@ void CubismFramework::Dispose()
 
     for (csmUint32 i = 0; i < s_allocationList->size(); ++i)
     {
-        CubismLogInfo("Memory leaking: 0x%x", s_allocationList->at(i));
+        CubismLogInfo("Memory leaking: 0x%p", s_allocationList->at(i));
     }
 
     if (s_allocationList->size() == 0)
@@ -224,7 +224,7 @@ void* CubismFramework::Allocate(csmSizeType size, const csmChar* fileName, csmIn
 {
     void* address = GetAllocator()->Allocate(size);
 
-    CubismLogVerbose("CubismFramework::Allocate(0x%x, %dbytes) %s(%d)", address, size, fileName, lineNumber);
+    CubismLogVerbose("CubismFramework::Allocate(0x%p, %dbytes) %s(%d)", address, size, fileName, lineNumber);
 
     if (s_allocationList)
     {
@@ -238,7 +238,7 @@ void* CubismFramework::AllocateAligned(csmSizeType size, csmUint32 alignment, co
 {
     void* address = GetAllocator()->AllocateAligned(size, alignment);
 
-    CubismLogVerbose("CubismFramework::AllocateAligned(0x%x, a:%d, %dbytes) %s(%d)", address, alignment, size, fileName, lineNumber);
+    CubismLogVerbose("CubismFramework::AllocateAligned(0x%p, a:%d, %dbytes) %s(%d)", address, alignment, size, fileName, lineNumber);
 
     if (s_allocationList)
     {
@@ -255,7 +255,7 @@ void CubismFramework::Deallocate(void* address, const csmChar* fileName, csmInt3
         return;
     }
 
-    CubismLogVerbose("CubismFramework::Deallocate(0x%x) %s(%d)", address, fileName, lineNumber);
+    CubismLogVerbose("CubismFramework::Deallocate(0x%p) %s(%d)", address, fileName, lineNumber);
 
     if (s_allocationList)
     {
@@ -281,7 +281,7 @@ void CubismFramework::DeallocateAligned(void* address, const csmChar* fileName, 
         return;
     }
 
-    CubismLogVerbose("CubismFramework::DeallocateAligned(0x%x) %s(%d)", address, fileName, lineNumber);
+    CubismLogVerbose("CubismFramework::DeallocateAligned(0x%p) %s(%d)", address, fileName, lineNumber);
 
     if (s_allocationList)
     {
