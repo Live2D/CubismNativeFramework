@@ -49,14 +49,14 @@ void Value::StaticInitializeNotForClientCall()
 }
 
 CubismJson::CubismJson()
-    : _lineCount(0)
-    , _error(NULL)
+    : _error(NULL)
+    , _lineCount(0)
     , _root(NULL)
 { }
 
 CubismJson::CubismJson(const csmByte* buffer, csmInt32 length)
-    : _lineCount(0)
-    , _error(NULL)
+    : _error(NULL)
+    , _lineCount(0)
     , _root(NULL)
 {
     ParseBytes(buffer, length);

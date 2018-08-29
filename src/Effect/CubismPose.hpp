@@ -149,7 +149,6 @@ private:
     csmVector<PartData>             _partGroups;                ///< パーツグループ
     csmVector<csmInt32>             _partGroupCounts;           ///< それぞれのパーツグループの個数
     csmFloat32                      _fadeTimeSeconds;           ///< フェード時間[秒]
-    csmFloat32                      _lastTimeSeconds;           ///< 最後に実行した時刻[秒]
     CubismModel*                    _lastModel;                 ///< 前回操作したモデル
 };
 

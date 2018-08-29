@@ -183,9 +183,9 @@ void CubismMotion::DoUpdateParameters(CubismModel* model, csmFloat32 userTimeSec
     {
         CubismLogDebug("too many eye blink targets : %d", _eyeBlinkParameterIds.GetSize());
     }
-    if (_eyeBlinkParameterIds.GetSize() > MaxTargetSize)
+    if (_lipSyncParameterIds.GetSize() > MaxTargetSize)
     {
-        CubismLogDebug("too many lip sync targets : %d", _eyeBlinkParameterIds.GetSize());
+        CubismLogDebug("too many lip sync targets : %d", _lipSyncParameterIds.GetSize());
     }
 
     const csmFloat32 tmpFadeIn = (_fadeInSeconds <= 0.0f)

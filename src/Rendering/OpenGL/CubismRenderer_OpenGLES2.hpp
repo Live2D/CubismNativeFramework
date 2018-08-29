@@ -186,7 +186,7 @@ private:
     csmInt32    _currentFrameNo;         ///< マスクテクスチャに与えるフレーム番号
 
     csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
-    csmVector<CubismRenderTextureResource*>         _maskTextures;                 ///< マスク用のテクスチャリソースのリスト
+    CubismRenderTextureResource*                    _maskTexture;                  ///< マスク用のテクスチャリソース
     csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
     csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
     csmInt32                                        _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
