@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -136,8 +136,8 @@ struct CubismMotionData
         : Duration(0.0f)
         , Loop(0)
         , CurveCount(0)
-        , Fps(0.0f)
         , EventCount(0)
+        , Fps(0.0f)
     { }
 
     csmFloat32 Duration;                                ///< モーションの長さ[秒]

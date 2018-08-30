@@ -30,6 +30,7 @@ CubismClippingManager_OpenGLES2::CubismClippingManager_OpenGLES2() :
                                                                    _maskRenderTexture(0)
                                                                    , _colorBuffer(0)
                                                                    , _currentFrameNo(0)
+                                                                   , _maskTexture(NULL)
                                                                    , _clippingMaskBufferSize(256)
 {
     CubismRenderer::CubismTextureColor* tmp;
@@ -73,11 +74,11 @@ CubismClippingManager_OpenGLES2::~CubismClippingManager_OpenGLES2()
     {
         _clippingContextListForDraw[i] = NULL;
     }
-    for (csmUint32 i = 0; i < _maskTextures.GetSize(); i++)
+    if (_maskTexture)
     {
-        glDeleteFramebuffers(1, &_maskTextures[i]->Texture);
-        if (_maskTextures[i]) CSM_DELETE_SELF(CubismRenderTextureResource, _maskTextures[i]);
-        _maskTextures[i] = NULL;
+        glDeleteFramebuffers(1, &_maskTexture->Texture);
+        CSM_DELETE_SELF(CubismRenderTextureResource, _maskTexture);
+        _maskTexture = NULL;
     }
 
     for (csmUint32 i = 0; i < _channelColors.GetSize(); i++)
@@ -151,14 +152,10 @@ GLuint CubismClippingManager_OpenGLES2::GetMaskRenderTexture()
     GLuint ret = 0;
 
     // テンポラリのRenderTexutreを取得する
-    for (csmUint32 i = 0; i < _maskTextures.GetSize(); i++)
+    if (_maskTexture && _maskTexture->Texture != 0)
     {
-        if (_maskTextures[i]->Texture != 0) //前回使ったものを返す
-        {
-            _maskTextures[i]->FrameNo = _currentFrameNo;
-            ret = _maskTextures[i]->Texture;
-            break;
-        }
+        _maskTexture->FrameNo = _currentFrameNo;
+        ret = _maskTexture->Texture;
     }
 
     if (ret == 0)
@@ -182,7 +179,7 @@ GLuint CubismClippingManager_OpenGLES2::GetMaskRenderTexture()
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colorBuffer, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, tmpFramebufferObject);
 
-        _maskTextures.PushBack(CSM_NEW CubismRenderTextureResource(_currentFrameNo, ret));
+        _maskTexture = CSM_NEW CubismRenderTextureResource(_currentFrameNo, ret);
     }
 
     return ret;
@@ -797,8 +794,8 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
         "gl_FragColor = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
         "}";
 
-// Normal （クリッピングされたものの描画用）
-static const csmChar* FragShaderSrcNormalMask =
+// Normal & Add & Mult 共通（クリッピングされたものの描画用）
+static const csmChar* FragShaderSrcMask =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
@@ -821,8 +818,8 @@ static const csmChar* FragShaderSrcNormalMask =
         "gl_FragColor = col_formask;"
         "}";
 
-// Normal （クリッピングされたものの描画用、PremultipliedAlpha兼用）
-static const csmChar* FragShaderSrcNormalMaskPremultipliedAlpha =
+// Normal & Add & Mult 共通（クリッピングされたものの描画用、PremultipliedAlphaの場合）
+static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 #ifdef CSM_TARGET_IPHONE_ES2
         "precision mediump float;"
 #endif
@@ -844,100 +841,6 @@ static const csmChar* FragShaderSrcNormalMaskPremultipliedAlpha =
         "gl_FragColor = col_formask;"
         "}";
 
-// Add （クリッピングされたものの描画用）
-static const csmChar* FragShaderSrcAddMask =
-#ifdef CSM_TARGET_IPHONE_ES2
-        "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
-#endif
-        "varying vec2 v_texCoord;"
-        "varying vec4 v_clipPos;"
-        "uniform sampler2D s_texture0;"
-        "uniform sampler2D s_texture1;"
-        "uniform vec4 u_channelFlag;"
-        "uniform vec4 u_baseColor;"
-        "void main()"
-        "{"
-        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
-        "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
-        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
-        "col_formask.a = col_formask.a * maskVal;"
-        "gl_FragColor = col_formask;"
-        "}";
-
-// Add （クリッピングされたものの描画用、テクスチャがPremultipliedAlphaの場合）
-static const csmChar* FragShaderSrcAddMaskPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
-        "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
-#endif
-        "varying vec2 v_texCoord;"
-        "varying vec4 v_clipPos;"
-        "uniform sampler2D s_texture0;"
-        "uniform sampler2D s_texture1;"
-        "uniform vec4 u_channelFlag;"
-        "uniform vec4 u_baseColor;"
-        "void main()"
-        "{"
-        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
-        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
-        "col_formask = col_formask * maskVal;"
-        "gl_FragColor = col_formask;"
-        "}";
-
-// Mult （クリッピングされたものの描画用）
-static const csmChar* FragShaderSrcMultMask =
-#ifdef CSM_TARGET_IPHONE_ES2
-        "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
-#endif
-        "varying vec2 v_texCoord;"
-        "varying vec4 v_clipPos;"
-        "uniform sampler2D s_texture0;"
-        "uniform sampler2D s_texture1;"
-        "uniform vec4 u_channelFlag;"
-        "uniform vec4 u_baseColor;"
-        "void main()"
-        "{"
-        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
-        "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
-        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
-        "col_formask = col_formask * maskVal;"
-        "gl_FragColor = col_formask;"
-        "}";
-
-// Mult （クリッピングされたものの描画用、テクスチャがPremultipliedAlphaの場合）
-static const csmChar* FragShaderSrcMultMaskPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
-        "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
-#endif
-        "varying vec2 v_texCoord;"
-        "varying vec4 v_clipPos;"
-        "uniform sampler2D s_texture0;"
-        "uniform sampler2D s_texture1;"
-        "uniform vec4 u_channelFlag;"
-        "uniform vec4 u_baseColor;" //v2f.color
-        "void main()"
-        "{"
-        "vec4 tex = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
-        "vec4 col_formask = tex;"
-        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
-        "col_formask = col_formask * maskVal;"
-        "gl_FragColor = col_formask;"
-        "}";
 
 //テクスチャを使わないデバッグ用の表示
 static const csmChar* VertShaderSrcDebug =
@@ -1159,19 +1062,21 @@ void CubismShader_OpenGLES2::GenerateShaders()
         _shaderSets[0]->ShaderProgram = LoadShaderProgram(VertShaderSrcSetupMask, FragShaderSrcSetupMask);
 
         _shaderSets[1]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrc);
-        _shaderSets[2]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcNormalMask);
+        _shaderSets[2]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMask);
         _shaderSets[3]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
-        _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcNormalMaskPremultipliedAlpha);
+        _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskPremultipliedAlpha);
 
-        _shaderSets[5]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrc);
-        _shaderSets[6]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcAddMask);
-        _shaderSets[7]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
-        _shaderSets[8]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcAddMaskPremultipliedAlpha);
+        // 加算も通常と同じシェーダーを利用する
+        _shaderSets[5]->ShaderProgram = _shaderSets[1]->ShaderProgram;
+        _shaderSets[6]->ShaderProgram = _shaderSets[2]->ShaderProgram;
+        _shaderSets[7]->ShaderProgram = _shaderSets[3]->ShaderProgram;
+        _shaderSets[8]->ShaderProgram = _shaderSets[4]->ShaderProgram;
 
-        _shaderSets[9]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrc);
-        _shaderSets[10]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMultMask);
-        _shaderSets[11]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
-        _shaderSets[12]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMultMaskPremultipliedAlpha);
+        // 乗算も通常と同じシェーダーを利用する
+        _shaderSets[9]->ShaderProgram = _shaderSets[1]->ShaderProgram;
+        _shaderSets[10]->ShaderProgram = _shaderSets[2]->ShaderProgram;
+        _shaderSets[11]->ShaderProgram = _shaderSets[3]->ShaderProgram;
+        _shaderSets[12]->ShaderProgram = _shaderSets[4]->ShaderProgram;
     }
 
 #else
@@ -1179,19 +1084,21 @@ void CubismShader_OpenGLES2::GenerateShaders()
     _shaderSets[0]->ShaderProgram = LoadShaderProgram(VertShaderSrcSetupMask, FragShaderSrcSetupMask);
 
     _shaderSets[1]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrc);
-    _shaderSets[2]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcNormalMask);
+    _shaderSets[2]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMask);
     _shaderSets[3]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
-    _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcNormalMaskPremultipliedAlpha);
+    _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskPremultipliedAlpha);
 
-    _shaderSets[5]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrc);
-    _shaderSets[6]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcAddMask);
-    _shaderSets[7]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
-    _shaderSets[8]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcAddMaskPremultipliedAlpha);
+    // 加算も通常と同じシェーダーを利用する
+    _shaderSets[5]->ShaderProgram = _shaderSets[1]->ShaderProgram;
+    _shaderSets[6]->ShaderProgram = _shaderSets[2]->ShaderProgram;
+    _shaderSets[7]->ShaderProgram = _shaderSets[3]->ShaderProgram;
+    _shaderSets[8]->ShaderProgram = _shaderSets[4]->ShaderProgram;
 
-    _shaderSets[9]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrc);
-    _shaderSets[10]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMultMask);
-    _shaderSets[11]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
-    _shaderSets[12]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMultMaskPremultipliedAlpha);
+    // 乗算も通常と同じシェーダーを利用する
+    _shaderSets[9]->ShaderProgram = _shaderSets[1]->ShaderProgram;
+    _shaderSets[10]->ShaderProgram = _shaderSets[2]->ShaderProgram;
+    _shaderSets[11]->ShaderProgram = _shaderSets[3]->ShaderProgram;
+    _shaderSets[12]->ShaderProgram = _shaderSets[4]->ShaderProgram;
 #endif
 
     // SetupMask

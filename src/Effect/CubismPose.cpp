@@ -62,7 +62,6 @@ void CubismPose::PartData::Initialize(CubismModel* model)
 }
 
 CubismPose::CubismPose() : _fadeTimeSeconds(DefaultFadeInSeconds)
-                         , _lastTimeSeconds(0.0f)
                          , _lastModel(NULL)
 { }
 

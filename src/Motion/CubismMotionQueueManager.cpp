@@ -218,16 +218,6 @@ void CubismMotionQueueManager::StopAllMotions()
             continue;
         }
 
-        ACubismMotion* motion = motionQueueEntry->_motion;
-
-        if (motion == NULL)
-        {
-            CSM_DELETE(motionQueueEntry);
-            ite = _motions.Erase(ite);
-
-            continue;
-        }
-
         // ----- 終了済みの処理があれば削除する ------
         CSM_DELETE(motionQueueEntry);
         ite = _motions.Erase(ite); //削除
