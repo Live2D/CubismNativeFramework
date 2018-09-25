@@ -31,7 +31,6 @@
 #endif
 
 #ifdef CSM_TARGET_MAC_GL
-#include <GL/glew.h>
 #include <OpenGL/gl.h>
 #endif
 
