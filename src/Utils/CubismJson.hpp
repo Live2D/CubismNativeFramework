@@ -376,7 +376,7 @@ public:
      */
     virtual const csmString& GetString(const csmString& defaultValue = "", const csmString& indent = "")
     {
-#if defined(CSM_TARGET_WIN_GL)
+#if defined(CSM_TARGET_WIN_GL) || defined(_MSC_VER)
         csmChar strbuf[32] = {'\0'};
         _snprintf_s(strbuf, 32, 32, "%f", this->_value);
         _stringBuffer = csmString(strbuf);
