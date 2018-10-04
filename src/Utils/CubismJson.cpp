@@ -108,7 +108,7 @@ csmBool CubismJson::ParseBytes(const csmByte* buffer, csmInt32 size)
 
     if (_error)
     {
-#if defined(CSM_TARGET_WIN_GL)
+#if defined(CSM_TARGET_WIN_GL) || defined(_MSC_VER)
         csmChar strbuf[256] = {'\0'};
         _snprintf_s(strbuf, 256, 256, "Json parse error : @line %d\n", (_lineCount + 1));
         _root = CSM_NEW String(strbuf);
