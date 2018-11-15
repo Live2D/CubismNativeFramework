@@ -96,8 +96,8 @@ void CubismTargetPoint::Update(csmFloat32 deltaTimeSeconds)
         //                    2
         //                 4 t  - 2
         // (t=1)
-        // 	時刻tは、あらかじめ加速度、速度を1/60(フレームレート、単位なし)で
-        // 	考えているので、t＝１として消してよい（※未検証）
+        //  時刻tは、あらかじめ加速度、速度を1/60(フレームレート、単位なし)で
+        //  考えているので、t＝１として消してよい（※未検証）
 
         const csmFloat32 maxV = 0.5f * (CubismMath::SqrtF((MaxA * MaxA) + 16.0f * MaxA * d - 8.0f * MaxA * d) - MaxA);
         const csmFloat32 curV = CubismMath::SqrtF((_faceVX * _faceVX) + (_faceVY * _faceVY));

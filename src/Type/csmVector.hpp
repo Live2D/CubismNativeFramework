@@ -12,7 +12,7 @@
 #include "Utils/CubismDebug.hpp"
 
 #ifndef NULL
-#  define NULL	0
+#   define  NULL    0
 #endif
 
 //--------- LIVE2D NAMESPACE ------------

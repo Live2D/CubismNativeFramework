@@ -236,7 +236,7 @@ csmFloat32 GetOutputAngle(CubismVector2 translation, CubismPhysicsParticle* part
     }
     else
     {
-		parentGravity *= -1.0f;
+        parentGravity *= -1.0f;
     }
 
     outputValue = CubismMath::DirectionToRadian(parentGravity, translation);
@@ -295,7 +295,7 @@ void UpdateParticles(CubismPhysicsParticle* strand, csmInt32 strandCount, Cubism
 
     for (i = 1; i < strandCount; ++i)
     {
-		strand[i].Force = (currentGravity * strand[i].Acceleration) + windDirection;
+        strand[i].Force = (currentGravity * strand[i].Acceleration) + windDirection;
 
         strand[i].LastPosition = strand[i].Position;
 
@@ -309,19 +309,19 @@ void UpdateParticles(CubismPhysicsParticle* strand, csmInt32 strandCount, Cubism
         direction.X = ((CubismMath::CosF(radian) * direction.X) - (direction.Y * CubismMath::SinF(radian)));
         direction.Y = ((CubismMath::SinF(radian) * direction.X) + (direction.Y * CubismMath::CosF(radian)));
 
-		strand[i].Position = strand[i - 1].Position + direction;
+        strand[i].Position = strand[i - 1].Position + direction;
 
         velocity.X = strand[i].Velocity.X * delay;
         velocity.Y = strand[i].Velocity.Y * delay;
         force = strand[i].Force * delay * delay;
 
-		strand[i].Position = strand[i].Position + velocity + force;
+        strand[i].Position = strand[i].Position + velocity + force;
 
         newDirection = strand[i].Position - strand[i - 1].Position;
 
         newDirection.Normalize();
 
-		strand[i].Position = strand[i - 1].Position + (newDirection * strand[i].Radius);
+        strand[i].Position = strand[i - 1].Position + (newDirection * strand[i].Radius);
 
         if (CubismMath::AbsF(strand[i].Position.X) < thresholdValue)
         {
@@ -435,7 +435,7 @@ void CubismPhysics::Initialize()
         {
             radius = CubismVector2(0.0f, 0.0f);
             radius.Y = strand[i].Radius;
-			strand[i].InitialPosition = strand[i - 1].InitialPosition + radius;
+            strand[i].InitialPosition = strand[i - 1].InitialPosition + radius;
             strand[i].Position = strand[i].InitialPosition;
             strand[i].LastPosition = strand[i].InitialPosition;
             strand[i].LastGravity = CubismVector2(0.0f, -1.0f);
