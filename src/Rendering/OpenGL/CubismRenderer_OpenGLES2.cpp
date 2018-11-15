@@ -256,7 +256,7 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
             //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
 
             // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
-            // movePeriod' = movePeriod * scaleX + offX		  [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
+            // movePeriod' = movePeriod * scaleX + offX     [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
             const csmFloat32 scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
             const csmFloat32 scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
 

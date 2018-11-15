@@ -72,6 +72,24 @@ set(Framework
 
 )
 
+elseif (${FRAMEWORK_SOURCE} MATCHES "D3D11" )
+
+# ここにプロジェクトに追加するソースファイルを追加 DirectX11 
+
+# アプリケーション側で設定したgl系のincludeパスをセットする
+include_directories("${FRAMEWORK_DX11_INCLUDE_PATH}")
+
+set(Framework
+    
+    ${commonfiles}
+    
+    src/Rendering/D3D11/CubismOffscreenSurface_D3D11.cpp
+    src/Rendering/D3D11/CubismRenderer_D3D11.cpp
+    src/Rendering/D3D11/CubismRenderState_D3D11.cpp
+    src/Rendering/D3D11/CubismShader_D3D11.cpp
+
+)
+
 else ()
 
 # ここにプロジェクトに追加するソースファイルを追加 OpenGL

@@ -5,8 +5,6 @@
  * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
-
-
 #include "CubismJson.hpp"
 #include <stdlib.h>
 #include "Type/csmString.hpp"

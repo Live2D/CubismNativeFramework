@@ -12,7 +12,7 @@
 #include "Utils/CubismDebug.hpp"
 
 #ifndef NULL
-#  define NULL	0
+#   define  NULL 0
 #endif
 
 //--------- LIVE2D NAMESPACE ------------
@@ -582,7 +582,7 @@ void csmMap<_KeyT, _ValT>::PrepareCapacity(csmInt32 newSize, csmBool fitToSize)
             _capacity = newSize;
         }
     }
-    //	_size = newsize ;
+    //  _size = newsize ;
 }
 
 template<class _KeyT, class _ValT>
