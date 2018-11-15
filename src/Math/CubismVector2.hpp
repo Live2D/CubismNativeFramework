@@ -11,7 +11,7 @@
 #include "math.h"
 
 #ifndef NULL
-#  define NULL	0
+#   define  NULL  0
 #endif
 
 namespace Live2D { namespace Cubism { namespace Framework {

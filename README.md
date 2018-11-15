@@ -70,7 +70,7 @@ JSONパーサーやログ出力などのユーティリティ機能を提供し�
 
 # TODO
 
-- レンダラの追加実装（DirectX、他）
+- 無し
 
 
 # ライセンス
@@ -80,7 +80,7 @@ Cubism Native Framework は Live2D Open Software License で提供していま�
 [English](http://www.live2d.com/eula/live2d-open-software-license-agreement_en.html) 
 
 
-Live2D Cubism Native Core は Live2D Proprietary Software License で提供しています。
+Live2D Cubism Core for Native は Live2D Proprietary Software License で提供しています。
  - Live2D Proprietary Software License 
 [日本語](http://www.live2d.com/eula/live2d-proprietary-software-license-agreement_jp.html) 
 [English](http://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html) 
