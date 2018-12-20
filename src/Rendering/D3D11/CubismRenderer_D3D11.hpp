@@ -444,7 +444,6 @@ private:
      */
     void CopyToBuffer(ID3D11DeviceContext* renderContext, csmInt32 drawAssign, const csmInt32 vcount, const csmFloat32* varray, const csmFloat32* uvarray);
 
-
     ID3D11Buffer***                     _vertexBuffers;         ///< 描画バッファ カラー無し、位置+UV 
     ID3D11Buffer***                     _indexBuffers;          ///< インデックスのバッファ 
     ID3D11Buffer***                     _constantBuffers;       ///< 定数のバッファ 

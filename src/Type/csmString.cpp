@@ -24,11 +24,12 @@ csmChar* GetEmptyString()
 }
 
 csmString::csmString()
-    : _ptr(GetEmptyString())
+    : _ptr(NULL)
     , _length(0)
     , _hashcode(-1)
 {
-    _hashcode = CalcHashcode(this->_ptr, this->_length);
+    this->_small[0] = '\0';
+    _hashcode = CalcHashcode(WritePointer(), this->_length);
     _instanceNo = s_totalInstanceNo++;
 }
 
@@ -39,7 +40,7 @@ csmString::csmString(const csmChar* c)
     if (count)
     {
         Copy(c, count);
-        this->_hashcode = CalcHashcode(this->_ptr, _length);
+        this->_hashcode = CalcHashcode(WritePointer(), _length);
     }
     else
     {
@@ -53,7 +54,7 @@ csmString::csmString(const csmString& s)
 {
     if (!s.IsEmpty())
     {
-        Copy(s._ptr, s._length);
+        Copy(s.GetRawString(), s._length);
         this->_hashcode = s._hashcode;
     }
     else
@@ -69,7 +70,7 @@ csmString::csmString(const csmChar* s, csmInt32 length)
     if (length)
     {
         Copy(s, length);
-        this->_hashcode = CalcHashcode(this->_ptr, _length);
+        this->_hashcode = CalcHashcode(WritePointer(), _length);
     }
     else
     {
@@ -102,10 +103,10 @@ void csmString::Initialize(const csmChar* c, csmInt32 length, csmBool usePtr)
     {
         this->_ptr = const_cast<csmChar*>(c);
         this->_length = length;
+        this->_ptr[length] = 0x0;
     }
 
-    this->_ptr[length] = 0x0;
-    this->_hashcode = CalcHashcode(this->_ptr, _length);
+    this->_hashcode = CalcHashcode(this->GetRawString(), this->_length);
 }
 
 csmString::~csmString()
@@ -138,7 +139,7 @@ csmString& csmString::operator=(const csmChar* c)
     Clear(); //現在のポインタを開放してから処理する
 
     Copy(c, static_cast<csmInt32>(strlen(c)));
-    this->_hashcode = CalcHashcode(this->_ptr, this->_length);
+    this->_hashcode = CalcHashcode(this->GetRawString(), this->_length);
     return *this;
 }
 
@@ -146,15 +147,15 @@ csmString& csmString::operator=(const csmString& s)
 {
     Clear(); //現在のポインタを開放してから処理する
 
-    Copy(s._ptr, s._length);
+    Copy(s.GetRawString(), s._length);
     this->_hashcode = s._hashcode;
     return *this;
 }
 
 csmString csmString::operator+(const csmString& s) const
 {
-    csmInt32 len1 = this->_length;
-    csmInt32 len2 = s._length;
+    csmSizeType len1 = static_cast<csmSizeType>(this->_length);
+    csmSizeType len2 = static_cast<csmSizeType>(s._length);
 
     if (!len1 && !len2)
     {
@@ -162,69 +163,131 @@ csmString csmString::operator+(const csmString& s) const
         return ret;
     }
 
-    //メモリ管理の対象外とする（寿命が把握出来ない）
-    csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC( sizeof(csmChar) * (len1 + len2 + 1)));
-
-    if (newptr == NULL)
+    if (len1 + len2 < SmallLength - 1)
     {
-        csmString ret;
+        csmChar buffer[SmallLength];
+        csmChar* newptr = buffer;
+
+        //
+        memcpy(newptr, GetRawString(), sizeof(csmChar) * len1); //nullを含めない
+        memcpy(&newptr[len1], s.GetRawString(), sizeof(csmChar) * (s._length + 1)); //nullを含めて+1
+
+        csmString ret(newptr, static_cast<csmInt32>(len1 + len2), false);
         return ret;
     }
+    else
+    {
+        //メモリ管理の対象外とする（寿命が把握出来ない）
+        csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
 
-    //
-    memcpy(newptr, this->_ptr, sizeof(csmChar) * len1); //nullを含めない
-    memcpy(&newptr[len1], s._ptr, sizeof(csmChar) * (s._length + 1)); //nullを含めて+1
+        if (newptr == NULL)
+        {
+            csmString ret;
+            return ret;
+        }
 
-    csmString ret(newptr, len1 + len2, true);
-    return ret;
+        //
+        memcpy(newptr, GetRawString(), sizeof(csmChar) * len1); //nullを含めない
+        memcpy(&newptr[len1], s.GetRawString(), sizeof(csmChar) * (s._length + 1)); //nullを含めて+1
+
+        csmString ret(newptr, static_cast<csmInt32>(len1 + len2), true);
+        return ret;
+    }
 }
 
 csmString csmString::operator+(const csmChar* c) const
 {
-    csmInt32 len1 = this->_length;
-    csmInt32 len2 = strlen(c);
+    csmSizeType len1 = static_cast<csmSizeType>(this->_length);
+    csmSizeType len2 = strlen(c);
 
-    //メモリ管理の対象外とする（寿命が把握出来ない）
-    csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
-
-    if (newptr == NULL)
+    if (len1 + len2 < SmallLength - 1)
     {
-        csmString ret;
+        csmChar buffer[SmallLength];
+        csmChar* newptr = buffer;
+
+        //
+        memcpy(newptr, this->GetRawString(), sizeof(csmChar) * len1); //nullを含めない
+        memcpy(&newptr[len1], c, sizeof(csmChar) * (len2 + 1)); //nullを含めて+1
+
+        csmString ret(newptr, static_cast<csmInt32>(len1 + len2), false);
         return ret;
     }
+    else
+    {
+        //メモリ管理の対象外とする（寿命が把握出来ない）
+        csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
 
-    memcpy(newptr, this->_ptr, sizeof(csmChar) * len1); //nullを含めない
-    memcpy(&newptr[len1], c, sizeof(csmChar) * (len2 + 1)); //nullを含めて+1
+        if (newptr == NULL)
+        {
+            csmString ret;
+            return ret;
+        }
 
-    csmString ret(newptr, len1 + len2, true);
-    return ret;
+        memcpy(newptr, this->GetRawString(), sizeof(csmChar) * len1); //nullを含めない
+        memcpy(&newptr[len1], c, sizeof(csmChar) * (len2 + 1)); //nullを含めて+1
+
+        csmString ret(newptr, static_cast<csmInt32>(len1 + len2), true);
+        return ret;
+    }
 }
 
 csmString& csmString::operator+=(const csmString& s)
 {
-    csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (this->_length + s._length + 1)));
-
+    csmChar* newptr = NULL;
     csmInt32 len1 = this->_length;
-    memcpy(newptr, this->_ptr, len1); //nullを含めない
-    memcpy(&newptr[len1], s._ptr, s._length + 1); //nullを含めて+1
 
-    Clear(); //現在のポインタを開放してから処理する
-    Initialize(newptr, len1 + s._length, true);
+    if (this->_length + s._length < SmallLength - 1)
+    {
+        csmChar buffer[SmallLength];
+        newptr = buffer;
+
+        memcpy(newptr, this->GetRawString(), len1); //nullを含めない
+        memcpy(&newptr[len1], s.GetRawString(), s._length + 1); //nullを含めて+1
+
+        Clear(); // 現在のポインタを開放してから処理する
+        Initialize(newptr, len1 + s._length, false);
+    }
+    else
+    {
+        newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (this->_length + s._length + 1)));
+
+        memcpy(newptr, this->GetRawString(), len1); //nullを含めない
+        memcpy(&newptr[len1], s.GetRawString(), s._length + 1); //nullを含めて+1
+
+        Clear(); //現在のポインタを開放してから処理する
+        Initialize(newptr, len1 + s._length, true);
+    }
     return *this;
 }
 
 csmString& csmString::operator+=(const csmChar* c)
 {
-    csmInt32 len1 = this->_length;
-    csmInt32 len2 = strlen(c);
+    csmSizeType len1 = static_cast<csmSizeType>(this->_length);
+    csmSizeType len2 = strlen(c);
 
-    csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
+    csmChar* newptr = NULL;
 
-    memcpy(newptr, this->_ptr, len1); //nullを含めない
-    memcpy(&newptr[len1], c, len2 + 1); //nullを含めて+1
+    if (len1 + len2 < SmallLength - 1)
+    {
+        csmChar buffer[SmallLength];
+        newptr = buffer;
 
-    Clear(); //現在のポインタを開放してから処理する
-    Initialize(newptr, len1 + len2, true);
+        memcpy(newptr, GetRawString(), len1); //nullを含めない
+        memcpy(&newptr[len1], c, len2 + 1); //nullを含めて+1
+
+        Clear(); //現在のポインタを開放してから処理する
+        Initialize(newptr, static_cast<csmInt32>(len1 + len2), false);
+    }
+    else
+    {
+        newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
+
+        memcpy(newptr, this->_ptr, len1); //nullを含めない
+        memcpy(&newptr[len1], c, len2 + 1); //nullを含めて+1
+
+        Clear(); //現在のポインタを開放してから処理する
+        Initialize(newptr, static_cast<csmInt32>(len1 + len2), true);
+    }
     return *this;
 }
 
@@ -236,8 +299,8 @@ csmBool csmString::operator==(const csmString& s) const
     //hashcode比較
     if (this->_hashcode != s._hashcode) return false;
 
-    const csmChar* c1 = this->_ptr;
-    const csmChar* c2 = s._ptr;
+    const csmChar* c1 = this->GetRawString();
+    const csmChar* c2 = s.GetRawString();
 
     //文字違い（逆順なのはPARAMの比較の特性）
     for (csmInt32 i = this->_length - 1; i >= 0; --i)
@@ -252,7 +315,7 @@ csmBool csmString::operator==(const csmChar* rc) const
     //サイズ違い
     if (static_cast<csmInt32>(strlen(rc)) != this->_length) return false;
 
-    csmChar* lc = this->_ptr;
+    const csmChar* lc = this->GetRawString();
 
     //文字違い（逆順なのはPARAMの比較の特性）
     for (csmInt32 i = this->_length - 1; i >= 0; --i)
@@ -264,35 +327,51 @@ csmBool csmString::operator==(const csmChar* rc) const
 
 csmBool csmString::operator<(const csmString& s) const
 {
-    return strcmp(this->_ptr, s._ptr) < 0;
+    return strcmp(this->GetRawString(), s.GetRawString()) < 0;
 }
 
 csmBool csmString::operator<(const csmChar* c) const
 {
-    return strcmp(this->_ptr, c) < 0;
+    return strcmp(this->GetRawString(), c) < 0;
 }
 
 csmBool csmString::operator>(const csmString& s) const
 {
-    return strcmp(this->_ptr, s._ptr) > 0;
+    return strcmp(this->GetRawString(), s.GetRawString()) > 0;
 }
 
 csmBool csmString::operator>(const csmChar* c) const
 {
-    return strcmp(this->_ptr, c) > 0;
+    return strcmp(this->GetRawString(), c) > 0;
 }
 
 csmString& csmString::Append(const csmChar* c, csmInt32 len2)
 {
     csmInt32 len1 = this->_length;
 
-    csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
+    csmChar* newptr = NULL;
 
-    memcpy(newptr, this->_ptr, len1); //nullを含めない
-    memcpy(&newptr[len1], c, len2); //nullを含めて+1
+    if (len1 + len2 < SmallLength - 1)
+    {
+        csmChar buffer[SmallLength];
+        newptr = buffer;
 
-    Clear(); //現在のポインタを開放してから処理する
-    Initialize(newptr, len1 + len2, true);
+        memcpy(newptr, this->GetRawString(), len1); //nullを含めない
+        memcpy(&newptr[len1], c, len2); //nullを含めて+1
+
+        Clear(); // 現在のポインタを開放してから処理する
+        Initialize(newptr, len1 + len2, false);
+    }
+    else
+    {
+        newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
+
+        memcpy(newptr, this->GetRawString(), len1); //nullを含めない
+        memcpy(&newptr[len1], c, len2); //nullを含めて+1
+
+        Clear(); //現在のポインタを開放してから処理する
+        Initialize(newptr, len1 + len2, true);
+    }
     return *this;
 }
 
@@ -300,14 +379,30 @@ csmString& csmString::Append(csmInt32 len2, const csmChar c)
 {
     csmInt32 len1 = this->_length;
 
-    csmChar* newptr = static_cast<csmChar*>(CSM_MALLOC( sizeof(csmChar) * (len1 + len2 + 1)));
+    csmChar* newptr = NULL;
 
-    memcpy(newptr, this->_ptr, len1); //nullを含めない
-    for (csmInt32 i = len1 + len2 - 1; i >= len1; --i) newptr[i] = c;
+    if(len1 + len2< SmallLength -1)
+    {
+        csmChar buffer[SmallLength];
+        newptr = buffer;
+        memcpy(newptr, this->GetRawString(), len1); //nullを含めない
+        for (csmInt32 i = len1 + len2 - 1; i >= len1; --i) newptr[i] = c;
 
-    Clear(); //現在のポインタを開放してから処理する
+        Clear(); // 現在のポインタを開放してから処理する
+        Initialize(newptr, len1 + len2, false);
+    }
+    else
+    {
+        // 必要な長さ∔NULL分1バイトを新規確保 
+        newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
+        // 元々の分をコピー 
+        memcpy(newptr, this->GetRawString(), len1); //nullを含めない
+        // 新しい箇所をコピー 
+        for (csmInt32 i = len1 + len2 - 1; i >= len1; --i) newptr[i] = c;
 
-    Initialize(newptr, len1 + len2, true);
+        Clear(); //現在のポインタを開放してから処理する
+        Initialize(newptr, len1 + len2, true);
+    }
     return *this;
 }
 
@@ -320,10 +415,20 @@ void csmString::Copy(const csmChar* c, csmInt32 length)
 
     this->_length = length;
 
-    this->_ptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (length + 1)));
+    if (this->_length < SmallLength -1)
+    {
+        this->_ptr = NULL;
 
-    memcpy(this->_ptr, c, length);
-    this->_ptr[length] = 0x0;
+        memcpy(this->_small, c, length);
+        this->_small[length] = 0x0;
+    }
+    else
+    {
+        this->_ptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (length + 1)));
+
+        memcpy(this->_ptr, c, length);
+        this->_ptr[length] = 0x0;
+    }
 }
 
 csmInt32 csmString::CalcHashcode(const csmChar* c, csmInt32 length)
@@ -342,13 +447,19 @@ csmInt32 csmString::CalcHashcode(const csmChar* c, csmInt32 length)
 
 const csmChar* csmString::GetRawString() const
 {
-    return _ptr;
-
+    if (this->_length < SmallLength -1)
+    {
+        return &_small[0];
+    }
+    else
+    {
+        return _ptr;
+    }
 }
 
 csmInt32 csmString::GetHashcode()
 {
-    if (_hashcode == -1) _hashcode = CalcHashcode(this->_ptr, this->_length);
+    if (_hashcode == -1) _hashcode = CalcHashcode(WritePointer(), this->_length);
     return _hashcode;
 }
 
@@ -356,7 +467,7 @@ csmBool csmString::IsEmpty() const
 {
 #ifdef CSM_DEBUG
 
-    csmBool isEmpty = (_ptr == GetEmptyString());
+    csmBool isEmpty = (_ptr == NULL && _small[0]=='\0');
 
     if (isEmpty)
     {
@@ -367,17 +478,33 @@ csmBool csmString::IsEmpty() const
 
 #else
 
-    return (_ptr == GetEmptyString());
+    //return (_ptr == GetEmptyString());
+
+    return (_ptr == NULL && _small[0] == '\0');
 
 #endif
 }
 
 void csmString::SetEmpty()
 {
-    _ptr = GetEmptyString();
+    //_ptr = GetEmptyString();
+    _ptr = NULL;
+    _small[0] = '\0';
     _length = 0;
     _hashcode = -1;
-    _hashcode = CalcHashcode(this->_ptr, this->_length);
+    _hashcode = CalcHashcode(WritePointer(), this->_length);
+}
+
+csmChar* csmString::WritePointer()
+{
+    if(this->_length< SmallLength -1)
+    {
+        return _small;
+    }
+    else
+    {
+        return _ptr;
+    }
 }
 
 }}}

@@ -103,7 +103,7 @@ public:
      *
      * モーションの開始時刻を設定する。
      *
-     * @param[in]   t   モーションの開始時刻[秒]
+     * @param[in]   startTime   モーションの開始時刻[秒]
      */
     void        SetStartTime(csmFloat32 startTime);
 
@@ -112,7 +112,7 @@ public:
      *
      * フェードインの開始時刻を設定する。
      *
-     * @param[in]   t   フェードインの開始時刻[秒]
+     * @param[in]   startTime   フェードインの開始時刻[秒]
      */
     void        SetFadeInStartTime(csmFloat32 startTime);
 
@@ -121,7 +121,7 @@ public:
      *
      * フェードインの終了時刻を設定する。
      *
-     * @param[in]   t   フェードインの終了時刻[秒]
+     * @param[in]   endTime   フェードインの終了時刻[秒]
      */
     void        SetEndTime(csmFloat32 endTime);
 
@@ -167,7 +167,7 @@ public:
      *
      * モーションの状態を設定する。
      *
-     * @param[in]   time    現在時刻[秒]
+     * @param[in]   timeSeconds    現在時刻[秒]
      * @param[in]   weight  モーションの重み
      */
     void        SetState(csmFloat32 timeSeconds, csmFloat32 weight);

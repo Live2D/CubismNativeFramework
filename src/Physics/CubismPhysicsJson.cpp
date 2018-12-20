@@ -170,7 +170,7 @@ csmInt32 CubismPhysicsJson::GetOutputVertexIndex(csmInt32 physicsSettingIndex, c
     return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Output][outputIndex][VertexIndex].ToInt();
 }
 
-csmInt32 CubismPhysicsJson::GetOutputAngleScale(csmInt32 physicsSettingIndex, csmInt32 outputIndex) const
+csmFloat32 CubismPhysicsJson::GetOutputAngleScale(csmInt32 physicsSettingIndex, csmInt32 outputIndex) const
 {
     return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Output][outputIndex][Scale].ToFloat();
 }
@@ -216,9 +216,9 @@ csmFloat32 CubismPhysicsJson::GetParticleAcceleration(csmInt32 physicsSettingInd
     return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Acceleration].ToFloat();
 }
 
-csmInt32 CubismPhysicsJson::GetParticleRadius(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const
+csmFloat32 CubismPhysicsJson::GetParticleRadius(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const
 {
-    return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Radius].ToInt();
+    return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Vertices][vertexIndex][Radius].ToFloat();
 }
 
 CubismVector2 CubismPhysicsJson::GetParticlePosition(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const

@@ -190,19 +190,22 @@ void CubismClippingManager_DX9::SetupClippingContext(LPDIRECT3DDEVICE9 device, C
     // マスク作成処理
     if (usingClipCount > 0)
     {
-        // ビューポートは退避済み 
-        // 生成したFrameBufferと同じサイズでビューポートを設定
-        CubismRenderer_D3D9::GetRenderStateManager()->SetViewport(device,
-            0,
-            0,
-            _clippingMaskBufferSize,
-            _clippingMaskBufferSize,
-            0.0f, 1.0f);
+        if (!renderer->IsUsingHighPrecisionMask())
+        {
+            // ビューポートは退避済み 
+            // 生成したFrameBufferと同じサイズでビューポートを設定
+            CubismRenderer_D3D9::GetRenderStateManager()->SetViewport(device,
+                0,
+                0,
+                _clippingMaskBufferSize,
+                _clippingMaskBufferSize,
+                0.0f, 1.0f);
 
-        useTarget.BeginDraw(device);
+            useTarget.BeginDraw(device);
+        }
 
         // 各マスクのレイアウトを決定していく
-        SetupLayoutBounds(usingClipCount);
+        SetupLayoutBounds(renderer->IsUsingHighPrecisionMask() ? 0 : usingClipCount);
 
         // 実際にマスクを生成する
         // 全てのマスクをどの様にレイアウトして描くかを決定し、ClipContext , ClippedDrawContext に記憶する
@@ -263,31 +266,41 @@ void CubismClippingManager_DX9::SetupClippingContext(LPDIRECT3DDEVICE9 device, C
 
             clipContext->_matrixForDraw.SetMatrix(_tmpMatrixForDraw.GetArray());
 
-            const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
-            for (csmInt32 i = 0; i < clipDrawCount; i++)
+            if (!renderer->IsUsingHighPrecisionMask())
             {
-                const csmInt32 clipDrawIndex = clipContext->_clippingIdList[i];
+                const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
+                for (csmInt32 i = 0; i < clipDrawCount; i++)
+                {
+                    const csmInt32 clipDrawIndex = clipContext->_clippingIdList[i];
 
-                renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
+                    renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
 
-                // 今回専用の変換を適用して描く
-                // チャンネルも切り替える必要がある(A,R,G,B)
-                renderer->SetClippingContextBufferForMask(clipContext);
-                renderer->DrawMeshDX9(clipDrawIndex,
-                    model.GetDrawableTextureIndices(clipDrawIndex),
-                    model.GetDrawableVertexIndexCount(clipDrawIndex),
-                    model.GetDrawableVertexCount(clipDrawIndex),
-                    const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
-                    const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
-                    reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
-                    model.GetDrawableOpacity(clipDrawIndex),
-                    CubismRenderer::CubismBlendMode::CubismBlendMode_Normal); //クリッピングは通常描画を強制
+                    // 今回専用の変換を適用して描く
+                    // チャンネルも切り替える必要がある(A,R,G,B)
+                    renderer->SetClippingContextBufferForMask(clipContext);
+                    renderer->DrawMeshDX9(clipDrawIndex,
+                        model.GetDrawableTextureIndices(clipDrawIndex),
+                        model.GetDrawableVertexIndexCount(clipDrawIndex),
+                        model.GetDrawableVertexCount(clipDrawIndex),
+                        const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
+                        const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
+                        reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
+                        model.GetDrawableOpacity(clipDrawIndex),
+                        CubismRenderer::CubismBlendMode::CubismBlendMode_Normal); //クリッピングは通常描画を強制
+                }
+            }
+            else
+            {
+                // NOP このモードの際はチャンネルを分けず、マトリクスの計算だけをしておいて描画自体は本体描画直前で行う 
             }
         }
 
-        useTarget.EndDraw(device);
+        if (!renderer->IsUsingHighPrecisionMask())
+        {
+            useTarget.EndDraw(device);
 
-        renderer->SetClippingContextBufferForMask(NULL);
+            renderer->SetClippingContextBufferForMask(NULL);
+        }
     }
 }
 
@@ -354,6 +367,20 @@ void CubismClippingManager_DX9::CalcClippedDrawTotalBounds(CubismModel& model, C
 
 void CubismClippingManager_DX9::SetupLayoutBounds(csmInt32 usingClipCount) const
 {
+    if (usingClipCount <= 0)
+    {// この場合は一つのマスクターゲットを毎回クリアして使用する 
+        for (csmUint32 index = 0; index < _clippingContextListForMask.GetSize(); index++)
+        {
+            CubismClippingContext* cc = _clippingContextListForMask[index];
+            cc->_layoutChannelNo = 0; // どうせ毎回消すので固定で良い 
+            cc->_layoutBounds->X = 0.0f;
+            cc->_layoutBounds->Y = 0.0f;
+            cc->_layoutBounds->Width = 1.0f;
+            cc->_layoutBounds->Height = 1.0f;
+        }
+        return;
+    }
+
     // ひとつのRenderTextureを極力いっぱいに使ってマスクをレイアウトする
     // マスクグループの数が4以下ならRGBA各チャンネルに１つずつマスクを配置し、5以上6以下ならRGBAを2,2,1,1と配置する
 
@@ -437,6 +464,21 @@ void CubismClippingManager_DX9::SetupLayoutBounds(csmInt32 usingClipCount) const
         else
         {
             CubismLogError("not supported mask count : %d", layoutCount);
+
+            // 開発モードの場合は停止させる 
+            CSM_ASSERT(0);
+
+            // 引き続き実行する場合、 SetupShaderProgramでオーバーアクセスが発生するので仕方なく適当に入れておく 
+            // もちろん描画結果はろくなことにならない 
+            for (csmInt32 i = 0; i < layoutCount; i++)
+            {
+                CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
+                cc->_layoutChannelNo = 0;
+                cc->_layoutBounds->X = 0.0f;
+                cc->_layoutBounds->Y = 0.0f;
+                cc->_layoutBounds->Width = 1.0f;
+                cc->_layoutBounds->Height = 1.0f;
+            }
         }
     }
 }
@@ -787,13 +829,16 @@ void CubismRenderer_D3D9::DoDrawModel()
         _clippingManager->SetupClippingContext(s_useDevice, *GetModel(), this, _offscreenFrameBuffer[_commandBufferCurrent]);
         _clippingManager->_colorBuffer = &_offscreenFrameBuffer[_commandBufferCurrent];
 
-        // ビューポート 
-        GetRenderStateManager()->SetViewport(s_useDevice,
-            0,
-            0,
-            s_viewportWidth,
-            s_viewportHeight,
-            0.0f, 1.0);
+        if (!IsUsingHighPrecisionMask())
+        {
+            // ビューポート 
+            GetRenderStateManager()->SetViewport(s_useDevice,
+                0,
+                0,
+                s_viewportWidth,
+                s_viewportHeight,
+                0.0f, 1.0);
+        }
     }
 
     const csmInt32 drawableCount = GetModel()->GetDrawableCount();
@@ -812,9 +857,59 @@ void CubismRenderer_D3D9::DoDrawModel()
         const csmInt32 drawableIndex = _sortedDrawableIndexList[i];
 
         // クリッピングマスクをセットする
-        SetClippingContextBufferForDraw((_clippingManager != NULL)
+        CubismClippingContext* clipContext = (_clippingManager != NULL)
             ? (*_clippingManager->GetClippingContextListForDraw())[drawableIndex]
-            : NULL);
+            : NULL;
+
+        if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある 
+        {
+            if (clipContext->_isUsing) // 書くことになっていた 
+            {
+                GetRenderStateManager()->SetViewport(s_useDevice,
+                    0,
+                    0,
+                    _clippingManager->GetClippingMaskBufferSize(),
+                    _clippingManager->GetClippingMaskBufferSize(),
+                    0.0f, 1.0f);
+
+                _offscreenFrameBuffer[_commandBufferCurrent].BeginDraw(s_useDevice);
+
+                const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
+                for (csmInt32 ctx = 0; ctx < clipDrawCount; ctx++)
+                {
+                    const csmInt32 clipDrawIndex = clipContext->_clippingIdList[ctx];
+
+                    IsCulling(GetModel()->GetDrawableCulling(clipDrawIndex) != 0);
+
+                    // 今回専用の変換を適用して描く
+                    // チャンネルも切り替える必要がある(A,R,G,B)
+                    SetClippingContextBufferForMask(clipContext);
+                    DrawMeshDX9(clipDrawIndex,
+                        GetModel()->GetDrawableTextureIndices(clipDrawIndex),
+                        GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
+                        GetModel()->GetDrawableVertexCount(clipDrawIndex),
+                        const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
+                        const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(clipDrawIndex)),
+                        reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(clipDrawIndex))),
+                        GetModel()->GetDrawableOpacity(clipDrawIndex),
+                        CubismRenderer::CubismBlendMode::CubismBlendMode_Normal); //クリッピングは通常描画を強制
+                }
+
+                _offscreenFrameBuffer[_commandBufferCurrent].EndDraw(s_useDevice);
+                SetClippingContextBufferForMask(NULL);
+
+                // ビューポートを元に戻す 
+                GetRenderStateManager()->SetViewport(s_useDevice,
+                    0,
+                    0,
+                    s_viewportWidth,
+                    s_viewportHeight,
+                    0.0f, 1.0f);
+            }
+        }
+
+        // クリッピングマスクをセットする
+        SetClippingContextBufferForDraw(clipContext);
 
         IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
 

@@ -185,7 +185,7 @@ GLuint CubismClippingManager_OpenGLES2::GetMaskRenderTexture()
     return ret;
 }
 
-void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer)
+void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer, GLint lastFBO, GLint lastViewport[4])
 {
     _currentFrameNo++;
 
@@ -209,36 +209,31 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
     // マスク作成処理
     if (usingClipCount > 0)
     {
-        // 現在のビューポートの値を退避
-        GLint viewport[4];
-        glGetIntegerv(GL_VIEWPORT, viewport);
+        if (!renderer->IsUsingHighPrecisionMask())
+        {
+            // 生成したFrameBufferと同じサイズでビューポートを設定
+            glViewport(0, 0, _clippingMaskBufferSize, _clippingMaskBufferSize);
 
-        // 生成したFrameBufferと同じサイズでビューポートを設定
-        glViewport(0, 0, _clippingMaskBufferSize, _clippingMaskBufferSize);
+            // マスクをactiveにする
+            _maskRenderTexture = GetMaskRenderTexture();
 
-        // マスクactive切り替え前のFBOを退避
-        GLint oldFBO;
-        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
+            // モデル描画時にDrawMeshNowに渡される変換（モデルtoワールド座標変換）
+            CubismMatrix44 modelToWorldF = renderer->GetMvpMatrix();
 
-        // マスクをactiveにする
-        _maskRenderTexture = GetMaskRenderTexture();
+            renderer->PreDraw(); // バッファをクリアする
 
-        // モデル描画時にDrawMeshNowに渡される変換（モデルtoワールド座標変換）
-        CubismMatrix44 modelToWorldF = renderer->GetMvpMatrix();
+            // ---------- マスク描画処理 -----------
+            // マスク用RenderTextureをactiveにセット
+            glBindFramebuffer(GL_FRAMEBUFFER, _maskRenderTexture);
 
-        renderer->PreDraw(); // バッファをクリアする
+            // マスクをクリアする
+            //（仮仕様） 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
 
         // 各マスクのレイアウトを決定していく
-        SetupLayoutBounds(usingClipCount);
-
-        // ---------- マスク描画処理 -----------
-        // マスク用RenderTextureをactiveにセット
-        glBindFramebuffer(GL_FRAMEBUFFER, _maskRenderTexture);
-
-        // マスクをクリアする
-        //（仮仕様） 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        SetupLayoutBounds(renderer->IsUsingHighPrecisionMask() ? 0 : usingClipCount);
 
         // 実際にマスクを生成する
         // 全てのマスクをどの様にレイアウトして描くかを決定し、ClipContext , ClippedDrawContext に記憶する
@@ -298,40 +293,46 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
 
             clipContext->_matrixForDraw.SetMatrix(_tmpMatrixForDraw.GetArray());
 
-            const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
-            for (csmInt32 i = 0; i < clipDrawCount; i++)
+            if (!renderer->IsUsingHighPrecisionMask())
             {
-                const csmInt32 clipDrawIndex = clipContext->_clippingIdList[i];
-
-                // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
-                if (!model.GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
+                for (csmInt32 i = 0; i < clipDrawCount; i++)
                 {
-                    continue;
+                    const csmInt32 clipDrawIndex = clipContext->_clippingIdList[i];
+
+                    // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                    if (!model.GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                    {
+                        continue;
+                    }
+
+                    renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
+
+                    // 今回専用の変換を適用して描く
+                    // チャンネルも切り替える必要がある(A,R,G,B)
+                    renderer->SetClippingContextBufferForMask(clipContext);
+                    renderer->DrawMesh(
+                        model.GetDrawableTextureIndices(clipDrawIndex),
+                        model.GetDrawableVertexIndexCount(clipDrawIndex),
+                        model.GetDrawableVertexCount(clipDrawIndex),
+                        const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
+                        const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
+                        reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
+                        model.GetDrawableOpacity(clipDrawIndex),
+                        CubismRenderer::CubismBlendMode_Normal   //クリッピングは通常描画を強制
+                    );
                 }
-
-                renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
-
-                // 今回専用の変換を適用して描く
-                // チャンネルも切り替える必要がある(A,R,G,B)
-                renderer->SetClippingContextBufferForMask(clipContext);
-                renderer->DrawMesh(
-                    model.GetDrawableTextureIndices(clipDrawIndex),
-                    model.GetDrawableVertexIndexCount(clipDrawIndex),
-                    model.GetDrawableVertexCount(clipDrawIndex),
-                    const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
-                    const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
-                    reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
-                    model.GetDrawableOpacity(clipDrawIndex),
-                    CubismRenderer::CubismBlendMode_Normal   //クリッピングは通常描画を強制
-                );
             }
         }
 
-        // --- 後処理 ---
-        glBindFramebuffer(GL_FRAMEBUFFER, oldFBO); // 描画対象を戻す
-        renderer->SetClippingContextBufferForMask(NULL);
+        if (!renderer->IsUsingHighPrecisionMask())
+        {
+            // --- 後処理 ---
+            glBindFramebuffer(GL_FRAMEBUFFER, lastFBO); // 描画対象を戻す
+            renderer->SetClippingContextBufferForMask(NULL);
 
-        glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+            glViewport(lastViewport[0], lastViewport[1], lastViewport[2], lastViewport[3]);
+        }
     }
 }
 
@@ -398,6 +399,20 @@ void CubismClippingManager_OpenGLES2::CalcClippedDrawTotalBounds(CubismModel& mo
 
 void CubismClippingManager_OpenGLES2::SetupLayoutBounds(csmInt32 usingClipCount) const
 {
+    if (usingClipCount <= 0)
+    {// この場合は一つのマスクターゲットを毎回クリアして使用する 
+        for (csmUint32 index = 0; index < _clippingContextListForMask.GetSize(); index++)
+        {
+            CubismClippingContext* cc = _clippingContextListForMask[index];
+            cc->_layoutChannelNo = 0; // どうせ毎回消すので固定で良い 
+            cc->_layoutBounds->X = 0.0f;
+            cc->_layoutBounds->Y = 0.0f;
+            cc->_layoutBounds->Width = 1.0f;
+            cc->_layoutBounds->Height = 1.0f;
+        }
+        return;
+    }
+
     // ひとつのRenderTextureを極力いっぱいに使ってマスクをレイアウトする
     // マスクグループの数が4以下ならRGBA各チャンネルに１つずつマスクを配置し、5以上6以下ならRGBAを2,2,1,1と配置する
 
@@ -481,6 +496,21 @@ void CubismClippingManager_OpenGLES2::SetupLayoutBounds(csmInt32 usingClipCount)
         else
         {
             CubismLogError("not supported mask count : %d", layoutCount);
+
+            // 開発モードの場合は停止させる 
+            CSM_ASSERT(0);
+
+            // 引き続き実行する場合、 SetupShaderProgramでオーバーアクセスが発生するので仕方なく適当に入れておく 
+            // もちろん描画結果はろくなことにならない 
+            for (csmInt32 i = 0; i < layoutCount; i++)
+            {
+                CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
+                cc->_layoutChannelNo = 0;
+                cc->_layoutBounds->X = 0.0f;
+                cc->_layoutBounds->Y = 0.0f;
+                cc->_layoutBounds->Width = 1.0f;
+                cc->_layoutBounds->Height = 1.0f;
+            }
         }
     }
 }
@@ -522,6 +552,8 @@ CubismClippingContext::CubismClippingContext(CubismClippingManager_OpenGLES2* ma
 
     // マスクの数
     _clippingIdCount = clipCount;
+
+    _layoutChannelNo = 0;
 
     _allClippedDrawRect = CSM_NEW csmRectF();
     _layoutBounds = CSM_NEW csmRectF();
@@ -611,6 +643,11 @@ void CubismRendererProfile_OpenGLES2::Save()
     glGetIntegerv(GL_BLEND_DST_RGB, &_lastBlending[1]);
     glGetIntegerv(GL_BLEND_SRC_ALPHA, &_lastBlending[2]);
     glGetIntegerv(GL_BLEND_DST_ALPHA, &_lastBlending[3]);
+
+    // モデル描画直前のFBOとビューポートを保存
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &_lastFBO);
+    glGetIntegerv(GL_VIEWPORT, _lastViewport);
+
 }
 
 void CubismRendererProfile_OpenGLES2::Restore()
@@ -841,28 +878,6 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
         "gl_FragColor = col_formask;"
         "}";
 
-
-//テクスチャを使わないデバッグ用の表示
-static const csmChar* VertShaderSrcDebug =
-        "varying lowp vec4 colorVarying;"
-        "void main()"
-        "{"
-        "gl_Position = a_position;vec4 diffuseColor = vec4(0.0, 0.0 , 1.0, 0.5);"
-        "colorVarying = diffuseColor ;"
-        "}";
-
-static const csmChar* FragShaderSrcDebug =
-#ifdef CSM_TARGET_IPHONE_ES2
-        "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
-#endif
-        "varying lowp vec4 colorVarying; "
-        "void main()"
-        "{"
-        "gl_FragColor = colorVarying;"
-        "}";
 
 #ifdef CSM_TARGET_ANDROID_ES2
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1486,6 +1501,7 @@ GLuint CubismShader_OpenGLES2::LoadShaderProgram(const csmChar* vertShaderSrc, c
 /*********************************************************************************************************************
  *                                      CubismRenderer_OpenGLES2
  ********************************************************************************************************************/
+
 #ifdef CSM_TARGET_ANDROID_ES2
 void CubismRenderer_OpenGLES2::SetExtShaderMode(csmBool extMode, csmBool extPAMode)
 {
@@ -1641,9 +1657,9 @@ void CubismRenderer::StaticRelease()
     CubismRenderer_OpenGLES2::DoStaticRelease();
 }
 
-CubismRenderer_OpenGLES2::CubismRenderer_OpenGLES2() : _clippingContextBufferForMask(NULL)
+CubismRenderer_OpenGLES2::CubismRenderer_OpenGLES2() : _clippingManager(NULL)
+                                                     , _clippingContextBufferForMask(NULL)
                                                      , _clippingContextBufferForDraw(NULL)
-                                                     , _clippingManager(NULL)
 {
     // テクスチャ対応マップの容量を確保しておく.
     _textures.PrepareCapacity(32, true);
@@ -1705,7 +1721,7 @@ void CubismRenderer_OpenGLES2::PreDraw()
     //異方性フィルタリング。プラットフォームのOpenGLによっては未対応の場合があるので、未設定のときは設定しない
     if (GetAnisotropy() > 0.0f)
     {
-        for (csmUint32 i = 0; i < _textures.GetSize(); i++)
+        for (csmInt32 i = 0; i < _textures.GetSize(); i++)
         {
             glBindTexture(GL_TEXTURE_2D, _textures[i]);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GetAnisotropy());
@@ -1720,7 +1736,7 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
     if (_clippingManager != NULL)
     {
         PreDraw();
-        _clippingManager->SetupClippingContext(*GetModel(), this);
+        _clippingManager->SetupClippingContext(*GetModel(), this, _rendererProfile._lastFBO, _rendererProfile._lastViewport);
     }
 
     // 上記クリッピング処理内でも一度PreDrawを呼ぶので注意!!
@@ -1747,10 +1763,84 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
             continue;
         }
 
-        // クリッピングマスクをセットする
-        SetClippingContextBufferForDraw((_clippingManager != NULL)
+        // クリッピングマスク
+        CubismClippingContext* clipContext = (_clippingManager != NULL)
             ? (*_clippingManager->GetClippingContextListForDraw())[drawableIndex]
-            : NULL);
+            : NULL;
+
+        if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある 
+        {
+            GLint viewport[4];
+            GLint oldFBO = 0;
+
+            {
+                // 現在のビューポートの値を退避
+                glGetIntegerv(GL_VIEWPORT, viewport);
+
+                // 生成したFrameBufferと同じサイズでビューポートを設定
+                glViewport(0, 0, _clippingManager->GetClippingMaskBufferSize(), _clippingManager->GetClippingMaskBufferSize());
+
+                // マスクactive切り替え前のFBOを退避
+                glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
+
+                // マスクをactiveにする
+                GLuint      maskRenderTexture = _clippingManager->GetMaskRenderTexture();
+
+                PreDraw(); // バッファをクリアする
+
+                // ---------- マスク描画処理 -----------
+                // マスク用RenderTextureをactiveにセット
+                glBindFramebuffer(GL_FRAMEBUFFER, maskRenderTexture);
+
+                // マスクをクリアする
+                //（仮仕様） 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
+                glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+
+            {
+                const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
+                for (csmInt32 index = 0; index < clipDrawCount; index++)
+                {
+                    const csmInt32 clipDrawIndex = clipContext->_clippingIdList[index];
+
+                    // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                    if (!GetModel()->GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                    {
+                        continue;
+                    }
+
+                    IsCulling(GetModel()->GetDrawableCulling(clipDrawIndex) != 0);
+
+                    // 今回専用の変換を適用して描く
+                    // チャンネルも切り替える必要がある(A,R,G,B)
+                    SetClippingContextBufferForMask(clipContext);
+                    DrawMesh(
+                        GetModel()->GetDrawableTextureIndices(clipDrawIndex),
+                        GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
+                        GetModel()->GetDrawableVertexCount(clipDrawIndex),
+                        const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
+                        const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(clipDrawIndex)),
+                        reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(clipDrawIndex))),
+                        GetModel()->GetDrawableOpacity(clipDrawIndex),
+                        CubismRenderer::CubismBlendMode_Normal   //クリッピングは通常描画を強制
+                    );
+                }
+            }
+
+            {
+                // --- 後処理 ---
+                glBindFramebuffer(GL_FRAMEBUFFER, oldFBO); // 描画対象を戻す
+                SetClippingContextBufferForMask(NULL);
+
+                glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+
+                PreDraw(); // バッファをクリアする
+            }
+        }
+
+        // クリッピングマスクをセットする
+        SetClippingContextBufferForDraw(clipContext);
 
         IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
 
@@ -1781,7 +1871,7 @@ void CubismRenderer_OpenGLES2::DrawMesh(csmInt32 textureNo, csmInt32 indexCount,
 #endif
 
 #ifndef CSM_DEBUG
-    if (_textures[textureNo] == NULL) return;    // モデルが参照するテクスチャがバインドされていない場合は描画をスキップする
+    if (_textures[textureNo] == 0) return;    // モデルが参照するテクスチャがバインドされていない場合は描画をスキップする
 #endif
 
     // 裏面描画の有効・無効
@@ -1813,7 +1903,7 @@ void CubismRenderer_OpenGLES2::DrawMesh(csmInt32 textureNo, csmInt32 indexCount,
 
     // テクスチャマップからバインド済みテクスチャIDを取得
     // バインドされていなければダミーのテクスチャIDをセットする
-    if(_textures[textureNo] != NULL)
+    if(_textures[textureNo] != 0)
     {
         drawTextureId = _textures[textureNo];
     }

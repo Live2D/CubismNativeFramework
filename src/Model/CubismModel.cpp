@@ -315,6 +315,7 @@ void CubismModel::Initialize()
         const csmChar** parameterIds = Core::csmGetParameterIds(_model);
         const csmInt32  parameterCount = Core::csmGetParameterCount(_model);
 
+        _parameterIds.PrepareCapacity(parameterCount);
         for (csmInt32 i = 0; i < parameterCount; ++i)
         {
             _parameterIds.PushBack(CubismFramework::GetIdManager()->GetId(parameterIds[i]));
@@ -325,6 +326,7 @@ void CubismModel::Initialize()
         const csmChar** partIds = Core::csmGetPartIds(_model);
         const csmInt32  partCount = Core::csmGetPartCount(_model);
 
+        _partIds.PrepareCapacity(partCount);
         for (csmInt32 i = 0; i < partCount; ++i)
         {
             _partIds.PushBack(CubismFramework::GetIdManager()->GetId(partIds[i]));
@@ -335,6 +337,7 @@ void CubismModel::Initialize()
         const csmChar** drawableIds = Core::csmGetDrawableIds(_model);
         const csmInt32  drawableCount = Core::csmGetDrawableCount(_model);
 
+        _drawableIds.PrepareCapacity(drawableCount);
         for (csmInt32 i = 0; i < drawableCount; ++i)
         {
             _drawableIds.PushBack(CubismFramework::GetIdManager()->GetId(drawableIds[i]));
@@ -417,37 +420,37 @@ csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
 csmBool CubismModel::GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const
 {
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
-    return IsBitSet(dynamicFlags[drawableIndex], Core::csmIsVisible);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmIsVisible)!=0 ? true : false;
 }
 
 csmBool CubismModel::GetDrawableDynamicFlagVisibilityDidChange(csmInt32 drawableIndex) const
 {
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
-    return IsBitSet(dynamicFlags[drawableIndex], Core::csmVisibilityDidChange);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmVisibilityDidChange)!=0 ? true : false;
 }
 
 csmBool CubismModel::GetDrawableDynamicFlagOpacityDidChange(csmInt32 drawableIndex) const
 {
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
-    return IsBitSet(dynamicFlags[drawableIndex], Core::csmOpacityDidChange);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmOpacityDidChange) != 0 ? true : false;
 }
 
 csmBool CubismModel::GetDrawableDynamicFlagDrawOrderDidChange(csmInt32 drawableIndex) const
 {
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
-    return IsBitSet(dynamicFlags[drawableIndex], Core::csmDrawOrderDidChange);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmDrawOrderDidChange) != 0 ? true : false;
 }
 
 csmBool CubismModel::GetDrawableDynamicFlagRenderOrderDidChange(csmInt32 drawableIndex) const
 {
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
-    return IsBitSet(dynamicFlags[drawableIndex], Core::csmRenderOrderDidChange);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmRenderOrderDidChange) != 0 ? true : false;
 }
 
 csmBool CubismModel::GetDrawableDynamicFlagVertexPositionsDidChange(csmInt32 drawableIndex) const
 {
     const Core::csmFlags* dynamicFlags = Core::csmGetDrawableDynamicFlags(_model);
-    return IsBitSet(dynamicFlags[drawableIndex], Core::csmVertexPositionsDidChange);
+    return IsBitSet(dynamicFlags[drawableIndex], Core::csmVertexPositionsDidChange) != 0 ? true : false;
 }
 
 
