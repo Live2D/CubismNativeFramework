@@ -145,7 +145,7 @@ csmInt32 CubismMotionJson::GetTotalEventValueSize() const
 
 csmFloat32 CubismMotionJson::GetEventTime(csmInt32 userDataIndex) const
 {
-    return _json->GetRoot()[UserData][userDataIndex][Time].ToInt();
+    return _json->GetRoot()[UserData][userDataIndex][Time].ToFloat();
 }
 
 const csmChar* CubismMotionJson::GetEventValue(csmInt32 userDataIndex) const

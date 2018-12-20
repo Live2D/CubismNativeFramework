@@ -23,7 +23,11 @@ csmString CubismString::GetFormatedString(const csmChar* format, ...)
     va_start(args, format);
 
     for (;;) {
+#ifdef _WINDOWS
+        if (vsnprintf_s(buffer, bufferSize, _TRUNCATE, format, args) < bufferSize) {
+#else
         if (vsnprintf(buffer, bufferSize, format, args) < bufferSize) {
+#endif
             break;
         } else {
             // メモリが足りない為、拡張して確保しなおす。

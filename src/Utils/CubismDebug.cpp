@@ -27,7 +27,11 @@ void CubismDebug::Print(CubismFramework::Option::LogLevel logLevel, const csmCha
     csmChar buffer[256];
     va_list va;
     va_start(va, format);
+#ifdef _WINDOWS
+    vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, va);
+#else
     vsnprintf(buffer, sizeof(buffer), format, va);
+#endif
     va_end(va);
 
     logPrint(buffer);

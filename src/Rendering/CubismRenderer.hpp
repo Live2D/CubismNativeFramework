@@ -163,16 +163,16 @@ public:
      * @brief   テクスチャの異方性フィルタリングのパラメータをセットする<br>
      *           パラメータ値の影響度はレンダラの実装に依存する
      *
-     * @param[in]   n   ->   パラメータの値
+     * @param[in]   anisotropy   ->   パラメータの値
      */
-    void SetAnisotropy(csmInt32 n);
+    void SetAnisotropy(csmFloat32 anisotropy);
 
     /**
      * @brief   テクスチャの異方性フィルタリングのパラメータをセットする
      *
      * @return  異方性フィルタリングのパラメータ
      */
-    csmInt32 GetAnisotropy() const;
+    csmFloat32 GetAnisotropy() const;
 
     /**
      * @brief   レンダリングするモデルを取得する。
@@ -180,6 +180,20 @@ public:
      * @return  レンダリングするモデルのポインタ
      */
     CubismModel* GetModel() const;
+
+    /**
+     * @brief   マスク描画の方式を変更する。
+     *           falseの場合、マスクを1枚のテクスチャに分割してレンダリングする（デフォルトはこちら）。
+     *           高速だが、マスク個数の上限が36に限定され、質も荒くなる。
+     *           trueの場合、パーツ描画の前にその都度必要なマスクを描き直す。
+     *           レンダリング品質は高いが描画処理負荷は増す。
+     */
+    void UseHighPrecisionMask(csmBool high);
+
+    /**
+     * @brief   マスク描画の方式を取得する。
+     */
+    csmBool IsUsingHighPrecisionMask();
 
 protected:
     /**
@@ -238,6 +252,8 @@ private:
     csmBool             _isPremultipliedAlpha;  ///< 乗算済みαならtrue
     csmFloat32          _anisotropy;            ///< テクスチャの異方性フィルタリングのパラメータ
     CubismModel*        _model;                 ///< レンダリング対象のモデル
+
+    csmBool             _useHighPrecisionMask;  ///< falseの場合、マスクを纏めて描画する trueの場合、マスクはパーツ描画ごとに書き直す 
 };
 
 }}}}

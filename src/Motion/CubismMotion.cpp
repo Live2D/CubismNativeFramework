@@ -480,7 +480,7 @@ void CubismMotion::Parse(const csmByte* motionJson, const csmSizeInt size)
                 _motionData->Segments[totalSegmentCount].BasePointIndex = totalPointCount - 1;
             }
 
-            const csmInt32 segment = json->GetMotionCurveSegment(curveCount, segmentPosition);
+            const csmInt32 segment = static_cast<csmInt32>(json->GetMotionCurveSegment(curveCount, segmentPosition));
 
             switch (segment)
             {

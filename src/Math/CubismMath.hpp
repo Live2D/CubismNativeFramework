@@ -7,11 +7,7 @@
 
 #pragma once
 
-#ifdef _MSC_VER
-#define _USE_MATH_DEFINES
-#endif
-
-#include <math.h>
+#include <cmath>
 #include "Type/CubismBasicType.hpp"
 #include "Math/CubismVector2.hpp"
 
@@ -72,7 +68,7 @@ public:
      */
     static csmFloat32 AbsF(csmFloat32 x)
     {
-        return fabs(x);
+        return std::fabsf(x);
     };
 
     /**
@@ -98,7 +94,7 @@ public:
         if (value < 0.0f) return 0.0f;
         else if (value > 1.0f) return 1.0f;
 
-        return static_cast<csmFloat32>(0.5f - 0.5f * CosF(value * M_PI));
+        return static_cast<csmFloat32>(0.5f - 0.5f * CosF(value * Pi));
     }
 
     /**

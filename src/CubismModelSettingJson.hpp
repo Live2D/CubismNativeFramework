@@ -100,6 +100,19 @@ public:
     CubismIdHandle GetLipSyncParameterId(csmInt32 index);
 
 private:
+
+    enum FrequentNode
+    {
+        FrequentNode_Groups,        ///< GetRoot()[Groups] 
+        FrequentNode_Moc,           ///< GetRoot()[FileReferences][Moc] 
+        FrequentNode_Motions,       ///< GetRoot()[FileReferences][Motions] 
+        FrequentNode_Expressions,   ///< GetRoot()[FileReferences][Expressions] 
+        FrequentNode_Textures,      ///< GetRoot()[FileReferences][Textures] 
+        FrequentNode_Physics,       ///< GetRoot()[FileReferences][Physics] 
+        FrequentNode_Pose,          ///< GetRoot()[FileReferences][Pose] 
+        FrequentNode_HitAreas,      ///< GetRoot()[HitAreas] 
+    };
+
     /**
      * @brief        モデルファイルのキーが存在するかどうかを確認する
      *
@@ -219,6 +232,7 @@ private:
      */
     csmBool IsExistLipSyncParameters() const;
 
-    Utils::CubismJson* _json;
+    Utils::CubismJson*          _json;       ///< モデルデータjson 
+    csmVector<Utils::Value*>    _jsonValue;  ///< 上jsonの頻出ノード 
 };
 }}}

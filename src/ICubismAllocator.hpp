@@ -35,7 +35,7 @@ public:
      *
      * @return     成功すると割り当てられたメモリのアドレス。 そうでなければ '0'を返す。
      */
-    virtual void* Allocate(const csmUint32 size) = 0;
+    virtual void* Allocate(const csmSizeType size) = 0;
 
     /**
      * @brief アラインメント制約なしのヒープ・メモリーを解放します。
@@ -54,7 +54,7 @@ public:
      *
      * @return     成功すると割り当てられたメモリのアドレス。 そうでなければ '0'を返す。
      */
-    virtual void* AllocateAligned(const csmUint32 size, const csmUint32 alignment) = 0;
+    virtual void* AllocateAligned(const csmSizeType size, const csmUint32 alignment) = 0;
 
     /**
      * @brief アラインメント制約ありのヒープ・メモリーを解放します。

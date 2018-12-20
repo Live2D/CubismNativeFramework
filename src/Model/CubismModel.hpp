@@ -115,7 +115,7 @@ public:
      *
      * パラメータのインデックスを取得する。
      *
-     * @param[in]   パラメータID
+     * @param[in]   parameterId パラメータID
      * @return  パラメータのインデックス
      */
     csmInt32    GetParameterIndex(CubismIdHandle parameterId);

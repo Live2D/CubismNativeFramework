@@ -22,6 +22,7 @@ CubismRenderer::CubismRenderer()
     , _isPremultipliedAlpha(false)
     , _anisotropy(0.0f)
     , _model(NULL)
+    , _useHighPrecisionMask(false)
 {
     //単位行列に初期化
     _mvpMatrix4x4.LoadIdentity();
@@ -109,12 +110,12 @@ csmBool CubismRenderer::IsCulling() const
     return  _isCulling;
 }
 
-void CubismRenderer::SetAnisotropy(csmInt32 n)
+void CubismRenderer::SetAnisotropy(csmFloat32 n)
 {
     _anisotropy = n;
 }
 
-csmInt32 CubismRenderer::GetAnisotropy() const
+csmFloat32 CubismRenderer::GetAnisotropy() const
 {
     return _anisotropy;
 }
@@ -122,6 +123,16 @@ csmInt32 CubismRenderer::GetAnisotropy() const
 CubismModel* CubismRenderer::GetModel() const
 {
     return _model;
+}
+
+void CubismRenderer::UseHighPrecisionMask(csmBool high)
+{
+    _useHighPrecisionMask = high;
+}
+
+csmBool CubismRenderer::IsUsingHighPrecisionMask()
+{
+    return _useHighPrecisionMask;
 }
 
 }}}}

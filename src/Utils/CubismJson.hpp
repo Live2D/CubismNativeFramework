@@ -117,6 +117,15 @@ public:
     }
 
     /**
+     * @brief   添字演算子[csmChar*]
+     *
+     */
+    virtual Value& operator[](const csmChar* s)
+    {
+        return *(NullValue->SetErrorNotForClientCall(CSM_JSON_ERROR_TYPE_MISMATCH));
+    }
+
+    /**
      * @brief   マップのキー一覧をコンテナで返す
      *
      * @return  マップのキー一覧
@@ -701,6 +710,15 @@ public:
     }
 
     /**
+     * @brief   添字演算子[csmChar*]
+     *
+     */
+    virtual Value& operator[](const csmChar* s)
+    {
+        return *(ErrorValue->SetErrorNotForClientCall(CSM_JSON_ERROR_TYPE_MISMATCH));
+    }
+
+    /**
      * @brief   要素を文字列で返す(csmString型)
      *
      */
@@ -774,6 +792,27 @@ public:
             return *Value::NullValue;
         }
         return *ret;
+    }
+
+    /**
+     * @brief   添字演算子[csmChar*]
+     *
+     */
+    virtual Value& operator[](const csmChar* s)
+    {
+        for (csmMap<csmString, Value*>::const_iterator iter = _map.Begin(); iter != _map.End(); ++iter)
+        {
+            if( strcmp(iter->First.GetRawString(), s) == 0 )
+            {
+                if(iter->Second==NULL)
+                {
+                    return *Value::NullValue;
+                }
+                return *iter->Second;
+            }
+        }
+
+        return *Value::NullValue;
     }
 
     /**
