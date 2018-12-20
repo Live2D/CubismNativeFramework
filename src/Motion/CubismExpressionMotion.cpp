@@ -42,6 +42,7 @@ CubismExpressionMotion* CubismExpressionMotion::Create(const csmByte* buffer, cs
 
     // 各パラメータについて
     const csmInt32 parameterCount = root[ExpressionKeyParameters].GetSize();
+    expression->_parameters.PrepareCapacity(parameterCount);
 
     for (csmInt32 i = 0; i < parameterCount; ++i)
     {

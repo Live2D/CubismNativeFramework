@@ -18,6 +18,12 @@ namespace Live2D { namespace Cubism { namespace Framework {
  *
  */
 namespace {
+    
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+    
 // JSON keys
 const csmChar* Version = "Version";
 const csmChar* FileReferences = "FileReferences";
@@ -66,28 +72,81 @@ const csmChar* EyeBlink = "EyeBlink";
 const csmChar* InitParameter = "init_param";
 const csmChar* InitPartsVisible = "init_parts_visible";
 const csmChar* Val = "val";
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 }
 
 // キーが存在するかどうかのチェック
-csmBool CubismModelSettingJson::IsExistModelFile() const { return !_json->GetRoot()[FileReferences][Moc].IsNull(); }
-csmBool CubismModelSettingJson::IsExistTextureFiles() const { return !_json->GetRoot()[FileReferences][Textures].IsNull(); }
-csmBool CubismModelSettingJson::IsExistHitAreas() const { return !_json->GetRoot()[HitAreas].IsNull(); }
-csmBool CubismModelSettingJson::IsExistPhysicsFile() const { return !_json->GetRoot()[FileReferences][Physics].IsNull(); }
-csmBool CubismModelSettingJson::IsExistPoseFile() const { return !_json->GetRoot()[FileReferences][Pose].IsNull(); }
-csmBool CubismModelSettingJson::IsExistExpressionFile() const { return !_json->GetRoot()[FileReferences][Expressions].IsNull(); }
-csmBool CubismModelSettingJson::IsExistMotionGroups() const { return !_json->GetRoot()[FileReferences][Motions].IsNull(); }
-csmBool CubismModelSettingJson::IsExistMotionGroupName(const csmChar* groupName) const { return !_json->GetRoot()[FileReferences][Motions][groupName].IsNull(); }
-csmBool CubismModelSettingJson::IsExistMotionSoundFile(const csmChar* groupName, csmInt32 index) const { return !_json->GetRoot()[FileReferences][Motions][groupName][index][SoundPath].IsNull(); }
-csmBool CubismModelSettingJson::IsExistMotionFadeIn(const csmChar* groupName, csmInt32 index) const { return !_json->GetRoot()[FileReferences][Motions][groupName][index][FadeInTime].IsNull(); }
-csmBool CubismModelSettingJson::IsExistMotionFadeOut(const csmChar* groupName, csmInt32 index) const { return !_json->GetRoot()[FileReferences][Motions][groupName][index][FadeOutTime].IsNull(); }
+csmBool CubismModelSettingJson::IsExistModelFile() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Moc]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistTextureFiles() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Textures]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistHitAreas() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_HitAreas]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistPhysicsFile() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Physics]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistPoseFile() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Pose]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistExpressionFile() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Expressions]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistMotionGroups() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Motions]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistMotionGroupName(const csmChar* groupName) const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Motions])[groupName];
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistMotionSoundFile(const csmChar* groupName, csmInt32 index) const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Motions])[groupName][index][SoundPath];
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistMotionFadeIn(const csmChar* groupName, csmInt32 index) const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Motions])[groupName][index][FadeInTime];
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistMotionFadeOut(const csmChar* groupName, csmInt32 index) const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_Motions])[groupName][index][FadeOutTime];
+    return !node.IsNull() && !node.IsError();
+}
 csmBool CubismModelSettingJson::IsExistUserDataFile() const { return !_json->GetRoot()[FileReferences][UserData].IsNull(); }
 
 
 csmBool CubismModelSettingJson::IsExistEyeBlinkParameters() const
 {
-    for (csmInt32 i = 0; i < _json->GetRoot()[Groups].GetSize(); ++i)
+    if (_jsonValue[FrequentNode_Groups]->IsNull() || _jsonValue[FrequentNode_Groups]->IsError())
     {
-        if (strcmp(_json->GetRoot()[Groups][i][Name].GetRawString(), EyeBlink) == 0)
+        return false;
+    }
+
+    for (csmInt32 i = 0; i < _jsonValue[FrequentNode_Groups]->GetSize(); ++i)
+    {
+        if (strcmp((*_jsonValue[FrequentNode_Groups])[i][Name].GetRawString(), EyeBlink) == 0)
         {
             return true;
         }
@@ -97,9 +156,14 @@ csmBool CubismModelSettingJson::IsExistEyeBlinkParameters() const
 
 csmBool CubismModelSettingJson::IsExistLipSyncParameters() const
 {
-    for (csmInt32 i = 0; i < _json->GetRoot()[Groups].GetSize(); ++i)
+    if (_jsonValue[FrequentNode_Groups]->IsNull() || _jsonValue[FrequentNode_Groups]->IsError())
     {
-        if (strcmp(_json->GetRoot()[Groups][i][Name].GetRawString(), LipSync) == 0)
+        return false;
+    }
+
+    for (csmInt32 i = 0; i < _jsonValue[FrequentNode_Groups]->GetSize(); ++i)
+    {
+        if (strcmp((*_jsonValue[FrequentNode_Groups])[i][Name].GetRawString(), LipSync) == 0)
         {
             return true;
         }
@@ -110,6 +174,21 @@ csmBool CubismModelSettingJson::IsExistLipSyncParameters() const
 CubismModelSettingJson::CubismModelSettingJson(const csmByte* buffer, csmSizeInt size)
 {
     _json = Utils::CubismJson::Create(buffer, size);
+
+    if (_json)
+    {
+        _jsonValue.Clear();
+
+        // 順番はenum FrequentNodeと一致させる 
+        _jsonValue.PushBack(&(_json->GetRoot()[Groups]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Moc]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Motions]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Expressions]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Textures]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Physics]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Pose]));
+        _jsonValue.PushBack(&(_json->GetRoot()[HitAreas]));
+    }
 }
 
 CubismModelSettingJson::~CubismModelSettingJson()
@@ -125,70 +204,70 @@ Utils::CubismJson* CubismModelSettingJson::GetJsonPointer() const
 const csmChar* CubismModelSettingJson::GetModelFileName()
 {
     if (!IsExistModelFile())return "";
-    return _json->GetRoot()[FileReferences][Moc].GetRawString();
+    return (*_jsonValue[FrequentNode_Moc]).GetRawString();
 }
 
 // テクスチャについて
 csmInt32 CubismModelSettingJson::GetTextureCount()
 {
     if (!IsExistTextureFiles())return 0;
-    return _json->GetRoot()[FileReferences][Textures].GetSize();
+    return (*_jsonValue[FrequentNode_Textures]).GetSize();
 }
 
 const csmChar* CubismModelSettingJson::GetTextureDirectory()
 {
-    return _json->GetRoot()[FileReferences][Textures].GetRawString();
+    return (*_jsonValue[FrequentNode_Textures]).GetRawString();
 }
 
 const csmChar* CubismModelSettingJson::GetTextureFileName(csmInt32 index)
 {
-    return _json->GetRoot()[FileReferences][Textures][index].GetRawString();
+    return (*_jsonValue[FrequentNode_Textures])[index].GetRawString();
 }
 
 // あたり判定について
 csmInt32 CubismModelSettingJson::GetHitAreasCount()
 {
     if (!IsExistHitAreas())return 0;
-    return _json->GetRoot()[HitAreas].GetSize();
+    return (*_jsonValue[FrequentNode_HitAreas]).GetSize();
 }
 
 CubismIdHandle CubismModelSettingJson::GetHitAreaId(csmInt32 index)
 {
-    return CubismFramework::GetIdManager()->GetId(_json->GetRoot()[HitAreas][index][Id].GetRawString());
+    return CubismFramework::GetIdManager()->GetId((*_jsonValue[FrequentNode_HitAreas])[index][Id].GetRawString());
 }
 
 const csmChar* CubismModelSettingJson::GetHitAreaName(csmInt32 index)
 {
-    return _json->GetRoot()[HitAreas][index][Name].GetRawString();
+    return (*_jsonValue[FrequentNode_HitAreas])[index][Name].GetRawString();
 }
 
 // 物理演算、パーツ切り替え、表情ファイルについて
 const csmChar* CubismModelSettingJson::GetPhysicsFileName()
 {
     if (!IsExistPhysicsFile())return "";
-    return _json->GetRoot()[FileReferences][Physics].GetRawString();
+    return (*_jsonValue[FrequentNode_Physics]).GetRawString();
 }
 
 const csmChar* CubismModelSettingJson::GetPoseFileName()
 {
     if (!IsExistPoseFile())return "";
-    return _json->GetRoot()[FileReferences][Pose].GetRawString();
+    return (*_jsonValue[FrequentNode_Pose]).GetRawString();
 }
 
 csmInt32 CubismModelSettingJson::GetExpressionCount()
 {
     if (!IsExistExpressionFile())return 0;
-    return _json->GetRoot()[FileReferences][Expressions].GetSize();
+    return (*_jsonValue[FrequentNode_Expressions]).GetSize();
 }
 
 const csmChar* CubismModelSettingJson::GetExpressionName(csmInt32 index)
 {
-    return _json->GetRoot()[FileReferences][Expressions][index][Name].GetRawString();
+    return (*_jsonValue[FrequentNode_Expressions])[index][Name].GetRawString();
 }
 
 const csmChar* CubismModelSettingJson::GetExpressionFileName(csmInt32 index)
 {
-    return _json->GetRoot()[FileReferences][Expressions][index][FilePath].GetRawString();
+    return (*_jsonValue[FrequentNode_Expressions])[index][FilePath].GetRawString();
 }
 
 // モーションについて
@@ -198,7 +277,7 @@ csmInt32 CubismModelSettingJson::GetMotionGroupCount()
     {
         return 0;
     }
-    return _json->GetRoot()[FileReferences][Motions].GetKeys().GetSize();
+    return (*_jsonValue[FrequentNode_Motions]).GetKeys().GetSize();
 }
 
 const csmChar* CubismModelSettingJson::GetMotionGroupName(csmInt32 index)
@@ -207,37 +286,37 @@ const csmChar* CubismModelSettingJson::GetMotionGroupName(csmInt32 index)
     {
         return NULL;
     }
-    return _json->GetRoot()[FileReferences][Motions].GetKeys()[index].GetRawString();
+    return (*_jsonValue[FrequentNode_Motions]).GetKeys()[index].GetRawString();
 }
 
 csmInt32 CubismModelSettingJson::GetMotionCount(const csmChar* groupName)
 {
     if (!IsExistMotionGroupName(groupName))return 0;
-    return _json->GetRoot()[FileReferences][Motions][groupName].GetSize();
+    return (*_jsonValue[FrequentNode_Motions])[groupName].GetSize();
 }
 
 const csmChar* CubismModelSettingJson::GetMotionFileName(const csmChar* groupName, csmInt32 index)
 {
     if (!IsExistMotionGroupName(groupName))return "";
-    return _json->GetRoot()[FileReferences][Motions][groupName][index][FilePath].GetRawString();
+    return (*_jsonValue[FrequentNode_Motions])[groupName][index][FilePath].GetRawString();
 }
 
 const csmChar* CubismModelSettingJson::GetMotionSoundFileName(const csmChar* groupName, csmInt32 index)
 {
     if (!IsExistMotionSoundFile(groupName, index))return "";
-    return _json->GetRoot()[FileReferences][Motions][groupName][index][SoundPath].GetRawString();
+    return (*_jsonValue[FrequentNode_Motions])[groupName][index][SoundPath].GetRawString();
 }
 
 csmFloat32 CubismModelSettingJson::GetMotionFadeInTimeValue(const csmChar* groupName, csmInt32 index)
 {
     if (!IsExistMotionFadeIn(groupName, index))return -1.0f;
-    return _json->GetRoot()[FileReferences][Motions][groupName][index][FadeInTime].ToFloat();
+    return (*_jsonValue[FrequentNode_Motions])[groupName][index][FadeInTime].ToFloat();
 }
 
 csmFloat32 CubismModelSettingJson::GetMotionFadeOutTimeValue(const csmChar* groupName, csmInt32 index)
 {
     if (!IsExistMotionFadeOut(groupName, index))return -1.0f;
-    return _json->GetRoot()[FileReferences][Motions][groupName][index][FadeOutTime].ToFloat();
+    return (*_jsonValue[FrequentNode_Motions])[groupName][index][FadeOutTime].ToFloat();
 }
 
 
@@ -275,11 +354,17 @@ csmInt32 CubismModelSettingJson::GetEyeBlinkParameterCount()
     }
 
     csmInt32 num = 0;
-    for (csmInt32 i = 0; i < _json->GetRoot()[Groups].GetSize(); i++)
+    for (csmInt32 i = 0; i < _jsonValue[FrequentNode_Groups]->GetSize(); i++)
     {
-        if (strcmp(_json->GetRoot()[Groups][i][Name].GetRawString(), EyeBlink) == 0)
+        Utils::Value& refI = (*_jsonValue[FrequentNode_Groups])[i];
+        if(refI.IsNull() || refI.IsError())
         {
-            num = _json->GetRoot()[Groups][i][Ids].GetVector()->GetSize();
+            continue;
+        }
+
+        if (strcmp(refI[Name].GetRawString(), EyeBlink) == 0)
+        {
+            num = refI[Ids].GetVector()->GetSize();
             break;
         }
     }
@@ -294,11 +379,17 @@ CubismIdHandle CubismModelSettingJson::GetEyeBlinkParameterId(csmInt32 index)
         return NULL;
     }
 
-    for (csmInt32 i = 0; i < _json->GetRoot()[Groups].GetSize(); i++)
+    for (csmInt32 i = 0; i < _jsonValue[FrequentNode_Groups]->GetSize(); i++)
     {
-        if (strcmp(_json->GetRoot()[Groups][i][Name].GetRawString(), EyeBlink) == 0)
+        Utils::Value& refI = (*_jsonValue[FrequentNode_Groups])[i];
+        if (refI.IsNull() || refI.IsError())
         {
-            return CubismFramework::GetIdManager()->GetId(_json->GetRoot()[Groups][i][Ids][index].GetRawString());
+            continue;
+        }
+
+        if (strcmp(refI[Name].GetRawString(), EyeBlink) == 0)
+        {
+            return CubismFramework::GetIdManager()->GetId(refI[Ids][index].GetRawString());
         }
     }
     return NULL;
@@ -312,11 +403,17 @@ csmInt32 CubismModelSettingJson::GetLipSyncParameterCount()
     }
 
     csmInt32 num = 0;
-    for (csmInt32 i = 0; i < _json->GetRoot()[Groups].GetSize(); i++)
+    for (csmInt32 i = 0; i < _jsonValue[FrequentNode_Groups]->GetSize(); i++)
     {
-        if (strcmp(_json->GetRoot()[Groups][i][Name].GetRawString(), LipSync) == 0)
+        Utils::Value& refI = (*_jsonValue[FrequentNode_Groups])[i];
+        if (refI.IsNull() || refI.IsError())
         {
-            num = _json->GetRoot()[Groups][i][Ids].GetVector()->GetSize();
+            continue;
+        }
+
+        if (strcmp(refI[Name].GetRawString(), LipSync) == 0)
+        {
+            num = refI[Ids].GetVector()->GetSize();
             break;
         }
     }
@@ -331,11 +428,17 @@ CubismIdHandle CubismModelSettingJson::GetLipSyncParameterId(csmInt32 index)
         return NULL;
     }
 
-    for (csmInt32 i = 0; i < _json->GetRoot()[Groups].GetSize(); i++)
+    for (csmInt32 i = 0; i < _jsonValue[FrequentNode_Groups]->GetSize(); i++)
     {
-        if (strcmp(_json->GetRoot()[Groups][i][Name].GetRawString(), LipSync) == 0)
+        Utils::Value& refI = (*_jsonValue[FrequentNode_Groups])[i];
+        if (refI.IsNull() || refI.IsError())
         {
-            return CubismFramework::GetIdManager()->GetId(_json->GetRoot()[Groups][i][Ids][index].GetRawString());
+            continue;
+        }
+
+        if (strcmp(refI[Name].GetRawString(), LipSync) == 0)
+        {
+            return CubismFramework::GetIdManager()->GetId(refI[Ids][index].GetRawString());
         }
     }
     return NULL;

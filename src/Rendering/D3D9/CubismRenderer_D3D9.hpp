@@ -438,7 +438,6 @@ private:
      */
     void CopyToBuffer(csmInt32 drawAssign, const csmInt32 vcount, const csmFloat32* varray, const csmFloat32* uvarray);
 
-
     csmUint32                           _drawableNum;           ///< _vertexBuffers, _indexBuffersの確保数 
 
     CubismVertexD3D9**                  _vertexStore;           ///< 頂点をストアしておく領域 

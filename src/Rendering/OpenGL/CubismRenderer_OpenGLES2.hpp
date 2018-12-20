@@ -126,10 +126,12 @@ private:
     /**
      * @brief   クリッピングコンテキストを作成する。モデル描画時に実行する。
      *
-     * @param[in]   model       ->  モデルのインスタンス
-     * @param[in]   renderer    ->  レンダラのインスタンス
+     * @param[in]   model        ->  モデルのインスタンス
+     * @param[in]   renderer     ->  レンダラのインスタンス
+     * @param[in]   lastFBO      ->  フレームバッファ
+     * @param[in]   lastViewport ->  ビューポート
      */
-    void SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer);
+    void SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer, GLint lastFBO, GLint lastViewport[4]);
 
     /**
      * @brief   既にマスクを作っているかを確認。<br>
@@ -448,6 +450,8 @@ private:
     GLint _lastFrontFace;                   ///< モデル描画直前のGL_CULL_FACEパラメータ
     GLboolean _lastColorMask[4];            ///< モデル描画直前のGL_COLOR_WRITEMASKパラメータ
     GLint _lastBlending[4];                 ///< モデル描画直前のカラーブレンディングパラメータ
+    GLint _lastFBO;                         ///< モデル描画直前のフレームバッファ
+    GLint _lastViewport[4];                 ///< モデル描画直前のビューポート
 };
 
 /**

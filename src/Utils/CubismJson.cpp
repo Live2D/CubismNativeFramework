@@ -10,6 +10,8 @@
 #include "Type/csmString.hpp"
 #include "CubismDebug.hpp"
 
+using namespace std; // for strtof 
+
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Utils {
 
@@ -286,7 +288,7 @@ Value* CubismJson::ParseObject(const csmChar* buffer, csmInt32 length, csmInt32 
                 goto BREAK_LOOP3;
             case '}':
                 *outEndPos = i + 1;
-                return ret; //<< [] 正常終了 >>
+                return ret; // << [] 正常終了 >>
             case '\n': _lineCount++;
                 //case ' ': case '\t': case '\r':
             default: break; //スキップ
@@ -372,7 +374,7 @@ Value* CubismJson::ParseValue(const csmChar* buffer, csmInt32 length, csmInt32 b
         case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9': {
             char* ret_ptr;
-            f = strtod(const_cast<csmChar*>(buffer + i), &ret_ptr);
+            f = strtof(const_cast<csmChar*>(buffer + i), &ret_ptr);
             *outEndPos = static_cast<csmInt32>(ret_ptr - buffer);
             return CSM_NEW Float(f);
         }

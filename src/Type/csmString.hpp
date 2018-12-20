@@ -152,7 +152,7 @@ public:
     /**
      * @brief   C言語文字列としてのポインタを取得する
      *
-     * @brief   C言語文字列のポインタ
+     * @return   C言語文字列のポインタ
      */
     const csmChar* GetRawString() const;
 
@@ -198,12 +198,15 @@ protected:
     csmInt32 CalcHashcode(const csmChar* c, csmInt32 length);
 
 private:
+    static const csmInt32 SmallLength = 64; ///< この長さ-1未満の文字列は内部バッファを使用 
     static const csmInt32 DefaultSize = 10; ///< デフォルトの文字数
     static csmInt32 s_totalInstanceNo;      ///< 通算のインスタンス番号
     csmChar* _ptr;                          ///< 文字型配列のポインタ
     csmInt32 _length;                       ///< 半角文字数（メモリ確保は最後に0が入るため_length+1）
     csmInt32 _hashcode;                     ///< インスタンスに当てられたハッシュ値
     csmInt32 _instanceNo;                   ///< インスタンスに割り当てられた番号
+
+    csmChar _small[SmallLength];            ///< 文字列の長さがSmallLength-1未満の場合はこちらを使用 
 
     /**
      * @brief 文字列が空かどうか？
@@ -223,6 +226,13 @@ private:
      * @note ポインタに対してfree()はしない。
      */
     void SetEmpty();
+
+    /**
+     * @brief   C言語文字列としてのポインタを取得する
+     *
+     * @return   C言語文字列のポインタ
+     */
+    csmChar* WritePointer();
 };
 }}}
 

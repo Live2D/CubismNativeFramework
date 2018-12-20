@@ -236,7 +236,7 @@ public:
     * @param[in]   outputIndex              出力のインデックス
     * @return 出力の角度のスケール
     */
-    csmInt32 GetOutputAngleScale(csmInt32 physicsSettingIndex, csmInt32 outputIndex) const;
+    csmFloat32 GetOutputAngleScale(csmInt32 physicsSettingIndex, csmInt32 outputIndex) const;
 
     /**
     * @brief 出力の重みの取得
@@ -334,7 +334,7 @@ public:
     * @param[in]   vertexIndex              物理点のインデックス
     * @return 物理点の距離
     */
-    csmInt32 GetParticleRadius(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const;
+    csmFloat32 GetParticleRadius(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const;
 
     /**
     * @brief 物理点の位置の取得

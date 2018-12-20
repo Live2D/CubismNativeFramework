@@ -19,7 +19,7 @@ CubismId::CubismId(const CubismId& c)
 
 CubismId::CubismId(const csmChar* id)
 {
-    _id = csmString(id);
+    _id = id;
 }
 
 CubismId::~CubismId()
