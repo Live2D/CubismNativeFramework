@@ -18,7 +18,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-struct CubismOffscreenFrame_D3D9
+class CubismOffscreenFrame_D3D9
 {
 public:
 
@@ -39,6 +39,16 @@ public:
     void EndDraw(LPDIRECT3DDEVICE9 device);
 
     /**
+     * @brief   レンダリングターゲットのクリア
+     *           呼ぶ場合はBeginDrawの後で呼ぶこと
+     * @param   r   赤(0.0~1.0)
+     * @param   g   緑(0.0~1.0)
+     * @param   b   青(0.0~1.0)
+     * @param   a   α(0.0~1.0)
+     */
+    void Clear(LPDIRECT3DDEVICE9 device, float r, float g, float b, float a);
+
+    /**
      *  @brief  CubismOffscreenFrame作成
      *  @param  device[in]                D3dデバイス
      *  @param  displayBufferWidth[in]     作成するバッファ幅
@@ -51,7 +61,27 @@ public:
      */
     void DestroyOffscreenFrame();
 
+    /**
+     * @brief   テクスチャメンバーへのアクセッサ
+     */
+    LPDIRECT3DTEXTURE9 GetTexture() const;
 
+    /**
+     * @brief   バッファ幅取得
+     */
+    csmUint32 GetBufferWidth() const;
+
+    /**
+     * @brief   バッファ高さ取得
+     */
+    csmUint32 GetBufferHeight() const;
+
+    /**
+     * @brief   現在有効かどうか
+     */
+    csmBool IsValid() const;
+
+private:
     LPDIRECT3DTEXTURE9  _texture;           ///< 生成テクスチャ 
     LPDIRECT3DSURFACE9  _textureSurface;    ///< レンダリングサーフェス 
     LPDIRECT3DSURFACE9  _depthSurface;      ///< Z 
@@ -59,6 +89,8 @@ public:
     LPDIRECT3DSURFACE9  _backupRender;      ///< 元々のターゲットを退避 
     LPDIRECT3DSURFACE9  _backupDepth;       ///< 元々のZを退避 
 
+    csmUint32           _bufferWidth;       ///< Create時に指定されたサイズ 
+    csmUint32           _bufferHeight;      ///< Create時に指定されたサイズ 
 };
 
 

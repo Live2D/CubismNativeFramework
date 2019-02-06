@@ -20,6 +20,8 @@ CubismOffscreenFrame_D3D11::CubismOffscreenFrame_D3D11()
     , _depthView(NULL)
     , _backupRender(NULL)
     , _backupDepth(NULL)
+    , _bufferWidth(0)
+    , _bufferHeight(0)
 {
 }
 
@@ -45,12 +47,8 @@ void CubismOffscreenFrame_D3D11::BeginDraw(ID3D11DeviceContext* renderContext)
     }
 
     // マスクをクリアする
-    // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
-    float clearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
     // 自前のレンダーターゲットビューに切り替え
     renderContext->OMSetRenderTargets( 1, &_renderTargetView, _depthView);
-    renderContext->ClearRenderTargetView(_renderTargetView, clearColor );
-    renderContext->ClearDepthStencilView(_depthView, D3D11_CLEAR_DEPTH, 1.0f, 0 );
 }
 
 void CubismOffscreenFrame_D3D11::EndDraw(ID3D11DeviceContext* renderContext)
@@ -74,6 +72,13 @@ void CubismOffscreenFrame_D3D11::EndDraw(ID3D11DeviceContext* renderContext)
         _backupRender->Release();
         _backupRender = NULL;
     }
+}
+
+void CubismOffscreenFrame_D3D11::Clear(ID3D11DeviceContext* renderContext, float r, float g, float b, float a)
+{
+    float clearColor[4] = {r,g,b,a};
+    renderContext->ClearRenderTargetView(_renderTargetView, clearColor);
+    renderContext->ClearDepthStencilView(_depthView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
 csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight)
@@ -162,6 +167,9 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
             break;
         }
 
+        _bufferWidth = displayBufferWidth;
+        _bufferHeight = displayBufferHeight;
+
         // 成功 
         return true;
 
@@ -213,6 +221,31 @@ void CubismOffscreenFrame_D3D11::DestroyOffscreenFrame()
         _texture->Release();
         _texture = NULL;
     }
+}
+
+ID3D11ShaderResourceView* CubismOffscreenFrame_D3D11::GetTextureView() const
+{
+    return _textureView;
+}
+
+csmUint32 CubismOffscreenFrame_D3D11::GetBufferWidth() const
+{
+    return _bufferWidth;
+}
+
+csmUint32 CubismOffscreenFrame_D3D11::GetBufferHeight() const
+{
+    return _bufferHeight;
+}
+
+csmBool CubismOffscreenFrame_D3D11::IsValid() const
+{
+    if (_textureView == NULL || _renderTargetView == NULL || _depthView == NULL)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 }}}}

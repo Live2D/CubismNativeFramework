@@ -106,6 +106,7 @@ set(Framework
     ${commonfiles}
 
     src/Rendering/OpenGL/CubismRenderer_OpenGLES2.cpp
+    src/Rendering/OpenGL/CubismOffscreenSurface_OpenGLES2.cpp
 
 )
 
