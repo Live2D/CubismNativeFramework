@@ -68,7 +68,7 @@ public:
      */
     static csmFloat32 AbsF(csmFloat32 x)
     {
-        return std::fabsf(x);
+        return std::fabs(x);
     };
 
     /**
