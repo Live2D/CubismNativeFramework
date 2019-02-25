@@ -192,7 +192,7 @@ const csmChar* CubismPhysicsJson::GetOutputType(csmInt32 physicsSettingIndex, cs
 
 csmBool CubismPhysicsJson::GetOutputReflect(csmInt32 physicsSettingIndex, csmInt32 outputIndex) const
 {
-    return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Output][Reflect].ToBoolean();
+    return _json->GetRoot()[PhysicsSettings][physicsSettingIndex][Output][outputIndex][Reflect].ToBoolean();
 }
 
 // Particle

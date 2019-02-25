@@ -9,6 +9,7 @@
 
 #include "../CubismRenderer.hpp"
 #include "CubismFramework.hpp"
+#include "CubismOffscreenSurface_OpenGLES2.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
 #include "Type/csmMap.hpp"
@@ -52,32 +53,6 @@ class CubismClippingManager_OpenGLES2
     friend class CubismRenderer_OpenGLES2;
 
 private:
-    /**
-     * @brief   レンダーテクスチャのリソースを定義する構造体<br>
-     *           クリッピングマスクで使用する
-     */
-    struct CubismRenderTextureResource
-    {
-        friend class CubismClippingManager_OpenGLES2;
-
-    private:
-        /**
-         * @brief   引数付きコンストラクタ
-         *
-         * @param[in]   frameNo ->  レンダラのフレーム番号
-         * @param[in]   texture ->  テクスチャのアドレス
-         */
-        CubismRenderTextureResource(csmInt32 frameNo, GLuint texture) : FrameNo(frameNo)
-                                                                      , Texture(texture) {};
-
-        /**
-         * @brief   デストラクタ
-         */
-        virtual ~CubismRenderTextureResource() {};
-
-        csmInt32    FrameNo;    ///< レンダラのフレーム番号
-        GLuint      Texture;    ///< テクスチャのアドレス
-    };
 
     /**
      * @brief カラーチャンネル(RGBA)のフラグを取得する
@@ -85,14 +60,6 @@ private:
      * @param[in]   channelNo   ->   カラーチャンネル(RGBA)の番号(0:R , 1:G , 2:B, 3:A)
      */
     CubismRenderer::CubismTextureColor* GetChannelFlagAsColor(csmInt32 channelNo);
-
-    /**
-     * @brief   テンポラリのレンダーテクスチャのアドレスを取得する。<br>
-     *           FrameBufferObjectが存在しない場合、新しく生成する。
-     *
-     * @return  レンダーテクスチャのアドレス
-     */
-    GLuint GetMaskRenderTexture();
 
     /**
      * @brief   マスクされる描画オブジェクト群全体を囲む矩形(モデル座標系)を計算する
@@ -154,13 +121,6 @@ private:
     void SetupLayoutBounds(csmInt32 usingClipCount) const;
 
     /**
-     * @breif   カラーバッファのアドレスを取得する
-     *
-     * @return  カラーバッファのアドレス
-     */
-    GLuint GetColorBuffer() const;
-
-    /**
      * @brief   画面描画に使用するクリッピングマスクのリストを取得する
      *
      * @return  画面描画に使用するクリッピングマスクのリスト
@@ -183,12 +143,9 @@ private:
      */
     csmInt32 GetClippingMaskBufferSize() const;
 
-    GLuint      _maskRenderTexture;      ///< マスク用レンダーテクスチャーのアドレス
-    GLuint      _colorBuffer;            ///< マスク用カラーバッファーのアドレス
     csmInt32    _currentFrameNo;         ///< マスクテクスチャに与えるフレーム番号
 
     csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
-    CubismRenderTextureResource*                    _maskTexture;                  ///< マスク用のテクスチャリソース
     csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
     csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
     csmInt32                                        _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
@@ -641,6 +598,7 @@ private:
     CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト
     CubismClippingContext*              _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
 
+    CubismOffscreenFrame_OpenGLES2      _offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ 
 };
 
 }}}}

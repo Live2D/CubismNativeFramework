@@ -19,6 +19,8 @@ CubismOffscreenFrame_D3D9::CubismOffscreenFrame_D3D9()
     , _depthSurface(NULL)
     , _backupRender(NULL)
     , _backupDepth(NULL)
+    , _bufferWidth(0)
+    , _bufferHeight(0)
 {
 }
 
@@ -54,10 +56,6 @@ void CubismOffscreenFrame_D3D9::BeginDraw(LPDIRECT3DDEVICE9 device)
         // マスク描画レンダーターゲットセット 
         device->SetRenderTarget(0, surface);
         device->SetDepthStencilSurface(_depthSurface);
-
-        // マスクをクリアする
-        //（仮仕様） 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
-        device->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_ARGB(255, 255, 255, 255), 1.0f, 0);
     }
 }
 
@@ -97,6 +95,13 @@ void CubismOffscreenFrame_D3D9::EndDraw(LPDIRECT3DDEVICE9 device)
     device->BeginScene();
 }
 
+void CubismOffscreenFrame_D3D9::Clear(LPDIRECT3DDEVICE9 device,  float r, float g, float b, float a)
+{
+    // マスクをクリアする 
+    device->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+        D3DCOLOR_COLORVALUE(r, g, b, a), 1.0f, 0);
+}
+
 csmBool CubismOffscreenFrame_D3D9::CreateOffscreenFrame(LPDIRECT3DDEVICE9 device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight)
 {
     // 一旦削除 
@@ -133,6 +138,9 @@ csmBool CubismOffscreenFrame_D3D9::CreateOffscreenFrame(LPDIRECT3DDEVICE9 device
         return false;
     }
 
+    _bufferWidth = displayBufferWidth;
+    _bufferHeight = displayBufferHeight;
+
     return true;
 }
 
@@ -166,6 +174,31 @@ void CubismOffscreenFrame_D3D9::DestroyOffscreenFrame()
         _texture->Release();
         _texture = NULL;
     }
+}
+
+LPDIRECT3DTEXTURE9 CubismOffscreenFrame_D3D9::GetTexture() const
+{
+    return _texture;
+}
+
+csmUint32 CubismOffscreenFrame_D3D9::GetBufferWidth() const
+{
+    return _bufferWidth;
+}
+
+csmUint32 CubismOffscreenFrame_D3D9::GetBufferHeight() const
+{
+    return _bufferHeight;
+}
+
+csmBool CubismOffscreenFrame_D3D9::IsValid() const
+{
+    if (_depthSurface == NULL || _texture == NULL)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 }}}}

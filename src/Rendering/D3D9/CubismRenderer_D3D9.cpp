@@ -202,6 +202,8 @@ void CubismClippingManager_DX9::SetupClippingContext(LPDIRECT3DDEVICE9 device, C
                 0.0f, 1.0f);
 
             useTarget.BeginDraw(device);
+            // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
+            useTarget.Clear(device, 1.0f, 1.0f, 1.0f, 1.0f);
         }
 
         // 各マスクのレイアウトを決定していく
@@ -826,8 +828,17 @@ void CubismRenderer_D3D9::DoDrawModel()
     //------------ クリッピングマスク・バッファ前処理方式の場合 ------------
     if (_clippingManager != NULL)
     {
-        _clippingManager->SetupClippingContext(s_useDevice, *GetModel(), this, _offscreenFrameBuffer[_commandBufferCurrent]);
         _clippingManager->_colorBuffer = &_offscreenFrameBuffer[_commandBufferCurrent];
+        // サイズが違う場合はここで作成しなおし 
+        if (_clippingManager->_colorBuffer->GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()) ||
+            _clippingManager->_colorBuffer->GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()))
+        {
+            _clippingManager->_colorBuffer->DestroyOffscreenFrame();
+            _clippingManager->_colorBuffer->CreateOffscreenFrame(s_useDevice,
+                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()));
+        }
+
+        _clippingManager->SetupClippingContext(s_useDevice, *GetModel(), this, *_clippingManager->_colorBuffer);
 
         if (!IsUsingHighPrecisionMask())
         {
@@ -872,7 +883,9 @@ void CubismRenderer_D3D9::DoDrawModel()
                     _clippingManager->GetClippingMaskBufferSize(),
                     0.0f, 1.0f);
 
-                _offscreenFrameBuffer[_commandBufferCurrent].BeginDraw(s_useDevice);
+                _clippingManager->_colorBuffer->BeginDraw(s_useDevice);
+                // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
+                _clippingManager->_colorBuffer->Clear(s_useDevice, 1.0f, 1.0f, 1.0f, 1.0f);
 
                 const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
                 for (csmInt32 ctx = 0; ctx < clipDrawCount; ctx++)
@@ -895,7 +908,7 @@ void CubismRenderer_D3D9::DoDrawModel()
                         CubismRenderer::CubismBlendMode::CubismBlendMode_Normal); //クリッピングは通常描画を強制
                 }
 
-                _offscreenFrameBuffer[_commandBufferCurrent].EndDraw(s_useDevice);
+                _clippingManager->_colorBuffer->EndDraw(s_useDevice);
                 SetClippingContextBufferForMask(NULL);
 
                 // ビューポートを元に戻す 
@@ -1102,7 +1115,7 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
                 // テクスチャセット メイン 
                 shaderEffect->SetTexture("mainTexture", texture);
                 // テクスチャセット マスク 
-                shaderEffect->SetTexture("maskTexture", _clippingManager->_colorBuffer->_texture);
+                shaderEffect->SetTexture("maskTexture", _clippingManager->_colorBuffer->GetTexture());
             }
 
             // 定数バッファ 
