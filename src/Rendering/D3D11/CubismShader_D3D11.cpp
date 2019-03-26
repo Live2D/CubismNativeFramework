@@ -165,39 +165,39 @@ void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
     do
     {
         // マスク 
-        if(!LoadShaderProgram(device, false, ShaderNames_SetupMask, static_cast<csmChar*>("VertSetupMask")))
+        if(!LoadShaderProgram(device, false, ShaderNames_SetupMask, static_cast<const csmChar*>("VertSetupMask")))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_SetupMask, static_cast<csmChar*>("PixelSetupMask")))
+        if (!LoadShaderProgram(device, true, ShaderNames_SetupMask, static_cast<const csmChar*>("PixelSetupMask")))
         {
             break;
         }
 
         // 頂点シェーダ 
-        if (!LoadShaderProgram(device, false, ShaderNames_Normal, static_cast<csmChar*>("VertNormal")))
+        if (!LoadShaderProgram(device, false, ShaderNames_Normal, static_cast<const csmChar*>("VertNormal")))
         {
             break;
         }
-        if (!LoadShaderProgram(device, false, ShaderNames_NormalMasked, static_cast<csmChar*>("VertMasked")))
+        if (!LoadShaderProgram(device, false, ShaderNames_NormalMasked, static_cast<const csmChar*>("VertMasked")))
         {
             break;
         }
 
         // ピクセルシェーダ 
-        if (!LoadShaderProgram(device, true, ShaderNames_Normal, static_cast<csmChar*>("PixelNormal")))
+        if (!LoadShaderProgram(device, true, ShaderNames_Normal, static_cast<const csmChar*>("PixelNormal")))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalMasked, static_cast<csmChar*>("PixelMasked")))
+        if (!LoadShaderProgram(device, true, ShaderNames_NormalMasked, static_cast<const csmChar*>("PixelMasked")))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalPremultipliedAlpha, static_cast<csmChar*>("PixelNormalPremult")))
+        if (!LoadShaderProgram(device, true, ShaderNames_NormalPremultipliedAlpha, static_cast<const csmChar*>("PixelNormalPremult")))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalMaskedPremultipliedAlpha, static_cast<csmChar*>("PixelMaskedPremult")))
+        if (!LoadShaderProgram(device, true, ShaderNames_NormalMaskedPremultipliedAlpha, static_cast<const csmChar*>("PixelMaskedPremult")))
         {
             break;
         }
@@ -267,7 +267,7 @@ void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
     }
 }
 
-Csm::csmBool CubismShader_D3D11::LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, csmChar* entryPoint)
+Csm::csmBool CubismShader_D3D11::LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, const csmChar* entryPoint)
 {
     csmBool bRet = false;
     if (!device) return false;
