@@ -674,6 +674,11 @@ void CubismShader_OpenGLES2::ReleaseShaderProgram()
 
 // SetupMask
 static const csmChar* VertShaderSrcSetupMask =
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
+#else
+        "#version 120\n"
+#endif
         "attribute vec4 a_position;"
         "attribute vec2 a_texCoord;"
         "varying vec2 v_texCoord;"
@@ -687,11 +692,11 @@ static const csmChar* VertShaderSrcSetupMask =
         "v_texCoord.y = 1.0 - v_texCoord.y;"
         "}";
 static const csmChar* FragShaderSrcSetupMask =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
         "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
+#else
+        "#version 120\n"
 #endif
         "varying vec2 v_texCoord;"
         "varying vec4 v_myPos;"
@@ -712,6 +717,11 @@ static const csmChar* FragShaderSrcSetupMask =
 //----- バーテックスシェーダプログラム -----
 // Normal & Add & Mult 共通
 static const csmChar* VertShaderSrc =
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
+#else
+        "#version 120\n"
+#endif
         "attribute vec4 a_position;" //v.vertex
         "attribute vec2 a_texCoord;" //v.texcoord
         "varying vec2 v_texCoord;" //v2f.texcoord
@@ -725,6 +735,11 @@ static const csmChar* VertShaderSrc =
 
 // Normal & Add & Mult 共通（クリッピングされたものの描画用）
 static const csmChar* VertShaderSrcMasked =
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
+#else
+        "#version 120\n"
+#endif
         "attribute vec4 a_position;"
         "attribute vec2 a_texCoord;"
         "varying vec2 v_texCoord;"
@@ -742,11 +757,11 @@ static const csmChar* VertShaderSrcMasked =
 //----- フラグメントシェーダプログラム -----
 // Normal & Add & Mult 共通
 static const csmChar* FragShaderSrc =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
         "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
+#else
+        "#version 120\n"
 #endif
         "varying vec2 v_texCoord;" //v2f.texcoord
         "uniform sampler2D s_texture0;" //_MainTex
@@ -759,11 +774,11 @@ static const csmChar* FragShaderSrc =
 
 // Normal & Add & Mult 共通 （PremultipliedAlpha）
 static const csmChar* FragShaderSrcPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
         "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
+#else
+        "#version 120\n"
 #endif
         "varying vec2 v_texCoord;" //v2f.texcoord
         "uniform sampler2D s_texture0;" //_MainTex
@@ -775,11 +790,11 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
 
 // Normal & Add & Mult 共通（クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcMask =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
         "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
+#else
+        "#version 120\n"
 #endif
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
@@ -799,11 +814,11 @@ static const csmChar* FragShaderSrcMask =
 
 // Normal & Add & Mult 共通（クリッピングされたものの描画用、PremultipliedAlphaの場合）
 static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
-#ifdef CSM_TARGET_IPHONE_ES2
+#if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
+        "#version 100\n"
         "precision mediump float;"
-#endif
-#ifdef CSM_TARGET_ANDROID_ES2
-        "precision mediump float;"
+#else
+        "#version 120\n"
 #endif
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
@@ -827,6 +842,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // マスク生成用
     const static csmChar* FragShaderSrcSetupMaskForTegra =
+        "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
 
         "varying vec2 v_texCoord;"
@@ -853,6 +869,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // 共通（上）
 #define  FragShaderSrcHeaderForTegra \
+        "#version 100\n"\
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"\
         \
         "varying vec2 v_texCoord;"\
@@ -864,11 +881,13 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
             "float As = Cs.a;"
     // 共通（下）
 #define FragShaderSrcFooterForTegra \
+            "#version 100\n"\
             "gl_FragColor = Cs ;"\
         "}"
 
     // 共通：マスク（上）
 #define  FragShaderSrcHeaderMaskForTegra \
+        "#version 100\n"\
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"\
         \
         "varying vec2 v_texCoord;"\
@@ -884,6 +903,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // 共通：マスク（下）
 #define  FragShaderSrcFooterMaskForTegra \
+        "#version 100\n"\
         "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
         "col_formask = col_formask * maskVal;"\
@@ -895,6 +915,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // Normal
 #define  FragShaderSrcNormalForTegra \
+        "#version 100\n"\
         "col_formask.r = col_formask.r * As + gl_LastFragColor.r*(1.0-As);"\
         "col_formask.g = col_formask.g * As + gl_LastFragColor.g*(1.0-As);"\
         "col_formask.b = col_formask.b * As + gl_LastFragColor.b*(1.0-As);"\
@@ -902,6 +923,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // Normal （PremultipliedAlpha）
 #define  FragShaderSrcNormalPremultipliedAlphaForTegra \
+        "#version 100\n"\
         "col_formask.r = col_formask.r + gl_LastFragColor.r*(1.0-As);"\
         "col_formask.g = col_formask.g + gl_LastFragColor.g*(1.0-As);"\
         "col_formask.b = col_formask.b + gl_LastFragColor.b*(1.0-As);"\
@@ -909,6 +931,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // Add
 #define  FragShaderSrcAddForTegra \
+        "#version 100\n"\
         "col_formask.r = col_formask.r * As + gl_LastFragColor.r;"\
         "col_formask.g = col_formask.g * As + gl_LastFragColor.g;"\
         "col_formask.b = col_formask.b * As + gl_LastFragColor.b;"\
@@ -916,6 +939,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // Add （PremultipliedAlpha）
 #define  FragShaderSrcAddPremultipliedAlphaForTegra \
+        "#version 100\n"\
         "col_formask.r = col_formask.r + gl_LastFragColor.r;"\
         "col_formask.g = col_formask.g + gl_LastFragColor.g;"\
         "col_formask.b = col_formask.b + gl_LastFragColor.b;"\
@@ -923,6 +947,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // Mult
 #define  FragShaderSrcMultForTegra \
+        "#version 100\n"\
         "col_formask.r = col_formask.r * gl_LastFragColor.r * As + gl_LastFragColor.r*(1.0-As);"\
         "col_formask.g = col_formask.g * gl_LastFragColor.g * As + gl_LastFragColor.g*(1.0-As);"\
         "col_formask.b = col_formask.b * gl_LastFragColor.b * As + gl_LastFragColor.b*(1.0-As);"\
@@ -930,6 +955,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 
     // Mult （PremultipliedAlpha）
 #define  FragShaderSrcMultPremultipliedAlphaForTegra \
+        "#version 100\n"\
         "col_formask.r = col_formask.r * gl_LastFragColor.r + gl_LastFragColor.r*(1.0-As);"\
         "col_formask.g = col_formask.g * gl_LastFragColor.g + gl_LastFragColor.g*(1.0-As);"\
         "col_formask.b = col_formask.b * gl_LastFragColor.b + gl_LastFragColor.b*(1.0-As);"\
