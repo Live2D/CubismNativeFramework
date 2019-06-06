@@ -51,6 +51,7 @@ set(commonfiles
     src/CubismDefaultParameterId.cpp
     src/CubismFramework.cpp
     src/CubismModelSettingJson.cpp
+    src/CubismCdiJson.cpp
 
 )
 
