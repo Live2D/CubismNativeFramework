@@ -122,7 +122,7 @@ private:
      *
      * @return  成功時はtrue、失敗時はfalse
      */
-    Csm::csmBool LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, csmChar* entryPoint);
+    Csm::csmBool LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, const csmChar* entryPoint);
 
     csmVector<CubismShaderSet*> _shaderSets;   ///< ロードしたシェーダプログラムを保持する変数
 
