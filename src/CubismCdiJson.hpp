@@ -68,7 +68,7 @@ private:
      * @retval       true  -> キーが存在する
      * @retval       false -> キーが存在しない
      */
-    csmBool CubismCdiJson::IsExistParameters() const;
+    csmBool IsExistParameters() const;
 
     /**
      * @brief        パラメータグループのキーが存在するかどうかを確認する
@@ -76,7 +76,7 @@ private:
      * @retval       true  -> キーが存在する
      * @retval       false -> キーが存在しない
      */
-    csmBool CubismCdiJson::IsExistParameterGroups() const;
+    csmBool IsExistParameterGroups() const;
 
     /**
      * @brief        パーツのキーが存在するかどうかを確認する
@@ -84,7 +84,7 @@ private:
      * @retval       true  -> キーが存在する
      * @retval       false -> キーが存在しない
      */
-    csmBool CubismCdiJson::IsExistParts() const;
+    csmBool IsExistParts() const;
 
     Utils::CubismJson* _json;
 };
