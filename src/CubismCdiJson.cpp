@@ -51,23 +51,23 @@ csmBool CubismCdiJson::IsExistParts() const
 }
 
 // パラメータについて
-csmInt32 CubismCdiJson::GetPrametersCount()
+csmInt32 CubismCdiJson::GetParametersCount()
 {
     if (!IsExistParameters()) return 0;
     return _json->GetRoot()[Parameters].GetSize();
 }
 
-const csmChar* CubismCdiJson::GetPrametersId(csmInt32 index)
+const csmChar* CubismCdiJson::GetParametersId(csmInt32 index)
 {
     return _json->GetRoot()[Parameters][index][Id].GetRawString();
 }
 
-const csmChar* CubismCdiJson::GetPrametersGroupId(csmInt32 index)
+const csmChar* CubismCdiJson::GetParametersGroupId(csmInt32 index)
 {
     return _json->GetRoot()[Parameters][index][GroupId].GetRawString();
 }
 
-const csmChar* CubismCdiJson::GetPrametersName(csmInt32 index)
+const csmChar* CubismCdiJson::GetParametersName(csmInt32 index)
 {
     return _json->GetRoot()[Parameters][index][Name].GetRawString();
 }
