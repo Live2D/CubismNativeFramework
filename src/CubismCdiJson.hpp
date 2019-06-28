@@ -34,13 +34,13 @@ public:
 
     // Parameters
 
-    csmInt32 GetPrametersCount();
+    csmInt32 GetParametersCount();
 
-    const csmChar* GetPrametersId(csmInt32 index);
+    const csmChar* GetParametersId(csmInt32 index);
 
-    const csmChar* GetPrametersGroupId(csmInt32 index);
+    const csmChar* GetParametersGroupId(csmInt32 index);
 
-    const csmChar* GetPrametersName(csmInt32 index);
+    const csmChar* GetParametersName(csmInt32 index);
 
     // ParameterGroups
 
