@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -28,14 +28,14 @@ public:
     enum
     {
         State_None,
-        State_Blend,        ///< ブレンドモード 
-        State_Viewport,     ///< ビューポート 
-        State_ColorMask,    ///< カラーマスク 
-        State_RenderTarget, ///< レンダーターゲット 
-        State_DepthTarget,  ///< 深度ターゲット 
-        State_ZEnable,      ///< Z有効無効 
-        State_CullMode,     ///< カリングモード 
-        State_TextureFilter,///< テクスチャフィルター 
+        State_Blend,        ///< ブレンドモード
+        State_Viewport,     ///< ビューポート
+        State_ColorMask,    ///< カラーマスク
+        State_RenderTarget, ///< レンダーターゲット
+        State_DepthTarget,  ///< 深度ターゲット
+        State_ZEnable,      ///< Z有効無効
+        State_CullMode,     ///< カリングモード
+        State_TextureFilter,///< テクスチャフィルター
         State_Max,
     };
 
@@ -78,7 +78,7 @@ public:
             memset(_valid, 0, sizeof(_valid));
         }
 
-        // State_Blend 
+        // State_Blend
         bool BlendEnable;
         bool BlendAlphaSeparateEnable;
         D3DBLEND BlendSourceMul;
@@ -88,7 +88,7 @@ public:
         D3DBLENDOP BlendAlphaFunc;
         D3DBLEND BlendDestAlpha;
 
-        // State_Viewport 
+        // State_Viewport
         DWORD ViewportX;
         DWORD ViewportY;
         DWORD ViewportWidth;
@@ -96,24 +96,24 @@ public:
         float ViewportMinZ;
         float ViewportMaxZ;
 
-        // State_ColorMask 
+        // State_ColorMask
         DWORD ColorMaskMask;
 
-        // State_ZEnable 
+        // State_ZEnable
         D3DZBUFFERTYPE ZEnable;
         D3DCMPFUNC ZFunc;
 
-        // State_CullMode 
-        D3DCULL CullModeFaceMode; // 消す面を指定 CWだと時計回りが消える 
+        // State_CullMode
+        D3DCULL CullModeFaceMode; // 消す面を指定 CWだと時計回りが消える
 
-        // State_TextureFilter サンプラー0番フィルター 
+        // State_TextureFilter サンプラー0番フィルター
         D3DTEXTUREFILTERTYPE    MinFilter;
         D3DTEXTUREFILTERTYPE    MagFilter;
         D3DTEXTUREFILTERTYPE    MipFilter;
         D3DTEXTUREADDRESS       AddressU;
         D3DTEXTUREADDRESS       AddressV;
 
-        csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる 
+        csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる
     };
 
     /**
@@ -136,7 +136,7 @@ public:
 
     /**
      * @brief   ブレンドモードセット
-     * 
+     *
      * @param   device[in]     描画デバイス
      * @param   enable[in]              αブレンド有効無効
      * @param   alphaSeparateEnable[in] αブレンドのうち、rgbとaの計算式を分離するかどうか
@@ -155,7 +155,7 @@ public:
 
     /**
      * @brief   ビューポートセット
-     * 
+     *
      * @param   device[in]     描画デバイス
      * @param   left[in]        ビューポート左座標
      * @param   top[in]         ビューポート上座標
@@ -174,7 +174,7 @@ public:
 
     /**
      * @brief   Z有効無効セット
-     * 
+     *
      * @param   device[in]     描画デバイス
      * @param   force[in]       trueの場合は今の設定が何であろうと強制設定
      */
@@ -182,7 +182,7 @@ public:
 
     /**
      * @brief   カリングモードセット
-     * 
+     *
      * @param   device[in]     描画デバイス
      * @param   cullFace[in]    切除するべき面 指定された面を切る Cwだと時計回りを切除
      * @param   force[in]       trueの場合は今の設定が何であろうと強制設定
@@ -191,7 +191,7 @@ public:
 
     /**
      * @brief   テクスチャサンプラー0番フィルタセット
-     * 
+     *
      * @param   device[in]     描画デバイス
      * @param   minFilter[in]   縮小時フィルタ
      * @param   magFilter[in]   拡大時フィルタ
@@ -216,7 +216,7 @@ private:
      */
     void RestoreNativeState(LPDIRECT3DDEVICE9 device);
 
-    Stored  _stored;           ///< ストアされた各種設定 
+    Stored  _stored;           ///< ストアされた各種設定
 
     csmVector<Stored> _pushed;
 };

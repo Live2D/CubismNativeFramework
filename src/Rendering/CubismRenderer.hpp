@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -224,11 +224,12 @@ protected:
      * @param[in]   uvArray              ->  uv配列
      * @param[in]   opacity              ->  不透明度
      * @param[in]   colorBlendMode       ->  カラーブレンディングのタイプ
+     * @param[in]   invertedMask          ->  マスク使用時のマスクの反転使用
      *
      */
     virtual void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
                           , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
-                          , csmFloat32 opacity, CubismBlendMode colorBlendMode) = 0;
+                          , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask) = 0;
 
     /**
      * @brief   モデル描画直前のレンダラのステートを保持する
@@ -253,7 +254,7 @@ private:
     csmFloat32          _anisotropy;            ///< テクスチャの異方性フィルタリングのパラメータ
     CubismModel*        _model;                 ///< レンダリング対象のモデル
 
-    csmBool             _useHighPrecisionMask;  ///< falseの場合、マスクを纏めて描画する trueの場合、マスクはパーツ描画ごとに書き直す 
+    csmBool             _useHighPrecisionMask;  ///< falseの場合、マスクを纏めて描画する trueの場合、マスクはパーツ描画ごとに書き直す
 };
 
 }}}}

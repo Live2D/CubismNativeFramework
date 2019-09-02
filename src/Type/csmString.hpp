@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -198,7 +198,7 @@ protected:
     csmInt32 CalcHashcode(const csmChar* c, csmInt32 length);
 
 private:
-    static const csmInt32 SmallLength = 64; ///< この長さ-1未満の文字列は内部バッファを使用 
+    static const csmInt32 SmallLength = 64; ///< この長さ-1未満の文字列は内部バッファを使用
     static const csmInt32 DefaultSize = 10; ///< デフォルトの文字数
     static csmInt32 s_totalInstanceNo;      ///< 通算のインスタンス番号
     csmChar* _ptr;                          ///< 文字型配列のポインタ
@@ -206,13 +206,13 @@ private:
     csmInt32 _hashcode;                     ///< インスタンスに当てられたハッシュ値
     csmInt32 _instanceNo;                   ///< インスタンスに割り当てられた番号
 
-    csmChar _small[SmallLength];            ///< 文字列の長さがSmallLength-1未満の場合はこちらを使用 
+    csmChar _small[SmallLength];            ///< 文字列の長さがSmallLength-1未満の場合はこちらを使用
 
     /**
      * @brief 文字列が空かどうか？
-     * 
+     *
      * 文字列が空かどうか確認する。
-     * 
+     *
      * @retval  true    空の文字列
      * @retval  false   値が設定されている
      */
@@ -220,9 +220,9 @@ private:
 
     /**
      * @brief 文字列を空に設定
-     * 
+     *
      * 文字列を空に設定する。
-     * 
+     *
      * @note ポインタに対してfree()はしない。
      */
     void SetEmpty();

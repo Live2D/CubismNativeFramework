@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -15,7 +15,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
 
 /**
  * @brief physics3.jsonのコンテナ
- * 
+ *
  * physics3.jsonのコンテナ。
  */
 class CubismPhysicsJson
@@ -23,9 +23,9 @@ class CubismPhysicsJson
 public:
     /**
      * @brief コンストラクタ
-     * 
+     *
      * コンストラクタ。
-     * 
+     *
      * @param[in]   buffer  physics3.jsonが読み込まれているバッファ
      * @param[in]   size    バッファのサイズ
      */
@@ -33,70 +33,70 @@ public:
 
     /**
      * @brief デストラクタ
-     * 
+     *
      * デストラクタ。
      */
     virtual ~CubismPhysicsJson();
 
     /**
      * @brief 重力の取得
-     * 
+     *
      * 重力を取得する。
-     * 
+     *
      * @return 重力
      */
     CubismVector2 GetGravity() const;
 
     /**
      * @brief 風の取得
-     * 
+     *
      * 風を取得する。
-     * 
+     *
      * @return 風
      */
     CubismVector2 GetWind() const;
 
     /**
      * @brief 物理点の管理の個数の取得
-     * 
+     *
      * 物理点の管理の個数を取得する。
-     * 
+     *
      * @return 物理点の管理の個数
      */
     csmInt32 GetSubRigCount() const;
 
     /**
      * @brief 入力の総合計の取得
-     * 
+     *
      * 入力の総合計を取得する。
-     * 
+     *
      * @return 入力の総合計
      */
     csmInt32 GetTotalInputCount() const;
 
     /**
      * @brief 出力の総合計の取得
-     * 
+     *
      * 出力の総合計を取得する。
-     * 
+     *
      * @return 出力の総合計
      */
     csmInt32 GetTotalOutputCount() const;
 
     /**
      * @brief 物理点の個数の取得
-     * 
+     *
      * 物理点の個数を取得する。
-     * 
+     *
      * @return 物理点の個数
      */
     csmInt32 GetVertexCount() const;
 
     /**
      * @brief 正規化された位置の最小値の取得
-     * 
+     *
      * 正規化された位置の最小値を取得する。
-     * 
+     *
      * @param[in]   physicsSettingIndex   物理演算の設定のインデックス
      * @return 正規化された位置の最小値
      */
@@ -154,9 +154,9 @@ public:
 
     /**
      * @brief 入力の個数の取得
-     * 
+     *
      * 入力の個数を取得する。
-     * 
+     *
      * @param[in]   physicsSettingIndex   物理演算の設定のインデックス
      * @return 入力の個数
      */
@@ -284,9 +284,9 @@ public:
 
     /**
      * @brief 物理点の個数の取得
-     * 
+     *
      * 物理点の個数を取得する。
-     * 
+     *
      * @param[in]   physicsSettingIndex   物理演算の設定のインデックス
      * @return 物理点の個数
      */
@@ -294,9 +294,9 @@ public:
 
     /**
      * @brief 物理点の動きやすさの取得
-     * 
+     *
      * 物理点の動きやすさを取得する。
-     * 
+     *
      * @param[in]   physicsSettingIndex     物理演算の設定のインデックス
      * @param[in]   vertexIndex             物理点のインデックス
      * @return 物理点の動きやすさ

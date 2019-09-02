@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismModel.hpp"
@@ -205,7 +205,7 @@ void CubismModel::SetParameterValue(csmInt32 parameterIndex, csmFloat32 value, c
 
     //インデックスの範囲内検知
     CSM_ASSERT(0 <= parameterIndex && parameterIndex < GetParameterCount());
-    
+
     if (Core::csmGetParameterMaximumValues(_model)[parameterIndex] < value)
     {
         value = Core::csmGetParameterMaximumValues(_model)[parameterIndex];
@@ -462,6 +462,12 @@ Rendering::CubismRenderer::CubismBlendMode CubismModel::GetDrawableBlendMode(csm
                : (IsBitSet(constantFlags[drawableIndex], Core::csmBlendMultiplicative))
                ? Rendering::CubismRenderer::CubismBlendMode_Multiplicative
                : Rendering::CubismRenderer::CubismBlendMode_Normal;
+}
+
+csmBool CubismModel::GetDrawableInvertedMask(csmInt32 drawableIndex) const
+{
+    const csmUint8* constantFlags = Core::csmGetDrawableConstantFlags(_model);
+    return IsBitSet(constantFlags[drawableIndex], Core::csmIsInvertedMask) != 0 ? true : false;
 }
 
 const csmInt32** CubismModel::GetDrawableMasks() const

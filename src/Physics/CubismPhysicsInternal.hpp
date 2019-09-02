@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 
@@ -16,7 +16,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
 
 /**
  * @brief 物理演算の適用先の種類
- * 
+ *
  * 物理演算の適用先の種類。
  */
 enum CubismPhysicsTargetType
@@ -26,7 +26,7 @@ enum CubismPhysicsTargetType
 
 /**
  * @brief 物理演算の入力の種類
- * 
+ *
  * 物理演算の入力の種類。
  */
 enum CubismPhysicsSource
@@ -38,7 +38,7 @@ enum CubismPhysicsSource
 
 /**
  * @brief 物理演算で使用する外部の力
- * 
+ *
  * 物理演算で使用する外部の力。
  */
 struct PhysicsJsonEffectiveForces
@@ -49,7 +49,7 @@ struct PhysicsJsonEffectiveForces
 
 /**
  * @brief 物理演算のパラメータ情報
- * 
+ *
  * 物理演算のパラメータ情報。
  */
 struct CubismPhysicsParameter
@@ -60,7 +60,7 @@ struct CubismPhysicsParameter
 
 /**
  * @brief 物理演算の正規化情報
- * 
+ *
  * 物理演算の正規化情報。
  */
 struct CubismPhysicsNormalization
@@ -72,7 +72,7 @@ struct CubismPhysicsNormalization
 
 /**
  * @brief 物理演算の演算に使用する物理点の情報
- * 
+ *
  * 物理演算の演算に使用する物理点の情報。
  */
 struct CubismPhysicsParticle
@@ -91,7 +91,7 @@ struct CubismPhysicsParticle
 
 /**
  * @brief 物理演算の物理点の管理
- * 
+ *
  * 物理演算の物理点の管理。
  */
 struct CubismPhysicsSubRig
@@ -108,9 +108,9 @@ struct CubismPhysicsSubRig
 
 /**
  * @brief 正規化されたパラメータの取得関数の宣言
- * 
+ *
  * 正規化されたパラメータの取得関数の宣言。
- * 
+ *
  * @param[out]      targetTranslation       演算結果の移動値
  * @param[out]      targetAngle             演算結果の角度
  * @param[in]       value                   パラメータの値
@@ -137,9 +137,9 @@ typedef void (*NormalizedPhysicsParameterValueGetter)(
 
 /**
  * @brief 物理演算の値の取得関数の宣言
- * 
+ *
  * 物理演算の値の取得関数の宣言。
- * 
+ *
  * @param[in]       translation     移動値
  * @param[in]       particles       物理点のリスト
  * @param[in]       isInverted      値が反転されているか？
@@ -156,9 +156,9 @@ typedef csmFloat32 (*PhysicsValueGetter)(
 
 /**
  * @brief 物理演算のスケールの取得関数の宣言
- * 
+ *
  * 物理演算のスケールの取得関数の宣言。
- * 
+ *
  * @param[in]   translationScale    移動値のスケール
  * @param[in]   angleScale          角度のスケール
  * @return  スケール値
@@ -167,7 +167,7 @@ typedef csmFloat32 (*PhysicsScaleGetter)(CubismVector2 translationScale, csmFloa
 
 /**
  * @brief 物理演算の入力情報
- * 
+ *
  * 物理演算の入力情報。
  */
 struct CubismPhysicsInput
@@ -182,7 +182,7 @@ struct CubismPhysicsInput
 
 /**
  * @brief 物理演算の出力情報
- * 
+ *
  * 物理演算の出力情報。
  */
 struct CubismPhysicsOutput
@@ -203,7 +203,7 @@ struct CubismPhysicsOutput
 
 /**
  * @brief 物理演算のデータ
- * 
+ *
  * 物理演算のデータ。
  */
 struct CubismPhysicsRig

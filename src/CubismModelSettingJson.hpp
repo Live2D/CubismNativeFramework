@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -103,14 +103,14 @@ private:
 
     enum FrequentNode
     {
-        FrequentNode_Groups,        ///< GetRoot()[Groups] 
-        FrequentNode_Moc,           ///< GetRoot()[FileReferences][Moc] 
-        FrequentNode_Motions,       ///< GetRoot()[FileReferences][Motions] 
-        FrequentNode_Expressions,   ///< GetRoot()[FileReferences][Expressions] 
-        FrequentNode_Textures,      ///< GetRoot()[FileReferences][Textures] 
-        FrequentNode_Physics,       ///< GetRoot()[FileReferences][Physics] 
-        FrequentNode_Pose,          ///< GetRoot()[FileReferences][Pose] 
-        FrequentNode_HitAreas,      ///< GetRoot()[HitAreas] 
+        FrequentNode_Groups,        ///< GetRoot()[Groups]
+        FrequentNode_Moc,           ///< GetRoot()[FileReferences][Moc]
+        FrequentNode_Motions,       ///< GetRoot()[FileReferences][Motions]
+        FrequentNode_Expressions,   ///< GetRoot()[FileReferences][Expressions]
+        FrequentNode_Textures,      ///< GetRoot()[FileReferences][Textures]
+        FrequentNode_Physics,       ///< GetRoot()[FileReferences][Physics]
+        FrequentNode_Pose,          ///< GetRoot()[FileReferences][Pose]
+        FrequentNode_HitAreas,      ///< GetRoot()[HitAreas]
     };
 
     /**
@@ -232,7 +232,7 @@ private:
      */
     csmBool IsExistLipSyncParameters() const;
 
-    Utils::CubismJson*          _json;       ///< モデルデータjson 
-    csmVector<Utils::Value*>    _jsonValue;  ///< 上jsonの頻出ノード 
+    Utils::CubismJson*          _json;       ///< モデルデータjson
+    csmVector<Utils::Value*>    _jsonValue;  ///< 上jsonの頻出ノード
 };
 }}}

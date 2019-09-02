@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismModelMatrix.hpp"
@@ -20,15 +20,7 @@ CubismModelMatrix::CubismModelMatrix(csmFloat32 w, csmFloat32 h)
     _width = w;
     _height = h;
 
-    // 原点(0,0)を中心にして、画面に収まるような大きさで初期化
-    if (_width > _height)
-    {
-        SetWidth(_height / _width);
-    }
-    else
-    {
-        SetHeight(1.0f);
-    }
+    SetHeight(1.0f);
 }
 
 CubismModelMatrix::~CubismModelMatrix()

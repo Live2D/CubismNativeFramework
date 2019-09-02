@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismOffscreenSurface_OpenGLES2.hpp"
@@ -27,7 +27,7 @@ void CubismOffscreenFrame_OpenGLES2::BeginDraw(GLint restoreFBO)
         return;
     }
 
-    // バックバッファのサーフェイスを記憶しておく 
+    // バックバッファのサーフェイスを記憶しておく
     if (restoreFBO < 0)
     {
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &_oldFBO);
@@ -37,7 +37,7 @@ void CubismOffscreenFrame_OpenGLES2::BeginDraw(GLint restoreFBO)
         _oldFBO = restoreFBO;
     }
 
-    // マスク用RenderTextureをactiveにセット 
+    // マスク用RenderTextureをactiveにセット
     glBindFramebuffer(GL_FRAMEBUFFER, _renderTexture);
 }
 
@@ -48,7 +48,7 @@ void CubismOffscreenFrame_OpenGLES2::EndDraw()
         return;
     }
 
-    // 描画対象を戻す 
+    // 描画対象を戻す
     glBindFramebuffer(GL_FRAMEBUFFER, _oldFBO);
 }
 
@@ -61,7 +61,7 @@ void CubismOffscreenFrame_OpenGLES2::Clear(float r, float g, float b, float a)
 
 csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, GLuint colorBuffer)
 {
-    // 一旦削除 
+    // 一旦削除
     DestroyOffscreenFrame();
 
     do
@@ -82,7 +82,7 @@ csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBu
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         else
-        {// 指定されたものを使用 
+        {// 指定されたものを使用
             _colorBuffer = colorBuffer;
         }
 
@@ -99,12 +99,12 @@ csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBu
         _bufferWidth = displayBufferWidth;
         _bufferHeight = displayBufferHeight;
 
-        // 成功 
+        // 成功
         return true;
 
     } while (0);
 
-    // 失敗したので削除 
+    // 失敗したので削除
     DestroyOffscreenFrame();
 
     return false;

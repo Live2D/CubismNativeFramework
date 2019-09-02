@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -15,7 +15,7 @@ class CubismIdManager;
 
 /**
  * @brief パラメータ名・パーツ名・Drawable名を保持
- * 
+ *
  * パラメータ名・パーツ名・Drawable名を保持するクラス。
  */
 struct CubismId
@@ -24,7 +24,7 @@ struct CubismId
 
     /**
      * @brief ID名を取得
-     * 
+     *
      * ID名を取得する。
      */
     const csmString& GetString() const;
@@ -32,23 +32,23 @@ struct CubismId
 private:
     /**
      * @brief コンストラクタ
-     * 
+     *
      * コンストラクタ。
      */
     CubismId();
 
     /**
      * @brief コンストラクタ
-     * 
+     *
      * コンストラクタ。
-     * 
+     *
      * @param[in] id ID名
      */
     CubismId(const csmChar* id);
 
     /**
      * @brief デストラクタ
-     * 
+     *
      * デストラクタ。
      */
     ~CubismId();
@@ -65,4 +65,3 @@ private:
 typedef const CubismId* CubismIdHandle;
 
 }}}
- 

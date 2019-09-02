@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismModelSettingJson.hpp"
@@ -18,12 +18,12 @@ namespace Live2D { namespace Cubism { namespace Framework {
  *
  */
 namespace {
-    
+
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-    
+
 // JSON keys
 const csmChar* Version = "Version";
 const csmChar* FileReferences = "FileReferences";
@@ -179,7 +179,7 @@ CubismModelSettingJson::CubismModelSettingJson(const csmByte* buffer, csmSizeInt
     {
         _jsonValue.Clear();
 
-        // 順番はenum FrequentNodeと一致させる 
+        // 順番はenum FrequentNodeと一致させる
         _jsonValue.PushBack(&(_json->GetRoot()[Groups]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Moc]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Motions]));
@@ -329,7 +329,7 @@ const csmChar* CubismModelSettingJson::GetUserDataFile()
     return _json->GetRoot()[FileReferences][UserData].GetRawString();
 }
 
-csmBool CubismModelSettingJson::GetLayoutMap(csmMap<csmString, csmFloat32>& outLayoutMap) 
+csmBool CubismModelSettingJson::GetLayoutMap(csmMap<csmString, csmFloat32>& outLayoutMap)
 {
     csmMap<csmString, Utils::Value*>* map = _json->GetRoot()[Layout].GetMap();
     if (map == NULL)

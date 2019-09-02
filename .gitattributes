@@ -1,0 +1,11 @@
+# Auto detect text files and perform LF normalization
+*                   text=auto
+
+# Explicitly declare files as LF
+*.cpp               text eol=lf
+*.hpp               text eol=lf
+*.txt               text eol=lf
+*.md                text eol=lf
+.editorconfig       text eol=lf
+.gitattributes      text eol=lf
+*.gitignore         text eol=lf
