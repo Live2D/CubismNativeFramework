@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismRenderState_D3D11.hpp"
@@ -15,7 +15,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 CubismRenderState_D3D11::CubismRenderState_D3D11()
 {
-    // 
+    //
     memset(_stored._valid, 0, sizeof(_stored._valid));
 
     Create(CubismRenderer_D3D11::GetCurrentDevice());
@@ -25,7 +25,7 @@ CubismRenderState_D3D11::~CubismRenderState_D3D11()
 {
     _pushed.Clear();
 
-    // サンプラーステート解放 
+    // サンプラーステート解放
     for (csmUint32 i = 0; i<_samplerState.GetSize(); i++)
     {
         ID3D11SamplerState* sampl = _samplerState[i];
@@ -36,7 +36,7 @@ CubismRenderState_D3D11::~CubismRenderState_D3D11()
     }
     _samplerState.Clear();
 
-    // Z解放 
+    // Z解放
     for (csmUint32 i = 0; i<_depthStencilState.GetSize(); i++)
     {
         ID3D11DepthStencilState* depth = _depthStencilState[i];
@@ -47,7 +47,7 @@ CubismRenderState_D3D11::~CubismRenderState_D3D11()
     }
     _depthStencilState.Clear();
 
-    // ラスタライザ解放 
+    // ラスタライザ解放
     for (csmUint32 i = 0; i<_rasterizeStateObjects.GetSize(); i++)
     {
         ID3D11RasterizerState* raster = _rasterizeStateObjects[i];
@@ -58,7 +58,7 @@ CubismRenderState_D3D11::~CubismRenderState_D3D11()
     }
     _rasterizeStateObjects.Clear();
 
-    // ブレンドステート解放 
+    // ブレンドステート解放
     for( csmUint32 i=0; i<_blendStateObjects.GetSize(); i++ )
     {
         ID3D11BlendState* state = _blendStateObjects[i];
@@ -77,15 +77,15 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
         return;
     }
 
-// Blend 
+// Blend
     ID3D11BlendState* state = NULL;
     D3D11_BLEND_DESC blendDesc;
     memset(&blendDesc, 0, sizeof(blendDesc));
 
-    // origin 
+    // origin
     _blendStateObjects.PushBack(NULL);
 
-    // ゼロ 
+    // ゼロ
     blendDesc.AlphaToCoverageEnable = FALSE;
     blendDesc.IndependentBlendEnable = FALSE;   // falseの場合はRenderTarget[0]しか使用しなくなる
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
@@ -99,7 +99,7 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateBlendState(&blendDesc, &state);
     _blendStateObjects.PushBack(state);
 
-    // 通常 
+    // 通常
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
@@ -107,7 +107,7 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateBlendState(&blendDesc, &state);
     _blendStateObjects.PushBack(state);
 
-    // 加算 
+    // 加算
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
@@ -115,7 +115,7 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateBlendState(&blendDesc, &state);
     _blendStateObjects.PushBack(state);
 
-    // 乗算 
+    // 乗算
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_DEST_COLOR;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
@@ -123,7 +123,7 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateBlendState(&blendDesc, &state);
     _blendStateObjects.PushBack(state);
 
-    // マスク 
+    // マスク
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ZERO;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_COLOR;
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
@@ -132,18 +132,18 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     _blendStateObjects.PushBack(state);
 
 
-// ラスタライザ 
+// ラスタライザ
     ID3D11RasterizerState* rasterizer = NULL;
     D3D11_RASTERIZER_DESC rasterDesc;
     memset(&rasterDesc, 0, sizeof(rasterDesc));
 
-    // origin 
+    // origin
     _rasterizeStateObjects.PushBack(NULL);
 
-    // None 
+    // None
     rasterDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rasterDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE; // カリング無し 
-    rasterDesc.FrontCounterClockwise = TRUE; // CCWを表面にする 
+    rasterDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE; // カリング無し
+    rasterDesc.FrontCounterClockwise = TRUE; // CCWを表面にする
     rasterDesc.DepthClipEnable = FALSE;
     rasterDesc.MultisampleEnable = FALSE;
     rasterDesc.DepthBiasClamp = 0;
@@ -151,21 +151,21 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateRasterizerState(&rasterDesc, &rasterizer);
     _rasterizeStateObjects.PushBack(rasterizer);
 
-    // CCW 
-    rasterDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK; // 裏面を切る 
+    // CCW
+    rasterDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK; // 裏面を切る
     device->CreateRasterizerState(&rasterDesc, &rasterizer);
     _rasterizeStateObjects.PushBack(rasterizer);
 
 
-// Depth 
+// Depth
     ID3D11DepthStencilState* depth = NULL;
     D3D11_DEPTH_STENCIL_DESC depthDesc;
     memset(&depthDesc, 0, sizeof(depthDesc));
 
-    // origin 
+    // origin
     _depthStencilState.PushBack(NULL);
 
-    // 無効 
+    // 無効
     depthDesc.DepthEnable = false;
     depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     depthDesc.DepthFunc = D3D11_COMPARISON_LESS;
@@ -173,22 +173,22 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateDepthStencilState(&depthDesc, &depth);
     _depthStencilState.PushBack(depth);
 
-    // 有効 
+    // 有効
     depthDesc.DepthEnable = true;
     depthDesc.StencilEnable = false;
     device->CreateDepthStencilState(&depthDesc, &depth);
     _depthStencilState.PushBack(depth);
 
 
-// Sampler 
+// Sampler
     ID3D11SamplerState* sampler = NULL;
     D3D11_SAMPLER_DESC samplerDesc;
     memset(&samplerDesc, 0, sizeof(D3D11_SAMPLER_DESC));
 
-    // origin 
+    // origin
     _samplerState.PushBack(NULL);
 
-    // normal 
+    // normal
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -211,7 +211,7 @@ void CubismRenderState_D3D11::StartFrame()
 
 void CubismRenderState_D3D11::Save()
 {
-    // 現時点のステートをPush 
+    // 現時点のステートをPush
     _pushed.PushBack(_stored);
 }
 
@@ -224,7 +224,7 @@ void CubismRenderState_D3D11::Restore(ID3D11DeviceContext* renderContext)
         return;
     }
 
-    //forで辿って最後に設定した個所までチェック 
+    //forで辿って最後に設定した個所までチェック
     csmBool isSet[State_Max];
     memset(isSet, 0, sizeof(isSet));
 
@@ -272,7 +272,7 @@ void CubismRenderState_D3D11::SetBlend(ID3D11DeviceContext* renderContext, Blend
     csmBool force)
 {
     if(!renderContext || blendState<0 || Blend_Max<= blendState)
-    {// パラメータ異常チェック 
+    {// パラメータ異常チェック
         return;
     }
 
@@ -295,7 +295,7 @@ void CubismRenderState_D3D11::SetBlend(ID3D11DeviceContext* renderContext, Blend
 void CubismRenderState_D3D11::SetCullMode(ID3D11DeviceContext* renderContext, Cull cullFace, csmBool force)
 {
     if (!renderContext || cullFace<0 || Cull_Max <= cullFace)
-    {// パラメータ異常チェック 
+    {// パラメータ異常チェック
         return;
     }
 
@@ -316,7 +316,7 @@ void CubismRenderState_D3D11::SetViewport(ID3D11DeviceContext* renderContext, FL
         _stored._viewportX != left || _stored._viewportY != top || _stored._viewportWidth != width || _stored._viewportHeight != height ||
         _stored._viewportMinZ != zMin || _stored._viewportMaxZ != zMax)
     {
-        // コンテキストにセット 
+        // コンテキストにセット
         D3D11_VIEWPORT setViewport;
         setViewport.TopLeftX = left;
         setViewport.TopLeftY = top;
@@ -340,7 +340,7 @@ void CubismRenderState_D3D11::SetViewport(ID3D11DeviceContext* renderContext, FL
 void CubismRenderState_D3D11::SetZEnable(ID3D11DeviceContext* renderContext, Depth enable, UINT stelcilRef, csmBool force)
 {
     if (!renderContext || enable<0 || Depth_Max <= enable)
-    {// パラメータ異常チェック 
+    {// パラメータ異常チェック
         return;
     }
 
@@ -359,14 +359,14 @@ void CubismRenderState_D3D11::SetZEnable(ID3D11DeviceContext* renderContext, Dep
 void CubismRenderState_D3D11::SetSampler(ID3D11DeviceContext* renderContext, Sampler sample, csmBool force)
 {
     if (!renderContext || sample<0 || Sampler_Max <= sample)
-    {// パラメータ異常チェック 
+    {// パラメータ異常チェック
         return;
     }
 
     if (!_stored._valid[State_ZEnable] || force ||
         _stored._sampler != sample)
     {
-        // 0番だけ使用している 
+        // 0番だけ使用している
         renderContext->PSSetSamplers(0, 1, &_samplerState[sample]);
     }
 
@@ -377,58 +377,58 @@ void CubismRenderState_D3D11::SetSampler(ID3D11DeviceContext* renderContext, Sam
 
 void CubismRenderState_D3D11::SaveCurrentNativeState(ID3D11Device* device, ID3D11DeviceContext* renderContext)
 {
-    // まずは全破棄 
+    // まずは全破棄
     _pushed.Clear();
-    // 未設定扱いに 
+    // 未設定扱いに
     memset(_stored._valid, 0, sizeof(_stored._valid));
 
-// ここで取得したオブジェクトはRestoreNativeStateでリリース 
-    // Blend 
+// ここで取得したオブジェクトはRestoreNativeStateでリリース
+    // Blend
     ID3D11BlendState* originBlend;
     FLOAT originFactor[4];
     UINT originMask;
     renderContext->OMGetBlendState(&originBlend, originFactor, &originMask);
-    _blendStateObjects[Blend_Origin] = originBlend; // と入れた上で 
-    SetBlend(renderContext, Blend_Origin, DirectX::XMFLOAT4(originFactor), originMask, true); // コールする 
+    _blendStateObjects[Blend_Origin] = originBlend; // と入れた上で
+    SetBlend(renderContext, Blend_Origin, DirectX::XMFLOAT4(originFactor), originMask, true); // コールする
 
-    // Cull 
+    // Cull
     ID3D11RasterizerState* originRaster;
     renderContext->RSGetState(&originRaster);
-    _rasterizeStateObjects[Cull_Origin] = originRaster; // と入れた上で 
-    SetCullMode(renderContext, Cull_Origin, true); // コールする 
+    _rasterizeStateObjects[Cull_Origin] = originRaster; // と入れた上で
+    SetCullMode(renderContext, Cull_Origin, true); // コールする
 
-    // Depth 
+    // Depth
     ID3D11DepthStencilState* originDepth;
     UINT stelcilRef;
     renderContext->OMGetDepthStencilState(&originDepth, &stelcilRef);
-    _depthStencilState[Depth_Origin] = originDepth; // と入れた上で 
-    SetZEnable(renderContext, Depth_Origin, stelcilRef, true); // コールする 
+    _depthStencilState[Depth_Origin] = originDepth; // と入れた上で
+    SetZEnable(renderContext, Depth_Origin, stelcilRef, true); // コールする
 
-    // Sampler 
+    // Sampler
     ID3D11SamplerState* originSampler;
     renderContext->PSGetSamplers(0, 1, &originSampler);
-    _samplerState[Sampler_Origin] = originSampler; // と入れた上で 
-    SetSampler(renderContext, Sampler_Origin, true); // コールする 
+    _samplerState[Sampler_Origin] = originSampler; // と入れた上で
+    SetSampler(renderContext, Sampler_Origin, true); // コールする
 
-    // ViewPortはオブジェクトではない 
-    UINT numViewport = 1; // 取得は一つでOK 
+    // ViewPortはオブジェクトではない
+    UINT numViewport = 1; // 取得は一つでOK
     D3D11_VIEWPORT viewPort;
     renderContext->RSGetViewports(&numViewport, &viewPort);
     SetViewport(renderContext, viewPort.TopLeftX, viewPort.TopLeftY, viewPort.Width, viewPort.Height, viewPort.MinDepth, viewPort.MaxDepth, true);
 
-    // 最後に上記の値を保存 
+    // 最後に上記の値を保存
     Save();
 }
 
 void CubismRenderState_D3D11::RestoreNativeState(ID3D11Device* device, ID3D11DeviceContext* renderContext)
 {
-    // 全て再現 
+    // 全て再現
     for (csmInt32 i = static_cast<csmInt32>(_pushed.GetSize()) - 1; i >= 0; i--)
     {
         Restore(renderContext);
     }
 
-    // 各オリジナルオブジェクトはここで関わりをなくする 
+    // 各オリジナルオブジェクトはここで関わりをなくする
     if (_samplerState[Sampler_Origin])
     {
         _samplerState[Sampler_Origin]->Release();

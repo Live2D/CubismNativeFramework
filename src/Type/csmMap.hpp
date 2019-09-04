@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -560,9 +560,9 @@ void csmMap<_KeyT, _ValT>::PrepareCapacity(csmInt32 newSize, csmBool fitToSize)
             if (!fitToSize && newSize < DefaultSize) newSize = DefaultSize;
 
             _keyValues = static_cast<csmPair<_KeyT, _ValT> *>(CSM_MALLOC(sizeof(csmPair<_KeyT, _ValT>) * newSize));
-            
+
             CSM_ASSERT(_keyValues != NULL);
-            
+
             _capacity = newSize;
         }
         else

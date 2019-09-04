@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismShader_D3D9.hpp"
@@ -97,12 +97,29 @@ static const csmChar* CubismShaderEffectSrc =
         "color = color * maskVal;"\
         "return color;"\
     "}"\
+    "/* masked inverted */"
+    "float4 PixelMaskedInverted(VS_OUT In) : COLOR0{"\
+        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "color.xyz *= color.w;"\
+        "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
+        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
+        "color = color * (1.0 - maskVal);"\
+        "return color;"\
+    "}"\
     "/* masked premult alpha */"\
     "float4 PixelMaskedPremult(VS_OUT In) : COLOR0{"\
         "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
         "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
         "color = color * maskVal;"\
+        "return color;"\
+    "}"\
+    "/* masked inverted premult alpha */"\
+    "float4 PixelMaskedInvertedPremult(VS_OUT In) : COLOR0{"\
+        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
+        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
+        "color = color * (1.0 - maskVal);"\
         "return color;"\
     "}"\
     \
@@ -128,6 +145,13 @@ static const csmChar* CubismShaderEffectSrc =
         "}"\
     "}"\
     \
+    "technique ShaderNames_NormalMaskedInverted {"\
+        "pass p0{"\
+            "VertexShader = compile vs_2_0 VertMasked();"\
+            "PixelShader = compile ps_2_0 PixelMaskedInverted();"\
+        "}"\
+    "}"\
+    \
     "technique ShaderNames_NormalPremultipliedAlpha {"\
         "pass p0{"\
             "VertexShader = compile vs_2_0 VertNormal();"\
@@ -139,6 +163,13 @@ static const csmChar* CubismShaderEffectSrc =
         "pass p0{"\
             "VertexShader = compile vs_2_0 VertMasked();"\
             "PixelShader = compile ps_2_0 PixelMaskedPremult();"\
+        "}"\
+    "}"\
+    \
+    "technique ShaderNames_NormalMaskedInvertedPremultipliedAlpha {"\
+        "pass p0{"\
+            "VertexShader = compile vs_2_0 VertMasked();"\
+            "PixelShader = compile ps_2_0 PixelMaskedInvertedPremult();"\
         "}"\
     "}";
 
@@ -171,7 +202,7 @@ CubismShader_D3D9::~CubismShader_D3D9()
 void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
 {
     if(_shaderEffect || _vertexFormat)
-    {// 既に有る 
+    {// 既に有る
         return;
     }
 
@@ -180,7 +211,7 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
         return;
     }
 
-    // 
+    //
     if(!LoadShaderProgram(device))
     {
         CubismLogError("CreateShader failed");
@@ -188,7 +219,7 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
     }
 
 
-    // この描画で使用する頂点フォーマット 
+    // この描画で使用する頂点フォーマット
     D3DVERTEXELEMENT9 elems[] = {
         { 0, 0, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
         { 0, sizeof(float) * 2, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
@@ -221,7 +252,7 @@ ID3DXEffect* CubismShader_D3D9::GetShaderEffect() const
 
 void CubismShader_D3D9::SetupShader(LPDIRECT3DDEVICE9 device)
 {
-    // まだシェーダ・頂点宣言未作成ならば作成する 
+    // まだシェーダ・頂点宣言未作成ならば作成する
     GenerateShaders(device);
 
     if (!device || !_vertexFormat) return;

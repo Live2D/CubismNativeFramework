@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "csmString.hpp"
@@ -393,11 +393,11 @@ csmString& csmString::Append(csmInt32 len2, const csmChar c)
     }
     else
     {
-        // 必要な長さ∔NULL分1バイトを新規確保 
+        // 必要な長さ∔NULL分1バイトを新規確保
         newptr = static_cast<csmChar*>(CSM_MALLOC(sizeof(csmChar) * (len1 + len2 + 1)));
-        // 元々の分をコピー 
+        // 元々の分をコピー
         memcpy(newptr, this->GetRawString(), len1); //nullを含めない
-        // 新しい箇所をコピー 
+        // 新しい箇所をコピー
         for (csmInt32 i = len1 + len2 - 1; i >= len1; --i) newptr[i] = c;
 
         Clear(); //現在のポインタを開放してから処理する

@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -26,7 +26,7 @@ public:
 
     /**
      * @brief   指定の描画ターゲットに向けて描画開始
-     * 
+     *
      * @param   device[in]     D3dデバイス
      */
     void BeginDraw(LPDIRECT3DDEVICE9 device);
@@ -82,15 +82,15 @@ public:
     csmBool IsValid() const;
 
 private:
-    LPDIRECT3DTEXTURE9  _texture;           ///< 生成テクスチャ 
-    LPDIRECT3DSURFACE9  _textureSurface;    ///< レンダリングサーフェス 
-    LPDIRECT3DSURFACE9  _depthSurface;      ///< Z 
+    LPDIRECT3DTEXTURE9  _texture;           ///< 生成テクスチャ
+    LPDIRECT3DSURFACE9  _textureSurface;    ///< レンダリングサーフェス
+    LPDIRECT3DSURFACE9  _depthSurface;      ///< Z
 
-    LPDIRECT3DSURFACE9  _backupRender;      ///< 元々のターゲットを退避 
-    LPDIRECT3DSURFACE9  _backupDepth;       ///< 元々のZを退避 
+    LPDIRECT3DSURFACE9  _backupRender;      ///< 元々のターゲットを退避
+    LPDIRECT3DSURFACE9  _backupDepth;       ///< 元々のZを退避
 
-    csmUint32           _bufferWidth;       ///< Create時に指定されたサイズ 
-    csmUint32           _bufferHeight;      ///< Create時に指定されたサイズ 
+    csmUint32           _bufferWidth;       ///< Create時に指定されたサイズ
+    csmUint32           _bufferHeight;      ///< Create時に指定されたサイズ
 };
 
 

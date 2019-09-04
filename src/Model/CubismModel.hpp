@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -382,6 +382,17 @@ public:
      * @return  Drawableのブレンドモード
      */
     Rendering::CubismRenderer::CubismBlendMode   GetDrawableBlendMode(csmInt32 drawableIndex) const;
+
+    /**
+    * @brief Drawableのマスクの反転使用の取得
+    *
+    * Drawableのマスク使用時の反転設定を取得する。
+    * マスクを使用しない場合は無視される
+    *
+    * @param[in]   drawableIndex   Drawableのインデックス
+    * @return  Drawableのマスクの反転設定
+    */
+    csmBool                    GetDrawableInvertedMask(csmInt32 drawableIndex) const;
 
     /**
     * @brief Drawableの表示情報の取得

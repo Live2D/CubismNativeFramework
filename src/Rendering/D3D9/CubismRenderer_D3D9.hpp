@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -229,7 +229,7 @@ public:
     /**
      * @brief  Cubism描画関連の先頭で行う処理。
      *          各フレームでのCubism処理前にこれを呼んでもらう
-     *          
+     *
      * @param[in]   device         -> 使用デバイス
      */
     static void StartFrame(LPDIRECT3DDEVICE9 device, csmUint32 viewportWidth, csmUint32 viewportHeight);
@@ -237,7 +237,7 @@ public:
     /**
      * @brief  Cubism描画関連の終了時行う処理。
      *          各フレームでのCubism処理前にこれを呼んでもらう
-     *          
+     *
      * @param[in]   device         -> 使用デバイス
      */
     static void EndFrame(LPDIRECT3DDEVICE9 device);
@@ -327,11 +327,12 @@ public:
      * @param[in]  textureNo        -> 使用テクスチャ番号。基本的にCubismModel::GetDrawableTextureIndicesで返されたもの
      * @param[in]  modelColorRGBA   -> 描画カラー
      * @param[in]  colorBlendMode   -> ブレンドモード
+     * @param[in]  invertedMask      -> マスク使用時のマスクの反転設定
      *
      */
-    void ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9* vertexArray, csmUint16* indexArray, 
+    void ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9* vertexArray, csmUint16* indexArray,
         const csmInt32 vertexCount, const csmInt32 triangleCount,
-        const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, CubismBlendMode colorBlendMode);
+        const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 protected:
     /**
@@ -353,7 +354,7 @@ protected:
 
     void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
         , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
-        , csmFloat32 opacity, CubismBlendMode colorBlendMode) override;
+        , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask) override;
 
     /**
      * @brief   [オーバーライド]<br>
@@ -363,12 +364,13 @@ protected:
      * @param[in]   gfxc            ->  レンダリングコンテキスト
      * @param[in]   drawableIndex   ->  描画パーツ番号
      * @param[in]   colorBlendMode  ->  カラー合成タイプ
+     * @param[in]   invertedMask     ->  マスク使用時のマスクの反転使用
      *
      */
     void DrawMeshDX9(csmInt32 drawableIndex
         , csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
         , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
-        , csmFloat32 opacity, CubismBlendMode colorBlendMode);
+        , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 
 private:
@@ -438,19 +440,19 @@ private:
      */
     void CopyToBuffer(csmInt32 drawAssign, const csmInt32 vcount, const csmFloat32* varray, const csmFloat32* uvarray);
 
-    csmUint32                           _drawableNum;           ///< _vertexBuffers, _indexBuffersの確保数 
+    csmUint32                           _drawableNum;           ///< _vertexBuffers, _indexBuffersの確保数
 
-    CubismVertexD3D9**                  _vertexStore;           ///< 頂点をストアしておく領域 
-    csmUint16**                         _indexStore;            ///< インデックスをストアしておく領域 
+    CubismVertexD3D9**                  _vertexStore;           ///< 頂点をストアしておく領域
+    csmUint16**                         _indexStore;            ///< インデックスをストアしておく領域
 
-    csmInt32                            _commandBufferNum;      ///< 描画バッファを複数作成する場合の数 
-    csmInt32                            _commandBufferCurrent;  ///< 現在使用中のバッファ番号 
+    csmInt32                            _commandBufferNum;      ///< 描画バッファを複数作成する場合の数
+    csmInt32                            _commandBufferCurrent;  ///< 現在使用中のバッファ番号
 
     csmVector<csmInt32>                 _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
 
     csmMap<csmInt32, LPDIRECT3DTEXTURE9>_textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
 
-    csmVector<CubismOffscreenFrame_D3D9>_offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ 
+    csmVector<CubismOffscreenFrame_D3D9>_offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ
 
     CubismClippingManager_DX9*          _clippingManager;               ///< クリッピングマスク管理オブジェクト
     CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト

@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -267,13 +267,15 @@ private:
      * @param[in]   baseColor             ->  ベースカラー
      * @param[in]   isPremultipliedAlpha  ->  乗算済みアルファかどうか
      * @param[in]   matrix4x4             ->  Model-View-Projection行列
+     * @param[in]   invertedMask           ->  マスクを反転して使用するフラグ
      */
     void SetupShaderProgram(CubismRenderer_OpenGLES2* renderer, GLuint textureId
                             , csmInt32 vertexCount, csmFloat32* vertexArray
                             , csmFloat32* uvArray, csmFloat32 opacity
                             , CubismRenderer::CubismBlendMode colorBlendMode
                             , CubismRenderer::CubismTextureColor baseColor
-                            , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4);
+                            , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4
+                            , csmBool invertedMask);
 
     /**
      * @brief   シェーダプログラムを解放する
@@ -494,11 +496,12 @@ protected:
      * @param[in]   uvArray         ->  uv配列
      * @param[in]   opacity         ->  不透明度
      * @param[in]   colorBlendMode  ->  カラー合成タイプ
+     * @param[in]   invertedMask     ->  マスク使用時のマスクの反転使用
      *
      */
     void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
                   , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
-                  , csmFloat32 opacity, CubismBlendMode colorBlendMode);
+                  , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 
 #ifdef CSM_TARGET_ANDROID_ES2
@@ -598,7 +601,7 @@ private:
     CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト
     CubismClippingContext*              _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
 
-    CubismOffscreenFrame_OpenGLES2      _offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ 
+    CubismOffscreenFrame_OpenGLES2      _offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ
 };
 
 }}}}

@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -176,7 +176,7 @@ extern const csmInt32 VertexStep;   ///< メッシュ頂点のステップ値
 }
 
 /**
- * @brief Live2D Cubism3 Original Workflow SDKのエントリポイント<br>
+ * @brief Live2D Cubism Original Workflow SDKのエントリポイント<br>
  *         利用開始時はCubismFramework::Initialize()を呼び、CubismFramework::Dispose()で終了する。
  *
  */

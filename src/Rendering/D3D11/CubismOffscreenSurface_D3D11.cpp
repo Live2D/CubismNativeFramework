@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismOffscreenSurface_D3D11.hpp"
@@ -39,8 +39,8 @@ void CubismOffscreenFrame_D3D11::BeginDraw(ID3D11DeviceContext* renderContext)
     // バックバッファのサーフェイスを記憶しておく
     renderContext->OMGetRenderTargets(1, &_backupRender, &_backupDepth);
 
-    // NULLを設定しないとこのような警告が出る 
-    // OMSetRenderTargets: Resource being set to OM RenderTarget slot 0 is still bound on input! [ STATE_SETTING WARNING #9: DEVICE_OMSETRENDERTARGETS_HAZARD ] 
+    // NULLを設定しないとこのような警告が出る
+    // OMSetRenderTargets: Resource being set to OM RenderTarget slot 0 is still bound on input! [ STATE_SETTING WARNING #9: DEVICE_OMSETRENDERTARGETS_HAZARD ]
     {
         ID3D11ShaderResourceView* const viewArray[2] = { NULL, NULL };
         renderContext->PSSetShaderResources(0, 2, viewArray);
@@ -58,10 +58,10 @@ void CubismOffscreenFrame_D3D11::EndDraw(ID3D11DeviceContext* renderContext)
         return;
     }
 
-    // ターゲットを元に戻す 
+    // ターゲットを元に戻す
     renderContext->OMSetRenderTargets(1, &_backupRender, _backupDepth);
 
-    // BeginでGetした分のRelease 
+    // BeginでGetした分のRelease
     if(_backupDepth)
     {
         _backupDepth->Release();
@@ -83,7 +83,7 @@ void CubismOffscreenFrame_D3D11::Clear(ID3D11DeviceContext* renderContext, float
 
 csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight)
 {
-    // 一旦削除 
+    // 一旦削除
     DestroyOffscreenFrame();
 
     do
@@ -94,7 +94,7 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
         memset(&textureDesc, 0, sizeof(textureDesc));
         textureDesc.Usage = D3D11_USAGE_DEFAULT;
         textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;  // レンダーターゲットを指定 
+        textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;  // レンダーターゲットを指定
         textureDesc.Width = displayBufferWidth;
         textureDesc.Height = displayBufferHeight;
         textureDesc.CPUAccessFlags = 0;
@@ -104,12 +104,12 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
         textureDesc.SampleDesc.Quality = 0;
         result = device->CreateTexture2D(&textureDesc, NULL, &_texture);
         if (FAILED(result))
-        {// テクスチャ作成失敗 
+        {// テクスチャ作成失敗
             CubismLogError("Error : create offscreen texture");
             break;
         }
 
-        // レンダーターゲットビューの生成 
+        // レンダーターゲットビューの生成
         D3D11_RENDER_TARGET_VIEW_DESC renderTargetDesc;
         memset( &renderTargetDesc, 0, sizeof(renderTargetDesc) );
         renderTargetDesc.Format             = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -121,7 +121,7 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
             break;
         }
 
-        // シェーダリソースビューの生成 
+        // シェーダリソースビューの生成
         D3D11_SHADER_RESOURCE_VIEW_DESC resourceViewDesc;
         memset(&resourceViewDesc, 0, sizeof(resourceViewDesc));
         resourceViewDesc.Format = renderTargetDesc.Format;
@@ -134,7 +134,7 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
             break;
         }
 
-        // Depth/Stencil 
+        // Depth/Stencil
         D3D11_TEXTURE2D_DESC depthDesc;
         memset(&depthDesc, 0, sizeof(depthDesc));
         depthDesc.Width = displayBufferWidth;
@@ -170,12 +170,12 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
         _bufferWidth = displayBufferWidth;
         _bufferHeight = displayBufferHeight;
 
-        // 成功 
+        // 成功
         return true;
 
     } while (0);
 
-    // 失敗したので削除 
+    // 失敗したので削除
     DestroyOffscreenFrame();
 
     return false;
@@ -183,7 +183,7 @@ csmBool CubismOffscreenFrame_D3D11::CreateOffscreenFrame(ID3D11Device* device, c
 
 void CubismOffscreenFrame_D3D11::DestroyOffscreenFrame()
 {
-    // これらがあるのはEndDrawが来なかった場合 
+    // これらがあるのはEndDrawが来なかった場合
     if (_backupDepth)
     {
         _backupDepth->Release();

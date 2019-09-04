@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -23,20 +23,26 @@ namespace Live2D { namespace Cubism { namespace Framework {
         //Normal
         ShaderNames_Normal,
         ShaderNames_NormalMasked,
+        ShaderNames_NormalMaskedInverted,
         ShaderNames_NormalPremultipliedAlpha,
         ShaderNames_NormalMaskedPremultipliedAlpha,
+        ShaderNames_NormalMaskedInvertedPremultipliedAlpha,
 
         //Add
         ShaderNames_Add,
         ShaderNames_AddMasked,
+        ShaderNames_AddMaskedInverted,
         ShaderNames_AddPremultipliedAlpha,
         ShaderNames_AddMaskedPremultipliedAlpha,
+        ShaderNames_AddMaskedInvertedPremultipliedAlpha,
 
         //Mult
         ShaderNames_Mult,
         ShaderNames_MultMasked,
+        ShaderNames_MultMaskedInverted,
         ShaderNames_MultPremultipliedAlpha,
         ShaderNames_MultMaskedPremultipliedAlpha,
+        ShaderNames_MultMaskedInvertedPremultipliedAlpha,
 
         ShaderNames_Max,
     };
@@ -93,13 +99,13 @@ public:
 
     /**
      * @brief   頂点シェーダの取得
-     *          
+     *
      */
     ID3D11VertexShader* GetVertexShader(csmUint32 assign);
 
     /**
      * @brief   ピクセルシェーダの取得
-     *          
+     *
      */
     ID3D11PixelShader* GetPixelShader(csmUint32 assign);
 
@@ -126,10 +132,10 @@ private:
 
     csmVector<CubismShaderSet*> _shaderSets;   ///< ロードしたシェーダプログラムを保持する変数
 
-    csmVector<ID3D11VertexShader*> _shaderSetsVS;     ///< ロードしたシェーダプログラムを保持する変数(VS) 
-    csmVector<ID3D11PixelShader*> _shaderSetsPS;      ///< ロードしたシェーダプログラムを保持する変数(PS) 
+    csmVector<ID3D11VertexShader*> _shaderSetsVS;     ///< ロードしたシェーダプログラムを保持する変数(VS)
+    csmVector<ID3D11PixelShader*> _shaderSetsPS;      ///< ロードしたシェーダプログラムを保持する変数(PS)
 
-    ID3D11InputLayout*    _vertexFormat; ///< 描画で使用する型宣言 
+    ID3D11InputLayout*    _vertexFormat; ///< 描画で使用する型宣言
 };
 
 }}}}

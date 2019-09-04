@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -18,7 +18,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
 
 /**
  * @brief 2次元ベクトル型
- * 
+ *
  * 2次元ベクトル型の機能を提供する。
  */
 struct CubismVector2
@@ -28,7 +28,7 @@ struct CubismVector2
 
     /**
      * @brief コンストラクタ
-     * 
+     *
      * コンストラクタ。
      */
     CubismVector2(): X(0.0f), Y(0.0f)
@@ -36,7 +36,7 @@ struct CubismVector2
 
     /**
      * @brief デストラクタ
-     * 
+     *
      * デストラクタ。
      */
     CubismVector2(csmFloat32 x, csmFloat32 y) : X(x), Y(y)
@@ -44,10 +44,10 @@ struct CubismVector2
 
     /**
      * @brief ベクトルの加算
-     * 
+     *
      * ベクトルを加算する。
      * a + b = result
-     * 
+     *
      * @param[in]   a   値a
      * @oaram[in]   b   値b
      * @return  a + bの結果
@@ -56,10 +56,10 @@ struct CubismVector2
 
     /**
      * @brief ベクトルの減算
-     * 
+     *
      * ベクトルを減算する。
      * a - b = result
-     * 
+     *
      * @param[in]   a   値a
      * @param[in]   b   値b
      * @return  a - bの結果
@@ -68,10 +68,10 @@ struct CubismVector2
 
     /**
      * @brief ベクトルの乗算（ベクトル値とスカラー値）
-     * 
+     *
      * ベクトルを乗算する。（ベクトル値とスカラー値）
      * vector * scalar = result
-     * 
+     *
      * @param[in]   vector  値vector（ベクトル値）
      * @param[in]   scalar  値scalar（スカラー値）
      * @return  vector * scalarの結果（ベクトル値）
@@ -80,10 +80,10 @@ struct CubismVector2
 
     /**
      * @brief ベクトルの乗算（スカラー値とベクトル値）
-     * 
+     *
      * ベクトルを乗算する。（スカラー値とベクトル値）
      * scalar * vector = result
-     * 
+     *
      * @param[in]   scalar  値scalar（スカラー値）
      * @param[in]   vector  値vector（ベクトル値）
      * @return  scalar * vectorの結果（ベクトル値）
@@ -92,10 +92,10 @@ struct CubismVector2
 
     /**
      * @brief ベクトルの除算（ベクトル値とスカラー値）
-     * 
+     *
      * ベクトルを除算する。（ベクトル値とスカラー値）
      * vector / scalar = result
-     * 
+     *
      * @param[in]   vector  値vector（ベクトル値）
      * @param[in]   scalar  値scalar（スカラー値）
      * @return  vector / scalarの結果（ベクトル値）
@@ -104,9 +104,9 @@ struct CubismVector2
 
     /**
      * @brief 加算
-     * 
+     *
      * 加算する。
-     * 
+     *
      * @param[in]   rhs     加算する値
      * @return  結果
      */
@@ -164,9 +164,9 @@ struct CubismVector2
 
     /**
      * @brief 等しさの確認（等しいか？）
-     * 
+     *
      * 値が等しいか？
-     * 
+     *
      * @param[in]   rhs     確認する値
      * @retval  true    値は等しい
      * @retval  false   値は等しくない
@@ -175,9 +175,9 @@ struct CubismVector2
 
     /**
      * @brief 等しさの確認（等しくないか？）
-     * 
+     *
      * 値が等しくないか？
-     * 
+     *
      * @param[in]   rhs     確認する値
      * @retval  true    値は等しくない
      * @retval  false   値は等しい
@@ -186,25 +186,25 @@ struct CubismVector2
 
     /**
      * @brief 正規化の適用
-     * 
+     *
      * 正規化する。
      */
     void Normalize();
 
     /**
      * @brief ベクトルの長さの取得
-     * 
+     *
      * ベクトルの長さを取得する。
-     * 
+     *
      * @return  ベクトルの長さ
      */
     csmFloat32 GetLength() const;
 
     /**
      * @brief ベクトルの距離の取得
-     * 
+     *
      * ベクトルの距離を取得する。
-     * 
+     *
      * @param[in]   a   点
      * @return ベクトルの距離
      */
@@ -212,9 +212,9 @@ struct CubismVector2
 
     /**
      * @brief ドット積の計算
-     * 
+     *
      * ドット積を計算する。
-     * 
+     *
      * @param[in]   a   値
      * @return 結果
      */

@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismRenderState_D3D9.hpp"
@@ -15,7 +15,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 CubismRenderState_D3D9::CubismRenderState_D3D9()
 {
-    // 
+    //
     memset(_stored._valid, 0, sizeof(_stored._valid));
 }
 
@@ -34,7 +34,7 @@ void CubismRenderState_D3D9::StartFrame()
 
 void CubismRenderState_D3D9::Save()
 {
-    // 現時点のステートをPush 
+    // 現時点のステートをPush
     _pushed.PushBack(_stored);
 }
 
@@ -47,7 +47,7 @@ void CubismRenderState_D3D9::Restore(LPDIRECT3DDEVICE9 device)
         return;
     }
 
-    //forで辿って最後に設定した個所までチェック 
+    //forで辿って最後に設定した個所までチェック
     csmBool isSet[State_Max];
     memset(isSet, 0, sizeof(isSet));
 
@@ -138,7 +138,7 @@ void CubismRenderState_D3D9::SetViewport(LPDIRECT3DDEVICE9 device, DWORD left, D
         _stored.ViewportX != left || _stored.ViewportY != top || _stored.ViewportWidth != width || _stored.ViewportHeight != height ||
         _stored.ViewportMinZ != zMin || _stored.ViewportMaxZ != zMax)
     {
-        // コンテキストにセット 
+        // コンテキストにセット
         D3DVIEWPORT9 viewport;
         viewport.X = left;
         viewport.Y = top;
@@ -227,13 +227,13 @@ void CubismRenderState_D3D9::SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTU
 
 void CubismRenderState_D3D9::SaveCurrentNativeState(LPDIRECT3DDEVICE9 device)
 {
-    // まずは全破棄 
+    // まずは全破棄
     _pushed.Clear();
-    // 未設定扱いに 
+    // 未設定扱いに
     memset(_stored._valid, 0, sizeof(_stored._valid));
 
-    DWORD setting[16]; // 数は適当 
-// Blend 
+    DWORD setting[16]; // 数は適当
+// Blend
     device->GetRenderState(D3DRS_ALPHABLENDENABLE, &setting[0]);
     device->GetRenderState(D3DRS_SEPARATEALPHABLENDENABLE, &setting[1]);
     device->GetRenderState(D3DRS_SRCBLEND, &setting[2]);
@@ -243,30 +243,30 @@ void CubismRenderState_D3D9::SaveCurrentNativeState(LPDIRECT3DDEVICE9 device)
     device->GetRenderState(D3DRS_BLENDOPALPHA, &setting[6]);
     device->GetRenderState(D3DRS_DESTBLENDALPHA, &setting[7]);
     SetBlend(device,
-        (setting[0] ? true : false), 
+        (setting[0] ? true : false),
         (setting[1] ? true : false),
         static_cast<D3DBLEND>(setting[2]), static_cast<D3DBLENDOP>(setting[3]), static_cast<D3DBLEND>(setting[4]),
         static_cast<D3DBLEND>(setting[5]), static_cast<D3DBLENDOP>(setting[6]), static_cast<D3DBLEND>(setting[7]), true);
 
-// Viewport 
+// Viewport
     D3DVIEWPORT9 viewport;
     device->GetViewport(&viewport);
     SetViewport(device, viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinZ, viewport.MaxZ, true);
 
-// ColorMask 
+// ColorMask
     device->GetRenderState(D3DRS_COLORWRITEENABLE, &setting[0]);
     SetColorMask(device, setting[0], true);
 
-// ZEnable 
+// ZEnable
     device->GetRenderState(D3DRS_ZENABLE, &setting[0]);
     device->GetRenderState(D3DRS_ZFUNC, &setting[1]);
     SetZEnable(device, static_cast<D3DZBUFFERTYPE>(setting[0]), static_cast<D3DCMPFUNC>(setting[1]), true);
 
-// Cull 
+// Cull
     device->GetRenderState(D3DRS_CULLMODE, &setting[0]);
     SetCullMode(device, static_cast<D3DCULL>(setting[0]), true);
 
-// TextureFilter 
+// TextureFilter
     device->GetSamplerState(0, D3DSAMP_MINFILTER, &setting[0]);
     device->GetSamplerState(0, D3DSAMP_MAGFILTER, &setting[1]);
     device->GetSamplerState(0, D3DSAMP_MIPFILTER, &setting[2]);
@@ -275,13 +275,13 @@ void CubismRenderState_D3D9::SaveCurrentNativeState(LPDIRECT3DDEVICE9 device)
     SetTextureFilter(device, static_cast<D3DTEXTUREFILTERTYPE>(setting[0]), static_cast<D3DTEXTUREFILTERTYPE>(setting[1]), static_cast<D3DTEXTUREFILTERTYPE>(setting[2]),
         static_cast<D3DTEXTUREADDRESS>(setting[3]), static_cast<D3DTEXTUREADDRESS>(setting[4]), true);
 
-    // 最後に上記の値を保存 
+    // 最後に上記の値を保存
     Save();
 }
 
 void CubismRenderState_D3D9::RestoreNativeState(LPDIRECT3DDEVICE9 device)
 {
-    // 全て再現 
+    // 全て再現
     for (csmInt32 i = static_cast<csmInt32>(_pushed.GetSize()) - 1; i >= 0; i--)
     {
         Restore(device);

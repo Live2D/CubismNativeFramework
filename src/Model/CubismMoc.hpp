@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -15,7 +15,7 @@ class CubismModel;
 
 /**
  * @brief Mocデータの管理
- * 
+ *
  * Mocデータの管理を行うクラス。
  */
 class CubismMoc
@@ -24,9 +24,9 @@ class CubismMoc
 public:
     /**
      * @brief バッファからMocデータの作成
-     * 
+     *
      * バッファからMocファイルを読み取り、Mocデータを作成する。
-     * 
+     *
      * @param[in]   mocBytes    Mocファイルのバッファ
      * @param[in]   size        バッファのサイズ
      */
@@ -34,25 +34,25 @@ public:
 
     /**
      * @brief Mocデータを削除
-     * 
+     *
      * Mocデータを削除する。
      */
     static void Delete(CubismMoc* moc);
 
     /**
      * @brief モデルを作成
-     * 
+     *
      * モデルを作成する。
-     * 
+     *
      * @return  Mocデータから作成されたモデル
      */
     CubismModel* CreateModel();
 
     /**
      * @brief モデルを削除
-     * 
+     *
      * モデルを削除する。
-     * 
+     *
      * @param[in]   model   対象のモデル
      */
     void DeleteModel(CubismModel* model);
@@ -60,14 +60,14 @@ public:
 private:
     /**
      * @brief コンストラクタ
-     * 
+     *
      * コンストラクタ。
      */
     CubismMoc(Core::csmMoc* moc);
 
     /**
      * @brief デストラクタ
-     * 
+     *
      * デストラクタ。
      */
     virtual ~CubismMoc();

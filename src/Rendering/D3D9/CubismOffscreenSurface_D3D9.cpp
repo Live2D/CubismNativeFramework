@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #include "CubismOffscreenSurface_D3D9.hpp"
@@ -32,7 +32,7 @@ void CubismOffscreenFrame_D3D9::BeginDraw(LPDIRECT3DDEVICE9 device)
         return;
     }
 
-    // オフスクリーン描画は一度通常描画を打ち切る必要がある 
+    // オフスクリーン描画は一度通常描画を打ち切る必要がある
     device->EndScene();
 
     device->BeginScene();
@@ -53,7 +53,7 @@ void CubismOffscreenFrame_D3D9::BeginDraw(LPDIRECT3DDEVICE9 device)
         // 記憶しておく
         _textureSurface = surface;
 
-        // マスク描画レンダーターゲットセット 
+        // マスク描画レンダーターゲットセット
         device->SetRenderTarget(0, surface);
         device->SetDepthStencilSurface(_depthSurface);
     }
@@ -68,19 +68,19 @@ void CubismOffscreenFrame_D3D9::EndDraw(LPDIRECT3DDEVICE9 device)
 
     device->EndScene();
 
-    // 元に戻す 
+    // 元に戻す
     if (_textureSurface)
     {
         device->SetRenderTarget(0, _backupRender);
         device->SetDepthStencilSurface(_backupDepth);
-        // GetSurfaceLevelでincされたものを下げる必要がある 
+        // GetSurfaceLevelでincされたものを下げる必要がある
         {
             _textureSurface->Release();
             _textureSurface = NULL;
         }
     }
 
-    // BeginでGetした分のRelease 
+    // BeginでGetした分のRelease
     if(_backupDepth)
     {
         _backupDepth->Release();
@@ -97,14 +97,14 @@ void CubismOffscreenFrame_D3D9::EndDraw(LPDIRECT3DDEVICE9 device)
 
 void CubismOffscreenFrame_D3D9::Clear(LPDIRECT3DDEVICE9 device,  float r, float g, float b, float a)
 {
-    // マスクをクリアする 
+    // マスクをクリアする
     device->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
         D3DCOLOR_COLORVALUE(r, g, b, a), 1.0f, 0);
 }
 
 csmBool CubismOffscreenFrame_D3D9::CreateOffscreenFrame(LPDIRECT3DDEVICE9 device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight)
 {
-    // 一旦削除 
+    // 一旦削除
     DestroyOffscreenFrame();
 
     if (FAILED(D3DXCreateTexture(
@@ -146,7 +146,7 @@ csmBool CubismOffscreenFrame_D3D9::CreateOffscreenFrame(LPDIRECT3DDEVICE9 device
 
 void CubismOffscreenFrame_D3D9::DestroyOffscreenFrame()
 {
-    // これらがあるのはEndDrawが来なかった場合 
+    // これらがあるのはEndDrawが来なかった場合
     if(_backupDepth)
     {
         _backupDepth->Release();

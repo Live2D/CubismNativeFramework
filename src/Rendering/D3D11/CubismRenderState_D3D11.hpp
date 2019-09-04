@@ -1,8 +1,8 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
@@ -29,15 +29,15 @@ public:
     enum
     {
         State_None,
-        State_Blend,        ///< ブレンドモード 
-        State_Viewport,     ///< ビューポート 
-        State_ZEnable,      ///< Z有効無効 
-        State_CullMode,     ///< カリングモード 
-        State_Sampler,      ///< テクスチャフィルター 
+        State_Blend,        ///< ブレンドモード
+        State_Viewport,     ///< ビューポート
+        State_ZEnable,      ///< Z有効無効
+        State_CullMode,     ///< カリングモード
+        State_Sampler,      ///< テクスチャフィルター
         State_Max,
     };
 
-    // ブレンドステート D3D11ではオブジェクト単位での管理 
+    // ブレンドステート D3D11ではオブジェクト単位での管理
     enum Blend
     {
         Blend_Origin,
@@ -49,29 +49,29 @@ public:
         Blend_Max,
     };
 
-    // カリング D3D11ではオブジェクト単位での管理 
+    // カリング D3D11ではオブジェクト単位での管理
     enum Cull
     {
-        Cull_Origin,///< 元々の設定 
-        Cull_None,  ///< カリング無し 
-        Cull_Ccw,   ///< CCW表示 
+        Cull_Origin,///< 元々の設定
+        Cull_None,  ///< カリング無し
+        Cull_Ccw,   ///< CCW表示
         Cull_Max,
     };
 
-    // Z D3D11ではオブジェクト単位での管理 
+    // Z D3D11ではオブジェクト単位での管理
     enum Depth
     {
-        Depth_Origin,   ///< 元々の設定 
-        Depth_Disable,  ///< Zoff 
-        Depth_Enable,   ///< Zon 
+        Depth_Origin,   ///< 元々の設定
+        Depth_Disable,  ///< Zoff
+        Depth_Enable,   ///< Zon
         Depth_Max,
     };
 
-    // サンプラーステート D3D11ではオブジェクト単位での管理 
+    // サンプラーステート D3D11ではオブジェクト単位での管理
     enum Sampler
     {
-        Sampler_Origin, ///< 元々の設定 
-        Sampler_Normal, ///< 使用ステート 
+        Sampler_Origin, ///< 元々の設定
+        Sampler_Normal, ///< 使用ステート
         Sampler_Max,
     };
 
@@ -103,30 +103,30 @@ public:
             memset(_valid, 0, sizeof(_valid));
         }
 
-        // State_Blend 
+        // State_Blend
         Blend _blendState;
         DirectX::XMFLOAT4 _blendFactor;
         UINT _blendMask;
 
-        // State_CullMode 
+        // State_CullMode
         Cull _cullMode;
 
-        // State_Viewport 
+        // State_Viewport
         FLOAT _viewportX;
         FLOAT _viewportY;
         FLOAT _viewportWidth;
         FLOAT _viewportHeight;
         FLOAT _viewportMinZ;
         FLOAT _viewportMaxZ;
-        
-        // State_ZEnable 
+
+        // State_ZEnable
         Depth _depthEnable;
         UINT _depthRef;
 
-        // State_Sampler 
+        // State_Sampler
         Sampler _sampler;
 
-        csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる 
+        csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる
     };
 
     /**
@@ -148,7 +148,7 @@ public:
 
     /**
      * @brief   ブレンドモードセット
-     * 
+     *
      * @param   renderContext[in]    描画コンテキスト
      * @param   blendState[in]  予め用意したブレンドオブジェクトの番号(enum CubismRenderState_D3D11::Blend)
      * @param   blendFactor[in] D3D11_BLEND_BLEND_FACTOR指定時の係数
@@ -160,7 +160,7 @@ public:
 
     /**
      * @brief   カリングモードセット
-     * 
+     *
      * @param   device[in]     描画コンテキスト
      * @param   cullFace[in]    切除するべき面 指定された面を切る Cwだと時計回りを切除
      * @param   force[in]       trueの場合は今の設定が何であろうと強制設定
@@ -169,7 +169,7 @@ public:
 
     /**
      * @brief   ビューポートセット
-     * 
+     *
      * @param   renderContext[in]    描画コンテキスト
      * @param   left[in]        ビューポート左座標
      * @param   top[in]         ビューポート上座標
@@ -183,7 +183,7 @@ public:
 
     /**
      * @brief   Z有効無効セット
-     * 
+     *
      * @param   renderContext[in]    描画コンテキスト
      * @param   force[in]       trueの場合は今の設定が何であろうと強制設定
      */
@@ -191,7 +191,7 @@ public:
 
     /**
      * @brief  サンプラーステートセット
-     * 
+     *
      * @param   renderContext[in]    描画コンテキスト
      * @param   force[in]       trueの場合は今の設定が何であろうと強制設定
      */
@@ -217,7 +217,7 @@ private:
      */
     void RestoreNativeState(ID3D11Device* device, ID3D11DeviceContext* renderContext);
 
-    Stored  _stored;           ///< ストアされた各種設定 
+    Stored  _stored;           ///< ストアされた各種設定
 
     csmVector<Stored> _pushed;
 

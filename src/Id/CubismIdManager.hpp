@@ -1,14 +1,14 @@
-﻿/*
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
- * that can be found at http://live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
 #pragma once
 
 #include "Type/CubismBasicType.hpp"
-#include "Type/csmString.hpp"  
+#include "Type/csmString.hpp"
 #include "Type/csmVector.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
@@ -17,7 +17,7 @@ struct CubismId;
 
 /**
  * @brief ID名の管理
- * 
+ *
  * ID名を管理する。
  */
 class CubismIdManager
@@ -27,23 +27,23 @@ class CubismIdManager
 public:
     /**
      * @brief コンストラクタ
-     * 
+     *
      * コンストラクタ。
      */
     CubismIdManager();
 
     /**
      * @brief デストラクタ
-     * 
+     *
      * デストラクタ。
      */
     ~CubismIdManager();
 
     /**
      * @brief ID名をリストから登録
-     * 
+     *
      * ID名をリストから登録する。
-     * 
+     *
      * @param[in]   ids     ID名リスト
      * @param[in]   count   IDの個数
      */
@@ -60,9 +60,9 @@ public:
 
     /**
      * @brief ID名を登録
-     * 
+     *
      * ID名を登録する。
-     * 
+     *
      * @param[in]   id  ID名
      */
     const CubismId* RegisterId(const csmChar* id);
@@ -78,11 +78,11 @@ public:
 
     /**
      * @brief ID名からIDを取得する。
-     * 
+     *
      * ID名からIDを取得する。
-     * 
+     *
      * @param[in]   id  ID名
-     * 
+     *
      * @note 未登録のID名の場合、登録も行う。
      */
     const CubismId* GetId(const csmString& id);
@@ -100,9 +100,9 @@ public:
 
     /**
      * @brief ID名からIDの確認
-     * 
+     *
      * ID名からIDが登録されているかどうか確認する。
-     * 
+     *
      * @retval  true    存在する
      * @retval  false   存在しない
      */
@@ -124,9 +124,9 @@ private:
 
     /**
      * @brief ID名からIDを検索
-     * 
+     *
      * ID名からIDを検索する。
-     * 
+     *
      * @param[in]   id  ID名
      * @return  登録されているID。なければNULL。
      */
