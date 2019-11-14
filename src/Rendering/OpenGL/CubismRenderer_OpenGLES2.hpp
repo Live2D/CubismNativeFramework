@@ -36,6 +36,11 @@
 #include <OpenGL/gl.h>
 #endif
 
+#ifdef CSM_TARGET_LINUX_GL
+#include <GL/glew.h>
+#include <GL/gl.h>
+#endif
+
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 

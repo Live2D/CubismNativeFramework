@@ -274,6 +274,12 @@ void CubismClippingManager_D3D11::SetupClippingContext(ID3D11DeviceContext* rend
                 {
                     const csmInt32 clipDrawIndex = clipContext->_clippingIdList[i];
 
+                    // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                    if (!model.GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                    {
+                        continue;
+                    }
+
                     renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
 
                     // 今回専用の変換を適用して描く
@@ -940,6 +946,12 @@ void CubismRenderer_D3D11::DoDrawModel()
     {
         const csmInt32 drawableIndex = _sortedDrawableIndexList[i];
 
+        // Drawableが表示状態でなければ処理をパスする
+        if (!GetModel()->GetDrawableDynamicFlagIsVisible(drawableIndex))
+        {
+            continue;
+        }
+
         // クリッピングマスクをセットする
         CubismClippingContext* clipContext = (_clippingManager != NULL)
             ? (*_clippingManager->GetClippingContextListForDraw())[drawableIndex]
@@ -964,6 +976,12 @@ void CubismRenderer_D3D11::DoDrawModel()
                 for (csmInt32 ctx = 0; ctx < clipDrawCount; ctx++)
                 {
                     const csmInt32 clipDrawIndex = clipContext->_clippingIdList[ctx];
+
+                    // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                    if (!GetModel()->GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                    {
+                        continue;
+                    }
 
                     IsCulling(GetModel()->GetDrawableCulling(clipDrawIndex) != 0);
 
