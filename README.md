@@ -1,4 +1,4 @@
-﻿# Cubism Native Framework
+# Cubism Native Framework
 
 Live2D Cubism 4 Editorで出力したモデルをアプリケーションで利用するためのフレームワークです。
 

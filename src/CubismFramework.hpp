@@ -26,6 +26,10 @@
 #include <new>
 #include "ICubismAllocator.hpp"
 
+#ifdef linux
+#include <cstdlib>
+#endif
+
 namespace Live2D { namespace Cubism { namespace Framework {
 
 class CubismAllocationTag
