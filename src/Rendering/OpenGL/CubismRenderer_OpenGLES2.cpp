@@ -720,6 +720,27 @@ static const csmChar* FragShaderSrcSetupMask =
 
         "gl_FragColor = u_channelFlag * texture2D(s_texture0 , v_texCoord).a * isInside;"
         "}";
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcSetupMaskTegra =
+        "#version 100\n"
+        "#extension GL_NV_shader_framebuffer_fetch : enable\n"
+        "precision mediump float;"
+        "varying vec2 v_texCoord;"
+        "varying vec4 v_myPos;"
+        "uniform sampler2D s_texture0;"
+        "uniform vec4 u_channelFlag;"
+        "uniform vec4 u_baseColor;"
+        "void main()"
+        "{"
+        "float isInside = "
+        "  step(u_baseColor.x, v_myPos.x/v_myPos.w)"
+        "* step(u_baseColor.y, v_myPos.y/v_myPos.w)"
+        "* step(v_myPos.x/v_myPos.w, u_baseColor.z)"
+        "* step(v_myPos.y/v_myPos.w, u_baseColor.w);"
+
+        "gl_FragColor = u_channelFlag * texture2D(s_texture0 , v_texCoord).a * isInside;"
+        "}";
+#endif
 
 //----- バーテックスシェーダプログラム -----
 // Normal & Add & Mult 共通
@@ -778,6 +799,20 @@ static const csmChar* FragShaderSrc =
         "vec4 color = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
         "gl_FragColor = vec4(color.rgb * color.a,  color.a);"
         "}";
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcTegra =
+        "#version 100\n"
+        "#extension GL_NV_shader_framebuffer_fetch : enable\n"
+        "precision mediump float;"
+        "varying vec2 v_texCoord;" //v2f.texcoord
+        "uniform sampler2D s_texture0;" //_MainTex
+        "uniform vec4 u_baseColor;" //v2f.color
+        "void main()"
+        "{"
+        "vec4 color = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+        "gl_FragColor = vec4(color.rgb * color.a,  color.a);"
+        "}";
+#endif
 
 // Normal & Add & Mult 共通 （PremultipliedAlpha）
 static const csmChar* FragShaderSrcPremultipliedAlpha =
@@ -794,6 +829,19 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
         "{"
         "gl_FragColor = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
         "}";
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcPremultipliedAlphaTegra =
+        "#version 100\n"
+        "#extension GL_NV_shader_framebuffer_fetch : enable\n"
+        "precision mediump float;"
+        "varying vec2 v_texCoord;" //v2f.texcoord
+        "uniform sampler2D s_texture0;" //_MainTex
+        "uniform vec4 u_baseColor;" //v2f.color
+        "void main()"
+        "{"
+        "gl_FragColor = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+        "}";
+#endif
 
 // Normal & Add & Mult 共通（クリッピングされたものの描画用）
 static const csmChar* FragShaderSrcMask =
@@ -818,6 +866,27 @@ static const csmChar* FragShaderSrcMask =
         "col_formask = col_formask * maskVal;"
         "gl_FragColor = col_formask;"
         "}";
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcMaskTegra =
+        "#version 100\n"
+        "#extension GL_NV_shader_framebuffer_fetch : enable\n"
+        "precision mediump float;"
+        "varying vec2 v_texCoord;"
+        "varying vec4 v_clipPos;"
+        "uniform sampler2D s_texture0;"
+        "uniform sampler2D s_texture1;"
+        "uniform vec4 u_channelFlag;"
+        "uniform vec4 u_baseColor;"
+        "void main()"
+        "{"
+        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+        "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
+        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
+        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
+        "col_formask = col_formask * maskVal;"
+        "gl_FragColor = col_formask;"
+        "}";
+#endif
 
 // Normal & Add & Mult 共通（クリッピングされて反転使用の描画用）
 static const csmChar* FragShaderSrcMaskInverted =
@@ -842,6 +911,27 @@ static const csmChar* FragShaderSrcMaskInverted =
         "col_formask = col_formask * (1.0 - maskVal);"
         "gl_FragColor = col_formask;"
         "}";
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcMaskInvertedTegra =
+        "#version 100\n"
+        "#extension GL_NV_shader_framebuffer_fetch : enable\n"
+        "precision mediump float;"
+        "varying vec2 v_texCoord;"
+        "varying vec4 v_clipPos;"
+        "uniform sampler2D s_texture0;"
+        "uniform sampler2D s_texture1;"
+        "uniform vec4 u_channelFlag;"
+        "uniform vec4 u_baseColor;"
+        "void main()"
+        "{"
+        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+        "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
+        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
+        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
+        "col_formask = col_formask * (1.0 - maskVal);"
+        "gl_FragColor = col_formask;"
+        "}";
+#endif
 
 // Normal & Add & Mult 共通（クリッピングされたものの描画用、PremultipliedAlphaの場合）
 static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
@@ -865,6 +955,26 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
         "col_formask = col_formask * maskVal;"
         "gl_FragColor = col_formask;"
         "}";
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcMaskPremultipliedAlphaTegra =
+        "#version 100\n"
+        "#extension GL_NV_shader_framebuffer_fetch : enable\n"
+        "precision mediump float;"
+        "varying vec2 v_texCoord;"
+        "varying vec4 v_clipPos;"
+        "uniform sampler2D s_texture0;"
+        "uniform sampler2D s_texture1;"
+        "uniform vec4 u_channelFlag;"
+        "uniform vec4 u_baseColor;"
+        "void main()"
+        "{"
+        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
+        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
+        "col_formask = col_formask * maskVal;"
+        "gl_FragColor = col_formask;"
+        "}";
+#endif
 
 // Normal & Add & Mult 共通（クリッピングされて反転使用の描画用、PremultipliedAlphaの場合）
 static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlpha =
@@ -888,161 +998,25 @@ static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlpha =
         "col_formask = col_formask * (1.0 - maskVal);"
         "gl_FragColor = col_formask;"
         "}";
-
-#ifdef CSM_TARGET_ANDROID_ES2
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//----- Tegra用フラグメントシェーダプログラム -----
-
-    // マスク生成用
-    const static csmChar* FragShaderSrcSetupMaskForTegra =
+#if defined(CSM_TARGET_ANDROID_ES2)
+static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlphaTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-
+        "precision mediump float;"
         "varying vec2 v_texCoord;"
-        "varying vec4 v_myPos;"
+        "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"
+        "uniform sampler2D s_texture1;"
         "uniform vec4 u_channelFlag;"
         "uniform vec4 u_baseColor;"
         "void main()"
         "{"
-        "float isInside = "
-        "  step(u_baseColor.x, v_myPos.x/v_myPos.w)"
-        "* step(u_baseColor.y, v_myPos.y/v_myPos.w)"
-        "* step(v_myPos.x/v_myPos.w, u_baseColor.z)"
-        "* step(v_myPos.y/v_myPos.w, u_baseColor.w);"
-        "vec4 Cs = u_channelFlag * texture2D(s_texture0 , v_texCoord).a * isInside;"
-        "float As = Cs.a;"
-        "Cs.r = gl_LastFragColor.r*(1.0-Cs.r);"
-        "Cs.g = gl_LastFragColor.g*(1.0-Cs.g);"
-        "Cs.b = gl_LastFragColor.b*(1.0-Cs.b);"
-        "Cs.a = gl_LastFragColor.a*(1.0-As);"
-        "gl_FragColor = Cs;"
+        "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
+        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
+        "col_formask = col_formask * (1.0 - maskVal);"
+        "gl_FragColor = col_formask;"
         "}";
-
-
-    // 共通（上）
-#define  FragShaderSrcHeaderForTegra \
-        "#version 100\n"\
-        "#extension GL_NV_shader_framebuffer_fetch : enable\n"\
-        \
-        "varying vec2 v_texCoord;"\
-        "uniform sampler2D s_texture0;"\
-        "uniform vec4 u_baseColor;"\
-        "void main()"\
-        "{"\
-            "vec4 Cs = texture2D(s_texture0 , v_texCoord) * u_baseColor;"\
-            "float As = Cs.a;"
-    // 共通（下）
-#define FragShaderSrcFooterForTegra \
-            "#version 100\n"\
-            "gl_FragColor = Cs ;"\
-        "}"
-
-    // 共通：マスク（上）
-#define  FragShaderSrcHeaderMaskForTegra \
-        "#version 100\n"\
-        "#extension GL_NV_shader_framebuffer_fetch : enable\n"\
-        \
-        "varying vec2 v_texCoord;"\
-        "varying vec4 v_clipPos;"\
-        "uniform sampler2D s_texture0;"\
-        "uniform sampler2D s_texture1;"\
-        "uniform vec4 u_channelFlag;"\
-        "uniform vec4 u_baseColor;"\
-        "void main()"\
-        "{"\
-            "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"\
-            "float As = col_formask.a;"
-
-    // 共通：マスク（中）
-#define  FragShaderSrcMiderMaskForTegra \
-        "#version 100\n"\
-        "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"\
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
-
-    // 共通：マスク（下）
-#define  FragShaderSrcFooterMaskForTegra \
-        "#version 100\n"\
-        "gl_FragColor = col_formask;"\
-        "}"
-
-#define  FragShaderSrcStrateMask \
-        "#version 100\n"\
-        "col_formask = col_formask * maskVal;"
-
-#define  FragShaderSrcInvertedMask \
-        "#version 100\n"\
-        "col_formask = col_formask * ( 1.0 - maskVal);"\
-
-    // Normal
-#define  FragShaderSrcNormalForTegra \
-        "#version 100\n"\
-        "col_formask.r = col_formask.r * As + gl_LastFragColor.r*(1.0-As);"\
-        "col_formask.g = col_formask.g * As + gl_LastFragColor.g*(1.0-As);"\
-        "col_formask.b = col_formask.b * As + gl_LastFragColor.b*(1.0-As);"\
-        "col_formask.a = col_formask.a      + gl_LastFragColor.a*(1.0-As);"
-
-    // Normal （PremultipliedAlpha）
-#define  FragShaderSrcNormalPremultipliedAlphaForTegra \
-        "#version 100\n"\
-        "col_formask.r = col_formask.r + gl_LastFragColor.r*(1.0-As);"\
-        "col_formask.g = col_formask.g + gl_LastFragColor.g*(1.0-As);"\
-        "col_formask.b = col_formask.b + gl_LastFragColor.b*(1.0-As);"\
-        "col_formask.a = col_formask.a + gl_LastFragColor.a*(1.0-As);"
-
-    // Add
-#define  FragShaderSrcAddForTegra \
-        "#version 100\n"\
-        "col_formask.r = col_formask.r * As + gl_LastFragColor.r;"\
-        "col_formask.g = col_formask.g * As + gl_LastFragColor.g;"\
-        "col_formask.b = col_formask.b * As + gl_LastFragColor.b;"\
-        "col_formask.a = gl_LastFragColor.a;"
-
-    // Add （PremultipliedAlpha）
-#define  FragShaderSrcAddPremultipliedAlphaForTegra \
-        "#version 100\n"\
-        "col_formask.r = col_formask.r + gl_LastFragColor.r;"\
-        "col_formask.g = col_formask.g + gl_LastFragColor.g;"\
-        "col_formask.b = col_formask.b + gl_LastFragColor.b;"\
-        "col_formask.a = gl_LastFragColor.a;"
-
-    // Mult
-#define  FragShaderSrcMultForTegra \
-        "#version 100\n"\
-        "col_formask.r = col_formask.r * gl_LastFragColor.r * As + gl_LastFragColor.r*(1.0-As);"\
-        "col_formask.g = col_formask.g * gl_LastFragColor.g * As + gl_LastFragColor.g*(1.0-As);"\
-        "col_formask.b = col_formask.b * gl_LastFragColor.b * As + gl_LastFragColor.b*(1.0-As);"\
-        "col_formask.a = gl_LastFragColor.a;"
-
-    // Mult （PremultipliedAlpha）
-#define  FragShaderSrcMultPremultipliedAlphaForTegra \
-        "#version 100\n"\
-        "col_formask.r = col_formask.r * gl_LastFragColor.r + gl_LastFragColor.r*(1.0-As);"\
-        "col_formask.g = col_formask.g * gl_LastFragColor.g + gl_LastFragColor.g*(1.0-As);"\
-        "col_formask.b = col_formask.b * gl_LastFragColor.b + gl_LastFragColor.b*(1.0-As);"\
-        "col_formask.a = gl_LastFragColor.a;"
-
-    static const csmChar * FragSrcNormal = FragShaderSrcHeaderForTegra FragShaderSrcNormalForTegra FragShaderSrcFooterForTegra;
-    static const csmChar * FragSrcNormalMask = FragShaderSrcHeaderMaskForTegra FragShaderSrcNormalForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcStrateMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcNormalMaskInverted = FragShaderSrcHeaderMaskForTegra FragShaderSrcNormalForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcInvertedMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcNormalPremultipliedAlpha = FragShaderSrcHeaderForTegra FragShaderSrcNormalPremultipliedAlphaForTegra FragShaderSrcFooterForTegra;
-    static const csmChar * FragSrcNormalMaskPremultipliedAlpha = FragShaderSrcHeaderMaskForTegra FragShaderSrcNormalPremultipliedAlphaForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcStrateMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcNormalMaskInvertedPremultipliedAlpha = FragShaderSrcHeaderMaskForTegra FragShaderSrcNormalPremultipliedAlphaForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcInvertedMask FragShaderSrcFooterMaskForTegra;
-
-    static const csmChar * FragSrcAdd = FragShaderSrcHeaderForTegra FragShaderSrcAddForTegra FragShaderSrcFooterForTegra;
-    static const csmChar * FragSrcAddMask = FragShaderSrcHeaderMaskForTegra FragShaderSrcAddForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcStrateMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcAddMaskInverted = FragShaderSrcHeaderMaskForTegra FragShaderSrcAddForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcInvertedMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcAddPremultipliedAlpha = FragShaderSrcHeaderForTegra FragShaderSrcAddPremultipliedAlphaForTegra FragShaderSrcFooterForTegra;
-    static const csmChar * FragSrcAddMaskPremultipliedAlpha = FragShaderSrcHeaderMaskForTegra FragShaderSrcAddPremultipliedAlphaForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcStrateMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcAddMaskInvertedPremultipliedAlpha = FragShaderSrcHeaderMaskForTegra FragShaderSrcAddPremultipliedAlphaForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcInvertedMask FragShaderSrcFooterMaskForTegra;
-
-    static const csmChar * FragSrcMult = FragShaderSrcHeaderForTegra FragShaderSrcMultForTegra FragShaderSrcFooterForTegra;
-    static const csmChar * FragSrcMultMask = FragShaderSrcHeaderMaskForTegra FragShaderSrcMultForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcStrateMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcMultMaskInverted = FragShaderSrcHeaderMaskForTegra FragShaderSrcMultForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcInvertedMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcMultPremultipliedAlpha = FragShaderSrcHeaderForTegra FragShaderSrcMultPremultipliedAlphaForTegra FragShaderSrcFooterForTegra;
-    static const csmChar * FragSrcMultMaskPremultipliedAlpha = FragShaderSrcHeaderMaskForTegra FragShaderSrcMultPremultipliedAlphaForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcStrateMask FragShaderSrcFooterMaskForTegra;
-    static const csmChar * FragSrcMultMaskInvertedPremultipliedAlpha = FragShaderSrcHeaderMaskForTegra FragShaderSrcMultPremultipliedAlphaForTegra FragShaderSrcMiderMaskForTegra FragShaderSrcInvertedMask FragShaderSrcFooterMaskForTegra;
-
 #endif
 
 CubismShader_OpenGLES2::CubismShader_OpenGLES2()
@@ -1090,28 +1064,14 @@ void CubismShader_OpenGLES2::GenerateShaders()
 #ifdef CSM_TARGET_ANDROID_ES2
     if (s_extMode)
     {
-        _shaderSets[0]->ShaderProgram = LoadShaderProgram(VertShaderSrcSetupMask, FragShaderSrcSetupMaskForTegra);
+        _shaderSets[0]->ShaderProgram = LoadShaderProgram(VertShaderSrcSetupMask, FragShaderSrcSetupMaskTegra);
 
-        _shaderSets[1]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragSrcNormal);
-        _shaderSets[2]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcNormalMask);
-        _shaderSets[3]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcNormalMaskInverted);
-        _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragSrcNormalPremultipliedAlpha);
-        _shaderSets[5]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcNormalMaskPremultipliedAlpha);
-        _shaderSets[6]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcNormalMaskInvertedPremultipliedAlpha);
-
-        _shaderSets[7]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragSrcAdd);
-        _shaderSets[8]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcAddMask);
-        _shaderSets[9]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcAddMaskInverted);
-        _shaderSets[10]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragSrcAddPremultipliedAlpha);
-        _shaderSets[11]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcAddMaskPremultipliedAlpha);
-        _shaderSets[12]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcAddMaskInvertedPremultipliedAlpha);
-
-        _shaderSets[13]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragSrcMult);
-        _shaderSets[14]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcMultMask);
-        _shaderSets[15]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcMultMaskInverted);
-        _shaderSets[16]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragSrcMultMask);
-        _shaderSets[17]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcMultMaskPremultipliedAlpha);
-        _shaderSets[18]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragSrcMultMaskInvertedPremultipliedAlpha);
+        _shaderSets[1]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcTegra);
+        _shaderSets[2]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskTegra);
+        _shaderSets[3]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskInvertedTegra);
+        _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlphaTegra);
+        _shaderSets[5]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskPremultipliedAlphaTegra);
+        _shaderSets[6]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskInvertedPremultipliedAlphaTegra);
     }
     else
     {
@@ -1123,23 +1083,23 @@ void CubismShader_OpenGLES2::GenerateShaders()
         _shaderSets[4]->ShaderProgram = LoadShaderProgram(VertShaderSrc, FragShaderSrcPremultipliedAlpha);
         _shaderSets[5]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskPremultipliedAlpha);
         _shaderSets[6]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskInvertedPremultipliedAlpha);
-
-        // 加算も通常と同じシェーダーを利用する
-        _shaderSets[7]->ShaderProgram = _shaderSets[1]->ShaderProgram;
-        _shaderSets[8]->ShaderProgram = _shaderSets[2]->ShaderProgram;
-        _shaderSets[9]->ShaderProgram = _shaderSets[3]->ShaderProgram;
-        _shaderSets[10]->ShaderProgram = _shaderSets[4]->ShaderProgram;
-        _shaderSets[11]->ShaderProgram = _shaderSets[5]->ShaderProgram;
-        _shaderSets[12]->ShaderProgram = _shaderSets[6]->ShaderProgram;
-
-        // 乗算も通常と同じシェーダーを利用する
-        _shaderSets[13]->ShaderProgram = _shaderSets[1]->ShaderProgram;
-        _shaderSets[14]->ShaderProgram = _shaderSets[2]->ShaderProgram;
-        _shaderSets[15]->ShaderProgram = _shaderSets[3]->ShaderProgram;
-        _shaderSets[16]->ShaderProgram = _shaderSets[4]->ShaderProgram;
-        _shaderSets[17]->ShaderProgram = _shaderSets[5]->ShaderProgram;
-        _shaderSets[18]->ShaderProgram = _shaderSets[6]->ShaderProgram;
     }
+
+    // 加算も通常と同じシェーダーを利用する
+    _shaderSets[7]->ShaderProgram = _shaderSets[1]->ShaderProgram;
+    _shaderSets[8]->ShaderProgram = _shaderSets[2]->ShaderProgram;
+    _shaderSets[9]->ShaderProgram = _shaderSets[3]->ShaderProgram;
+    _shaderSets[10]->ShaderProgram = _shaderSets[4]->ShaderProgram;
+    _shaderSets[11]->ShaderProgram = _shaderSets[5]->ShaderProgram;
+    _shaderSets[12]->ShaderProgram = _shaderSets[6]->ShaderProgram;
+
+    // 乗算も通常と同じシェーダーを利用する
+    _shaderSets[13]->ShaderProgram = _shaderSets[1]->ShaderProgram;
+    _shaderSets[14]->ShaderProgram = _shaderSets[2]->ShaderProgram;
+    _shaderSets[15]->ShaderProgram = _shaderSets[3]->ShaderProgram;
+    _shaderSets[16]->ShaderProgram = _shaderSets[4]->ShaderProgram;
+    _shaderSets[17]->ShaderProgram = _shaderSets[5]->ShaderProgram;
+    _shaderSets[18]->ShaderProgram = _shaderSets[6]->ShaderProgram;
 
 #else
 

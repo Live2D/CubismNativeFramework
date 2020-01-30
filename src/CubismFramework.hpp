@@ -26,7 +26,7 @@
 #include <new>
 #include "ICubismAllocator.hpp"
 
-#ifdef linux
+#ifdef __linux__
 #include <cstdlib>
 #endif
 

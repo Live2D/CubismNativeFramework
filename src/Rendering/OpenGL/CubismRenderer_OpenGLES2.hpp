@@ -26,19 +26,16 @@
 #include <OpenGLES/ES2/glext.h>
 #endif
 
-#ifdef CSM_TARGET_WIN_GL
+#if defined(CSM_TARGET_WIN_GL) || defined(CSM_TARGET_LINUX_GL)
 #include <GL/glew.h>
 #include <GL/gl.h>
 #endif
 
 #ifdef CSM_TARGET_MAC_GL
+#ifndef CSM_TARGET_COCOS
 #include <GL/glew.h>
-#include <OpenGL/gl.h>
 #endif
-
-#ifdef CSM_TARGET_LINUX_GL
-#include <GL/glew.h>
-#include <GL/gl.h>
+#include <OpenGL/gl.h>
 #endif
 
 //------------ LIVE2D NAMESPACE ------------

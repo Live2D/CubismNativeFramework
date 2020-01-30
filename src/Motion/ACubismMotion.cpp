@@ -23,6 +23,7 @@ ACubismMotion::ACubismMotion()
     , _fadeOutSeconds(-1.0f)
     , _weight(1.0f)
     , _offsetSeconds(0.0f) //再生の開始時刻
+    , _onFinishedMotion(NULL)
 { }
 
 ACubismMotion::~ACubismMotion()
@@ -53,7 +54,7 @@ void ACubismMotion::UpdateParameters(CubismModel* model, CubismMotionQueueEntry*
         }
     }
 
-    csmFloat32 fadeWeight = _weight; //現在の値と掛け合わせる割合　
+    csmFloat32 fadeWeight = _weight; //現在の値と掛け合わせる割合
 
     //---- フェードイン・アウトの処理 ----
     //単純なサイン関数でイージングする
@@ -130,6 +131,16 @@ void ACubismMotion::SetOffsetTime(csmFloat32 offsetSeconds)
 const csmVector<const csmString*>& ACubismMotion::GetFiredEvent(csmFloat32 beforeCheckTimeSeconds, csmFloat32 motionTimeSeconds)
 {
     return _firedEventValues;
+}
+
+void ACubismMotion::SetFinishedMotionHandler(FinishedMotionCallback onFinishedMotionHandler)
+{
+    this->_onFinishedMotion = onFinishedMotionHandler;
+}
+
+ACubismMotion::FinishedMotionCallback ACubismMotion::GetFinishedMotionHandler()
+{
+    return this->_onFinishedMotion;
 }
 
 }}}

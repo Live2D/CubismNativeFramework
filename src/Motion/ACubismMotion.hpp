@@ -24,6 +24,8 @@ class CubismModel;
 class ACubismMotion
 {
 public:
+    /// モーション再生終了コールバック関数定義
+    typedef void (*FinishedMotionCallback)(ACubismMotion* self);
     /**
      * @brief インスタンスの破棄
      *
@@ -152,6 +154,31 @@ public:
     */
     virtual const csmVector<const csmString*>& GetFiredEvent(csmFloat32 beforeCheckTimeSeconds,
                                                                    csmFloat32 motionTimeSeconds);
+
+
+    /**
+     * @brief モーション再生終了コールバックの登録
+     *
+     * モーション再生終了コールバックを登録する。
+     * IsFinishedフラグを設定するタイミングで呼び出される。
+     * 以下の状態の際には呼び出されない:
+     *   1. 再生中のモーションが「ループ」として設定されているとき
+     *   2. コールバックにNULLが登録されているとき
+     *
+     * @param[in]   onFinishedMotionHandler     モーション再生終了コールバック関数
+     */
+    void SetFinishedMotionHandler(FinishedMotionCallback onFinishedMotionHandler);
+
+    /**
+     * @brief モーション再生終了コールバックの取得
+     *
+     * モーション再生終了コールバックを取得する。
+     *
+     * @return  登録されているモーション再生終了コールバック関数。NULLのとき、関数は何も登録されていない。
+     */
+    FinishedMotionCallback GetFinishedMotionHandler();
+
+
 private:
     // Prevention of copy Constructor
     ACubismMotion(const ACubismMotion&);
@@ -183,6 +210,9 @@ protected:
     csmFloat32    _offsetSeconds;        ///< モーション再生の開始時刻[秒]
 
     csmVector<const csmString*>    _firedEventValues;
+
+    // モーション再生終了コールバック関数
+    FinishedMotionCallback _onFinishedMotion;
 };
 
 }}}

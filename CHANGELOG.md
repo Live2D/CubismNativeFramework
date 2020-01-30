@@ -2,8 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+
+## [4-r.1] - 2020-01-30
+
+### Added
+
+* Add the callback function called on finished motion playback.
+
+### Changed
+
+* Include header files in CMake.
+* `<GL/glew>` is not included on macOS if `CSM_TARGET_COCOS` is defined.
+
+### Fixed
+
+* Fix rendering not working properly on Android devices with Tegra.
+
+### Deprecated
+
+* Use `target_include_directories` instead of using `FRAMEWORK_XXX_INCLUDE_PATH` variable in application CMake.
+* Use `target_compile_definitions` instead of using `FRAMEWORK_DEFINITIOINS` variable in application CMake.
+* Specify `FRAMEWORK_SOURCE` variable also in OpenGL application CMake.
 
 
 ## [4-beta.2] - 2019-11-14
@@ -41,5 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-beta.2...4-r.1
 [4-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-beta.1...4-beta.2
 [4-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/0f5da4981cc636fe3892bb94d5c60137c9cf1eb1...4-beta.
