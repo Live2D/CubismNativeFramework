@@ -1,9 +1,14 @@
 # Cubism Native Framework
 
-Live2D Cubism 4 Editorで出力したモデルをアプリケーションで利用するためのフレームワークです。
+Live2D Cubism 4 Editor で出力したモデルをアプリケーションで利用するためのフレームワークです。
 
 モデルを表示、操作するための各種機能を提供します。
-モデルをロードするにはCubism Coreライブラリと組み合わせて使用します。
+モデルをロードするには Cubism Core ライブラリと組み合わせて使用します。
+
+
+## ライセンス
+
+本フレームワークを使用する前に、[ライセンス](LICENSE.md)をご確認ください。
 
 
 ## コンポーネント
@@ -14,7 +19,7 @@ Live2D Cubism 4 Editorで出力したモデルをアプリケーションで利�
 
 ### Id
 
-モデルに設定されたパラメータ名・パーツ名・Drawable名を独自の型で管理する機能を提供します。
+モデルに設定されたパラメータ名・パーツ名・Drawable 名を独自の型で管理する機能を提供します。
 
 ### Math
 
@@ -38,16 +43,16 @@ Live2D Cubism 4 Editorで出力したモデルをアプリケーションで利�
 
 ### Type
 
-フレームワーク内で使用するC++型定義を提供します。
+本フレームワーク内で使用する C++ 型定義を提供します。
 
 ### Utils
 
-JSONパーサーやログ出力などのユーティリティ機能を提供します。
+JSON パーサーやログ出力などのユーティリティ機能を提供します。
 
 
 ## Live2D Cubism Core for Native
 
-当リポジトリにはLive2D Cubism Core for Nativeは同梱されていません。
+当リポジトリには Live2D Cubism Core for Native は同梱されていません。
 
 ダウンロードするには[こちら](https://www.live2d.com/download/cubism-sdk/download-native/)のページを参照ください。
 
@@ -66,25 +71,4 @@ JSONパーサーやログ出力などのユーティリティ機能を提供し�
 
 ## 変更履歴
 
-当リポジトリの変更履歴については[CHANGELOG.md](/CHANGELOG.md)を参照ください。
-
-
-## ライセンス
-
-Cubism Native Framework は Live2D Open Software License で提供しています。
-- Live2D Open Software License
-
-  [日本語](https://www.live2d.com/eula/live2d-open-software-license-agreement_jp.html)
-  [English](https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html)
-
-Live2D Cubism Core for Native は Live2D Proprietary Software License で提供しています。
-- Live2D Proprietary Software License
-
-  [日本語](https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_jp.html)
-  [English](https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html)
-
-直近会計年度の売上高が 1000 万円以上の事業者様がご利用になる場合は、SDKリリース(出版許諾)ライセンスに同意していただく必要がございます。
-- [SDKリリース(出版許諾)ライセンス](https://www.live2d.com/ja/products/releaselicense)
-
-*All business* users must obtain a Publication License. "Business" means an entity  with the annual gross revenue more than ten million (10,000,000) JPY for the most recent fiscal year.
-- [SDK Release (Publication) License](https://www.live2d.com/en/products/releaselicense)
+当リポジトリの変更履歴については [CHANGELOG.md](CHANGELOG.md) を参照ください。

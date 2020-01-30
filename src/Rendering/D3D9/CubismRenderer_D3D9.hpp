@@ -213,12 +213,12 @@ class CubismRenderer_D3D9 : public CubismRenderer
 public:
 
     /**
-    　* @brief    レンダラを作成するための各種設定
-    　*           モデルロードの前に一度だけ呼び出す
-    　*
-    　* @param[in]   bufferSetNum -> 1パーツに付き作成するバッファ数
-      * @param[in]   device     -> 使用デバイス
-    　*/
+     * @brief    レンダラを作成するための各種設定
+     *           モデルロードの前に一度だけ呼び出す
+     *
+     * @param[in]   bufferSetNum -> 1パーツに付き作成するバッファ数
+     * @param[in]   device       -> 使用デバイス
+     */
     static void InitializeConstantSettings(csmUint32 bufferSetNum, LPDIRECT3DDEVICE9 device);
 
     /**
