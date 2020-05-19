@@ -70,8 +70,9 @@ public:
     // サンプラーステート D3D11ではオブジェクト単位での管理
     enum Sampler
     {
-        Sampler_Origin, ///< 元々の設定
-        Sampler_Normal, ///< 使用ステート
+        Sampler_Origin,     ///< 元々の設定
+        Sampler_Normal,     ///< 使用ステート
+        Sampler_Anisotropy, ///< 異方性フィルタリング使用
         Sampler_Max,
     };
 
@@ -99,6 +100,7 @@ public:
             _viewportMaxZ = 0.0f;
 
             _sampler = Sampler_Normal;
+            _anisotropy = 0.0;
 
             memset(_valid, 0, sizeof(_valid));
         }
@@ -125,6 +127,7 @@ public:
 
         // State_Sampler
         Sampler _sampler;
+        FLOAT _anisotropy;
 
         csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる
     };
@@ -195,7 +198,7 @@ public:
      * @param   renderContext[in]    描画コンテキスト
      * @param   force[in]       trueの場合は今の設定が何であろうと強制設定
      */
-    void SetSampler(ID3D11DeviceContext* renderContext, Sampler sample, csmBool force = false);
+    void SetSampler(ID3D11DeviceContext* renderContext, Sampler sample, csmFloat32 anisotropy = 0.0, csmBool force = false);
 
 private:
     CubismRenderState_D3D11();

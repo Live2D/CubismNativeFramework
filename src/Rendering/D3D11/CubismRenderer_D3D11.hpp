@@ -276,7 +276,6 @@ public:
      */
     static ID3D11Device* GetCurrentDevice();
 
-
     /**
      * @brief   レンダラの初期化処理を実行する<br>
      *           引数に渡したモデルからレンダラの初期化処理に必要な情報を取り出すことができる

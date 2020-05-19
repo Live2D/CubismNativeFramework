@@ -1101,7 +1101,14 @@ void CubismRenderer_D3D11::ExecuteDraw(ID3D11Device* device, ID3D11DeviceContext
             ID3D11ShaderResourceView* const viewArray[2] = { textureView, NULL };
 
             renderContext->PSSetShaderResources(0, 2, viewArray);
-            GetRenderStateManager()->SetSampler(renderContext, CubismRenderState_D3D11::Sampler_Normal);
+            if (GetAnisotropy() > 0.0)
+            {
+                GetRenderStateManager()->SetSampler(renderContext, CubismRenderState_D3D11::Sampler_Anisotropy, GetAnisotropy());
+            }
+            else
+            {
+                GetRenderStateManager()->SetSampler(renderContext, CubismRenderState_D3D11::Sampler_Normal);
+            }
         }
 
         // トライアングルリスト
@@ -1205,7 +1212,15 @@ void CubismRenderer_D3D11::ExecuteDraw(ID3D11Device* device, ID3D11DeviceContext
                 ID3D11ShaderResourceView* const viewArray[2] ={textureView, _clippingManager->_colorBuffer->GetTextureView() };
                 renderContext->PSSetShaderResources(0, 2, viewArray);
             }
-            GetRenderStateManager()->SetSampler(renderContext, CubismRenderState_D3D11::Sampler_Normal);
+
+            if (GetAnisotropy() > 0.0)
+            {
+                GetRenderStateManager()->SetSampler(renderContext, CubismRenderState_D3D11::Sampler_Anisotropy, GetAnisotropy());
+            }
+            else
+            {
+                GetRenderStateManager()->SetSampler(renderContext, CubismRenderState_D3D11::Sampler_Normal);
+            }
 
             // 定数バッファ
             {

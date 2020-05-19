@@ -83,7 +83,7 @@ void CubismRenderState_D3D9::Restore(LPDIRECT3DDEVICE9 device)
         }
         if (_pushed[i]._valid[State_TextureFilter] && !isSet[State_TextureFilter])
         {
-            SetTextureFilter(device, current.MinFilter, current.MagFilter, current.MipFilter, current.AddressU, current.AddressV, true);
+            SetTextureFilter(device, current.MinFilter, current.MagFilter, current.MipFilter, current.AddressU, current.AddressV, current.Anisotropy, true);
             isSet[State_TextureFilter] = true;
         }
     }
@@ -200,20 +200,26 @@ void CubismRenderState_D3D9::SetCullMode(LPDIRECT3DDEVICE9 device, D3DCULL cullF
     _stored._valid[State_CullMode] = true;
 }
 
-void CubismRenderState_D3D9::SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmBool force)
+void CubismRenderState_D3D9::SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy, csmBool force)
 {
     if (!_stored._valid[State_TextureFilter] || force ||
         _stored.MinFilter != minFilter ||
         _stored.MagFilter != magFilter ||
         _stored.MipFilter != mipFilter ||
         _stored.AddressU != addressU ||
-        _stored.AddressV != addressV)
+        _stored.AddressV != addressV ||
+        _stored.Anisotropy != anisotropy)
     {
+
         device->SetSamplerState(0, D3DSAMP_MINFILTER, minFilter);
         device->SetSamplerState(0, D3DSAMP_MAGFILTER, magFilter);
-        device->SetSamplerState(0, D3DSAMP_MIPFILTER, mipFilter);
         device->SetSamplerState(0, D3DSAMP_ADDRESSU, addressU);
         device->SetSamplerState(0, D3DSAMP_ADDRESSV, addressV);
+        if (anisotropy > 0.0)
+        {
+            device->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+            device->SetSamplerState(0, D3DSAMP_MAXANISOTROPY, anisotropy);
+        }
     }
 
     _stored.MinFilter = minFilter;
@@ -221,6 +227,7 @@ void CubismRenderState_D3D9::SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTU
     _stored.MipFilter = mipFilter;
     _stored.AddressU = addressU;
     _stored.AddressV = addressV;
+    _stored.Anisotropy = anisotropy;
 
     _stored._valid[State_TextureFilter] = true;
 }
@@ -272,8 +279,9 @@ void CubismRenderState_D3D9::SaveCurrentNativeState(LPDIRECT3DDEVICE9 device)
     device->GetSamplerState(0, D3DSAMP_MIPFILTER, &setting[2]);
     device->GetSamplerState(0, D3DSAMP_ADDRESSU, &setting[3]);
     device->GetSamplerState(0, D3DSAMP_ADDRESSV, &setting[4]);
+    device->GetSamplerState(0, D3DSAMP_MAXANISOTROPY, &setting[5]);
     SetTextureFilter(device, static_cast<D3DTEXTUREFILTERTYPE>(setting[0]), static_cast<D3DTEXTUREFILTERTYPE>(setting[1]), static_cast<D3DTEXTUREFILTERTYPE>(setting[2]),
-        static_cast<D3DTEXTUREADDRESS>(setting[3]), static_cast<D3DTEXTUREADDRESS>(setting[4]), true);
+        static_cast<D3DTEXTUREADDRESS>(setting[3]), static_cast<D3DTEXTUREADDRESS>(setting[4]), static_cast<D3DTEXTUREADDRESS>(setting[5]), true);
 
     // 最後に上記の値を保存
     Save();
