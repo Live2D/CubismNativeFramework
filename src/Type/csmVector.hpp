@@ -616,14 +616,19 @@ void csmVector<T>::PrepareCapacity(csmInt32 newSize)
         {
             csmInt32 tmp_capacity = newSize;
             T* tmp = static_cast<T *>(CSM_MALLOC(sizeof(T) * tmp_capacity));
+            csmInt32 tmp_size = _size;
 
             CSM_ASSERT(tmp != NULL);
 
-            memcpy(static_cast<void*>(tmp), static_cast<void*>(_ptr), sizeof(T) * _capacity); // 通常のMALLOCになったためコピーする
-            CSM_FREE(_ptr);
+            for (csmInt32 i = 0; i < _size; i++)
+            {
+                CSM_PLACEMENT_NEW(&tmp[i]) T(_ptr[i]);
+            }
+            Clear();
 
             _ptr = tmp;
             _capacity = newSize;
+            _size = tmp_size;
         }
     }
 }
