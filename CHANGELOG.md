@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 * Fix Physics input reflect flag on evaluate.
+* Fix renderer for OpenGL.
+  * Add delete mask buffer when renderer instance is destroyed.
 
 ## [4-r.1] - 2020-01-30
 
