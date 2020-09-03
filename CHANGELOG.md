@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   * Add delete mask buffer when renderer instance is destroyed.
 * Fix delay in starting fade-out for expressions.
 * Fix memory bug causing segmentation fault when reallocating memory by [@adrianiainlam](https://github.com/adrianiainlam)
+* Fix reference size of model matrix.
 
 
 ## [4-r.1] - 2020-01-30
