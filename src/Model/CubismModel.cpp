@@ -220,6 +220,54 @@ void CubismModel::SetParameterValue(csmInt32 parameterIndex, csmFloat32 value, c
                                       : _parameterValues[parameterIndex] = (_parameterValues[parameterIndex] * (1 - weight)) + (value * weight);
 }
 
+csmFloat32 CubismModel::GetCanvasWidthPixel() const
+{
+    if (_model == NULL)
+    {
+        return 0.0f;
+    }
+
+    Core::csmVector2 tmpSizeInPixels;
+    Core::csmVector2 tmpOriginInPixels;
+    csmFloat32 tmpPixelsPerUnit;
+
+    Core::csmReadCanvasInfo(_model, &tmpSizeInPixels, &tmpOriginInPixels, &tmpPixelsPerUnit);
+
+    return tmpSizeInPixels.X;
+}
+
+csmFloat32 CubismModel::GetCanvasHeightPixel() const
+{
+    if (_model == NULL)
+    {
+        return 0.0f;
+    }
+
+    Core::csmVector2 tmpSizeInPixels;
+    Core::csmVector2 tmpOriginInPixels;
+    csmFloat32 tmpPixelsPerUnit;
+
+    Core::csmReadCanvasInfo(_model, &tmpSizeInPixels, &tmpOriginInPixels, &tmpPixelsPerUnit);
+
+    return tmpSizeInPixels.Y;
+}
+
+csmFloat32 CubismModel::GetPixelsPerUnit() const
+{
+    if (_model == NULL)
+    {
+        return 0.0f;
+    }
+
+    Core::csmVector2 tmpSizeInPixels;
+    Core::csmVector2 tmpOriginInPixels;
+    csmFloat32 tmpPixelsPerUnit;
+
+    Core::csmReadCanvasInfo(_model, &tmpSizeInPixels, &tmpOriginInPixels, &tmpPixelsPerUnit);
+
+    return tmpPixelsPerUnit;
+}
+
 csmFloat32 CubismModel::GetCanvasWidth() const
 {
     if (_model == NULL)

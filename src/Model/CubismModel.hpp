@@ -34,20 +34,47 @@ public:
     void    Update() const;
 
     /**
-     * @brief キャンバスの幅の取得
+     * @brief Pixel単位でキャンバスの幅の取得
      *
      * キャンバスの幅を取得する。
      *
-     * @return キャンバスの幅
+     * @return キャンバスの幅(pixel)
+     */
+    csmFloat32  GetCanvasWidthPixel() const;
+
+    /**
+     * @brief Pixel単位でキャンバスの高さの取得
+     *
+     * キャンバスの高さを取得する。
+     *
+     * @return キャンバスの高さ(pixel)
+     */
+    csmFloat32  GetCanvasHeightPixel() const;
+
+    /**
+     * @brief PixelsPerUnitの取得
+     *
+     * PixelsPerUnitを取得する。
+     *
+     * @return PixelsPerUnit
+     */
+    csmFloat32  GetPixelsPerUnit() const;
+
+    /**
+     * @brief Unit単位でキャンバスの幅の取得
+     *
+     * キャンバスの幅を取得する。
+     *
+     * @return キャンバスの幅(Unit)
      */
     csmFloat32  GetCanvasWidth() const;
 
     /**
-     * @brief キャンバスの高さの取得
+     * @brief Unit単位でキャンバスの高さの取得
      *
      * キャンバスの高さを取得する。
      *
-     * @return キャンバスの高さ
+     * @return キャンバスの高さ(Unit)
      */
     csmFloat32  GetCanvasHeight() const;
 
