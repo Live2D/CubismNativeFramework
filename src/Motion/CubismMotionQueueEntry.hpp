@@ -40,6 +40,15 @@ public:
      * デストラクタ。
      */
     virtual ~CubismMotionQueueEntry();
+    
+    /**
+     * @brief フェードアウト開始の設定
+     * 
+     * フェードアウトの開始を設定する。
+     *
+     * @param[in]   fadeOutSeconds     フェードアウトにかかる時間[秒]
+     */
+    void        SetFadeout(csmFloat32 fadeOutSeconds);
 
     /**
      * @brief フェードアウトの開始
@@ -208,6 +217,24 @@ public:
     */
     void        SetLastCheckEventTime(csmFloat32 checkTime);
 
+    /**
+    * @brief フェードアウトが開始しているかを取得
+    *
+    * モーションがフェードアウトが開始しているかを取得する。
+    *
+    * @return    フェードアウトが開始しているか
+    */
+    csmBool     IsTriggeredFadeOut();
+
+    /**
+    * @brief フェードアウト時間の取得
+    *
+    * モーションのフェードアウト時間を取得する。
+    *
+    * @return    フェードアウト開始[秒]
+    */
+    csmBool     GetFadeOutSeconds();
+
 private:
     csmBool         _autoDelete;                    ///< 自動削除
     ACubismMotion*  _motion;                        ///< モーション
@@ -221,6 +248,8 @@ private:
     csmFloat32      _stateTimeSeconds;              ///<  時刻の状態[秒]
     csmFloat32      _stateWeight;                   ///<  重みの状態
     csmFloat32      _lastEventCheckSeconds;         ///<   最終のMotion側のチェックした時間
+    csmFloat32      _fadeOutSeconds;
+    csmBool         _IsTriggeredFadeOut;
 
     CubismMotionQueueEntryHandle  _motionQueueEntryHandle;        ///< インスタンスごとに一意の値を持つ識別番号
 };

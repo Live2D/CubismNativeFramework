@@ -23,6 +23,8 @@ CubismMotionQueueEntry::CubismMotionQueueEntry()
     , _stateWeight(0.0f)
     , _lastEventCheckSeconds(0.0f)
     , _motionQueueEntryHandle(NULL)
+    , _fadeOutSeconds(0.0f)
+    , _IsTriggeredFadeOut(false)
 {
     this->_motionQueueEntryHandle = this;
 }
@@ -35,9 +37,16 @@ CubismMotionQueueEntry::~CubismMotionQueueEntry()
     }
 }
 
+void CubismMotionQueueEntry::SetFadeout(csmFloat32 fadeOutSeconds)
+{
+    _fadeOutSeconds = fadeOutSeconds;
+    _IsTriggeredFadeOut = true;
+}
+
 void CubismMotionQueueEntry::StartFadeout(csmFloat32 fadeOutSeconds, csmFloat32 userTimeSeconds)
 {
     const csmFloat32 newEndTimeSeconds = userTimeSeconds + fadeOutSeconds;
+    _IsTriggeredFadeOut = true;
 
     if (_endTimeSeconds < 0.0f || newEndTimeSeconds < _endTimeSeconds)
     {
@@ -132,4 +141,14 @@ void CubismMotionQueueEntry::SetLastCheckEventTime(csmFloat32 checkTime)
     this->_lastEventCheckSeconds = checkTime;
 }
 
+csmBool CubismMotionQueueEntry::IsTriggeredFadeOut()
+{
+    return this->_IsTriggeredFadeOut && _endTimeSeconds < 0.0f;
+}
+
+csmBool CubismMotionQueueEntry::GetFadeOutSeconds()
+{
+    return this->_fadeOutSeconds;
+}
+    
 }}}
