@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 * Implement anisotropic filtering for DirectX-based Renderer.
 
+### Fixed
+
+* Fix Physics input reflect flag on evaluate.
 
 ## [4-r.1] - 2020-01-30
 
