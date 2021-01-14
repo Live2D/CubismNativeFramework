@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Implement anisotropic filtering for DirectX-based Renderer.
 * Implement get pixel size and `PixelsPerUnit` of the model
 
+### Changed
+
+* Check pointer before use to avoid crash by [@Xrysnow](https://github.com/Xrysnow)
+
 ### Fixed
 
 * Fix Physics input reflect flag on evaluate.
