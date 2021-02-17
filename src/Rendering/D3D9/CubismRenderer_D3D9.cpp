@@ -1017,6 +1017,15 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
                 D3DBLENDOP_ADD,
                 D3DBLEND_INVSRCALPHA);
 
+            if (GetAnisotropy() > 0.0)
+            {
+                GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
+            }
+            else
+            {
+                GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+            }
+
             // 定数バッファ
             {
                 csmRectF* rect = GetClippingContextBufferForMask()->_layoutBounds;
@@ -1030,7 +1039,6 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
 
                 D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
                 shaderEffect->SetVector("channelFlag", &channel);
-
 
                 // テクスチャセット
                 shaderEffect->SetTexture("mainTexture", texture);
@@ -1094,6 +1102,15 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
                 D3DBLENDOP_ADD,
                 D3DBLEND_ONE);
             break;
+        }
+
+        if (GetAnisotropy() > 0.0)
+        {
+            GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
+        }
+        else
+        {
+            GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
         }
 
         ID3DXEffect* shaderEffect = shaderManager->GetShaderEffect();
@@ -1349,7 +1366,7 @@ void CubismRenderer_D3D9::SetDefaultRenderState()
     // フィルタ
     GetRenderStateManager()->SetTextureFilter(s_useDevice,
         D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP
-        );
+    );
 }
 
 void CubismRenderer_D3D9::StartFrame(LPDIRECT3DDEVICE9 device, csmUint32 viewportWidth, csmUint32 viewportHeight)

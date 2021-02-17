@@ -624,7 +624,7 @@ void CubismPhysics::Evaluate(CubismModel* model, csmFloat32 deltaTimeSeconds)
                 parameterDefaultValue[currentInput[i].SourceParameterIndex],
                 &currentSetting->NormalizationPosition,
                 &currentSetting->NormalizationAngle,
-                currentInput->Reflect,
+                currentInput[i].Reflect,
                 weight
             );
         }

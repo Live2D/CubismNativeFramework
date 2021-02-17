@@ -57,9 +57,9 @@ csmFloat32 CubismEyeBlink::DeterminNextBlinkingTiming() const
     return _userTimeSeconds + (r * (2.0f * _blinkingIntervalSeconds - 1.0f));
 }
 
-void CubismEyeBlink::SetBlinkingInterval(csmFloat32 blinkigInterval)
+void CubismEyeBlink::SetBlinkingInterval(csmFloat32 blinkingInterval)
 {
-    _blinkingIntervalSeconds = blinkigInterval;
+    _blinkingIntervalSeconds = blinkingInterval;
 }
 
 void CubismEyeBlink::SetBlinkingSettings(csmFloat32 closing, csmFloat32 closed, csmFloat32 opening)

@@ -48,7 +48,7 @@ CubismMotionQueueEntryHandle CubismMotionQueueManager::StartMotion(ACubismMotion
             continue;
         }
 
-        motionQueueEntry->StartFadeout(motionQueueEntry->_motion->GetFadeOutTime(), userTimeSeconds); //フェードアウトを開始し終了する
+        motionQueueEntry->SetFadeout(motionQueueEntry->_motion->GetFadeOutTime());
     }
 
     motionQueueEntry = CSM_NEW CubismMotionQueueEntry(); // 終了時に破棄する
@@ -112,6 +112,11 @@ csmBool CubismMotionQueueManager::DoUpdateMotion(CubismModel* model, csmFloat32 
         }
         else
         {
+            if (motionQueueEntry->IsTriggeredFadeOut())
+            {
+                motionQueueEntry->StartFadeout(motionQueueEntry->GetFadeOutSeconds(), userTimeSeconds);
+            }
+
             ++ite;
         }
     }

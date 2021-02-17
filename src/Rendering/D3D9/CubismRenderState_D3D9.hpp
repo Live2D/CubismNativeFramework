@@ -74,6 +74,7 @@ public:
             MipFilter = D3DTEXF_NONE;
             AddressU = D3DTADDRESS_WRAP;
             AddressV = D3DTADDRESS_WRAP;
+            Anisotropy = 0.0;
 
             memset(_valid, 0, sizeof(_valid));
         }
@@ -112,6 +113,7 @@ public:
         D3DTEXTUREFILTERTYPE    MipFilter;
         D3DTEXTUREADDRESS       AddressU;
         D3DTEXTUREADDRESS       AddressV;
+        float                   Anisotropy;
 
         csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる
     };
@@ -199,7 +201,7 @@ public:
      * @param   addressU[in]    アドレッシングモードU
      * @param   addressV[in]    アドレッシングモードV
      */
-    void SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmBool force = false);
+    void SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy = 0.0, csmBool force = false);
 
 private:
     CubismRenderState_D3D9();
