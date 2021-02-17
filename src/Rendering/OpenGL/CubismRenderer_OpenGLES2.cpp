@@ -1746,10 +1746,10 @@ CubismRenderer_OpenGLES2::~CubismRenderer_OpenGLES2()
 {
     CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _clippingManager);
 
-	if (_offscreenFrameBuffer.IsValid())
-	{
-		_offscreenFrameBuffer.DestroyOffscreenFrame();
-	}
+    if (_offscreenFrameBuffer.IsValid())
+    {
+        _offscreenFrameBuffer.DestroyOffscreenFrame();
+    }
 }
 
 void CubismRenderer_OpenGLES2::DoStaticRelease()

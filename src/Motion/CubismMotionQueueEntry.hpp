@@ -40,10 +40,10 @@ public:
      * デストラクタ。
      */
     virtual ~CubismMotionQueueEntry();
-    
+
     /**
      * @brief フェードアウト開始の設定
-     * 
+     *
      * フェードアウトの開始を設定する。
      *
      * @param[in]   fadeOutSeconds     フェードアウトにかかる時間[秒]

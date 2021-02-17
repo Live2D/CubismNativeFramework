@@ -150,5 +150,5 @@ csmBool CubismMotionQueueEntry::GetFadeOutSeconds()
 {
     return this->_fadeOutSeconds;
 }
-    
+
 }}}

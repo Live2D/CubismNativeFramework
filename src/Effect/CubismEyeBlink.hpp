@@ -63,9 +63,9 @@ public:
      *
      * まばたきの間隔を設定する。
      *
-     * @param[in]   blinkigInterval     まばたきの間隔の時間[秒]
+     * @param[in]   blinkingInterval     まばたきの間隔の時間[秒]
      */
-    void            SetBlinkingInterval(csmFloat32 blinkigInterval);
+    void            SetBlinkingInterval(csmFloat32 blinkingInterval);
 
     /**
      * @brief またばきのモーションの詳細設定

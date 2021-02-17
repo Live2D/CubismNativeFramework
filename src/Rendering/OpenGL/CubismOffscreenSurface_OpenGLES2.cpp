@@ -16,6 +16,7 @@ CubismOffscreenFrame_OpenGLES2::CubismOffscreenFrame_OpenGLES2()
     , _oldFBO(0)
     , _bufferWidth(0)
     , _bufferHeight(0)
+    , _isColorBufferInherited(false)
 {
 }
 
@@ -80,10 +81,14 @@ csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBu
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
+
+            _isColorBufferInherited = false;
         }
         else
         {// 指定されたものを使用
             _colorBuffer = colorBuffer;
+
+            _isColorBufferInherited = true;
         }
 
         GLint tmpFramebufferObject;
@@ -112,6 +117,12 @@ csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBu
 
 void CubismOffscreenFrame_OpenGLES2::DestroyOffscreenFrame()
 {
+    if (!_isColorBufferInherited && (_colorBuffer != 0))
+    {
+        glDeleteTextures(1, &_colorBuffer);
+        _colorBuffer = 0;
+    }
+
     if (_renderTexture!=0)
     {
         glDeleteFramebuffers(1, &_renderTexture);
