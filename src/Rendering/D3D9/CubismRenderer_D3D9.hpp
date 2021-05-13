@@ -13,6 +13,7 @@
 #include "CubismFramework.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
+#include "Math/CubismVector2.hpp"
 #include "Type/csmMap.hpp"
 #include "Rendering/D3D9/CubismOffscreenSurface_D3D9.hpp"
 #include "CubismRenderState_D3D9.hpp"
@@ -126,7 +127,7 @@ private:
      *@param  size -> クリッピングマスクバッファのサイズ
      *
      */
-    void SetClippingMaskBufferSize(csmInt32 size);
+    void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
      *@brief  クリッピングマスクバッファのサイズを取得する
@@ -134,7 +135,7 @@ private:
      *@return クリッピングマスクバッファのサイズ
      *
      */
-    csmInt32 GetClippingMaskBufferSize() const;
+    CubismVector2 GetClippingMaskBufferSize() const;
 
     CubismOffscreenFrame_D3D9*  _colorBuffer;   ///< マスク用カラーバッファーのアドレス
     csmInt32    _currentFrameNo;         ///< マスクテクスチャに与えるフレーム番号
@@ -142,7 +143,7 @@ private:
     csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
     csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
     csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
-    csmInt32                                        _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
+    CubismVector2                                   _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
 
     CubismMatrix44  _tmpMatrix;              ///< マスク計算用の行列
     CubismMatrix44  _tmpMatrixForMask;       ///< マスク計算用の行列
@@ -310,7 +311,7 @@ public:
      * @param[in]  size -> クリッピングマスクバッファのサイズ
      *
      */
-    void SetClippingMaskBufferSize(csmInt32 size);
+    void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
      * @brief  クリッピングマスクバッファのサイズを取得する
@@ -318,7 +319,15 @@ public:
      * @return クリッピングマスクバッファのサイズ
      *
      */
-    csmInt32 GetClippingMaskBufferSize() const;
+    CubismVector2 GetClippingMaskBufferSize() const;
+
+    /**
+     * @brief  クリッピングマスクのバッファを取得する
+     *
+     * @return クリッピングマスクのバッファへの参照
+     *
+     */
+    const csmVector<CubismOffscreenFrame_D3D9>& GetMaskBuffer() const;
 
     /**
      * @brief  使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行

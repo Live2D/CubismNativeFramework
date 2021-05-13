@@ -22,6 +22,7 @@ class CubismMath
 {
 public:
     static const csmFloat32 Pi;
+    static const csmFloat32 Epsilon;
 
     /**
      *@brief    第一引数の値を最小値と最大値の範囲に収めた値を返す
@@ -162,6 +163,31 @@ public:
      * @return  ラジアン値から変換した方向ベクトル
      */
     static CubismVector2 RadianToDirection(csmFloat32 totalAngle);
+
+    /**
+    * @brief   三次方程式の三次項の係数が0になったときに補欠的に二次方程式の解をもとめる。
+    *          a * x^2 + b * x + c = 0
+    *
+    * @param   a -> 二次項の係数値
+    * @param   b -> 一次項の係数値
+    * @param   c -> 定数項の値
+    * @return  二次方程式の解
+    */
+    static csmFloat32 QuadraticEquation(csmFloat32 a, csmFloat32 b, csmFloat32 c);
+
+    /**
+    * @brief   カルダノの公式によってベジェのt値に該当する３次方程式の解を求める。
+    *          重解になったときには0.0～1.0の値になる解を返す。
+    *
+    *          a * x^3 + b * x^2 + c * x + d = 0
+    *
+    * @param   a -> 三次項の係数値
+    * @param   b -> 二次項の係数値
+    * @param   c -> 一次項の係数値
+    * @param   d -> 定数項の値
+    * @return  0.0～1.0の間にある解
+    */
+    static csmFloat32 CardanoAlgorithmForBezier(csmFloat32 a, csmFloat32 b, csmFloat32 c, csmFloat32 d);
 
 private:
     /**

@@ -16,6 +16,7 @@ namespace {
 const csmChar* Meta = "Meta";
 const csmChar* Duration = "Duration";
 const csmChar* Loop = "Loop";
+const csmChar* AreBeziersRestricted = "AreBeziersRestricted";
 const csmChar* CurveCount = "CurveCount";
 const csmChar* Fps = "Fps";
 const csmChar* TotalSegmentCount = "TotalSegmentCount";
@@ -51,6 +52,16 @@ csmFloat32 CubismMotionJson::GetMotionDuration() const
 csmBool CubismMotionJson::IsMotionLoop() const
 {
     return _json->GetRoot()[Meta][Loop].ToBoolean();
+}
+
+csmBool CubismMotionJson::GetEvaluationOptionFlag(const csmInt32 flagType) const
+{
+    if (EvaluationOptionFlag_AreBeziersRistricted == flagType)
+    {
+        return _json->GetRoot()[Meta][AreBeziersRestricted].ToBoolean();
+    }
+
+    return false;
 }
 
 csmInt32 CubismMotionJson::GetMotionCurveCount() const
