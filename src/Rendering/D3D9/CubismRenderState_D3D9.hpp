@@ -35,7 +35,8 @@ public:
         State_DepthTarget,  ///< 深度ターゲット
         State_ZEnable,      ///< Z有効無効
         State_CullMode,     ///< カリングモード
-        State_TextureFilter,///< テクスチャフィルター
+        State_TextureFilterStage0, ///< テクスチャフィルター（ステージ0）
+        State_TextureFilterStage1, ///< テクスチャフィルター（ステージ1）
         State_Max,
     };
 
@@ -69,12 +70,19 @@ public:
 
             CullModeFaceMode = D3DCULL_NONE;
 
-            MinFilter = D3DTEXF_NONE;
-            MagFilter = D3DTEXF_NONE;
-            MipFilter = D3DTEXF_NONE;
-            AddressU = D3DTADDRESS_WRAP;
-            AddressV = D3DTADDRESS_WRAP;
-            Anisotropy = 0.0;
+            MinFilter[0] = D3DTEXF_NONE;
+            MagFilter[0] = D3DTEXF_NONE;
+            MipFilter[0] = D3DTEXF_NONE;
+            AddressU[0] = D3DTADDRESS_WRAP;
+            AddressV[0] = D3DTADDRESS_WRAP;
+            Anisotropy[0] = 0.0f;
+
+            MinFilter[1] = D3DTEXF_NONE;
+            MagFilter[1] = D3DTEXF_NONE;
+            MipFilter[1] = D3DTEXF_NONE;
+            AddressU[1] = D3DTADDRESS_WRAP;
+            AddressV[1] = D3DTADDRESS_WRAP;
+            Anisotropy[1] = 0.0f;
 
             memset(_valid, 0, sizeof(_valid));
         }
@@ -107,13 +115,13 @@ public:
         // State_CullMode
         D3DCULL CullModeFaceMode; // 消す面を指定 CWだと時計回りが消える
 
-        // State_TextureFilter サンプラー0番フィルター
-        D3DTEXTUREFILTERTYPE    MinFilter;
-        D3DTEXTUREFILTERTYPE    MagFilter;
-        D3DTEXTUREFILTERTYPE    MipFilter;
-        D3DTEXTUREADDRESS       AddressU;
-        D3DTEXTUREADDRESS       AddressV;
-        float                   Anisotropy;
+        // State_TextureFilter サンプラーフィルター(0番, 1番)
+        D3DTEXTUREFILTERTYPE    MinFilter[2];
+        D3DTEXTUREFILTERTYPE    MagFilter[2];
+        D3DTEXTUREFILTERTYPE    MipFilter[2];
+        D3DTEXTUREADDRESS       AddressU[2];
+        D3DTEXTUREADDRESS       AddressV[2];
+        float                   Anisotropy[2];
 
         csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる
     };
@@ -192,16 +200,17 @@ public:
     void SetCullMode(LPDIRECT3DDEVICE9 device, D3DCULL cullFace, csmBool force = false);
 
     /**
-     * @brief   テクスチャサンプラー0番フィルタセット
+     * @brief   テクスチャサンプラーにフィルタセット
      *
      * @param   device[in]     描画デバイス
+     * @param   stage[in]       サンプラーステージインデックス（サンプラー番号）
      * @param   minFilter[in]   縮小時フィルタ
      * @param   magFilter[in]   拡大時フィルタ
      * @param   mipFilter[in]   ミップフィルタ
      * @param   addressU[in]    アドレッシングモードU
      * @param   addressV[in]    アドレッシングモードV
      */
-    void SetTextureFilter(LPDIRECT3DDEVICE9 device, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy = 0.0, csmBool force = false);
+    void SetTextureFilter(LPDIRECT3DDEVICE9 device, csmInt32 stage, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy = 0.0, csmBool force = false);
 
 private:
     CubismRenderState_D3D9();

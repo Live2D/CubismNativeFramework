@@ -55,7 +55,7 @@ const csmInt32 ColorChannelCount = 4;   ///< 実験時に1チャンネルの場�
 CubismClippingManager_DX9::CubismClippingManager_DX9()
     : _colorBuffer(NULL)
     , _currentFrameNo(0)
-    , _clippingMaskBufferSize(256)
+    , _clippingMaskBufferSize(256, 256)
 {
     CubismRenderer::CubismTextureColor* tmp = NULL;
     tmp = CSM_NEW CubismRenderer::CubismTextureColor();
@@ -197,8 +197,8 @@ void CubismClippingManager_DX9::SetupClippingContext(LPDIRECT3DDEVICE9 device, C
             CubismRenderer_D3D9::GetRenderStateManager()->SetViewport(device,
                 0,
                 0,
-                _clippingMaskBufferSize,
-                _clippingMaskBufferSize,
+                _clippingMaskBufferSize.X,
+                _clippingMaskBufferSize.Y,
                 0.0f, 1.0f);
 
             useTarget.BeginDraw(device);
@@ -217,17 +217,53 @@ void CubismClippingManager_DX9::SetupClippingContext(LPDIRECT3DDEVICE9 device, C
             CubismClippingContext* clipContext = _clippingContextListForMask[clipIndex];
             csmRectF* allClippedDrawRect = clipContext->_allClippedDrawRect; //このマスクを使う、全ての描画オブジェクトの論理座標上の囲み矩形
             csmRectF* layoutBoundsOnTex01 = clipContext->_layoutBounds; //この中にマスクを収める
-
-            // モデル座標上の矩形を、適宜マージンを付けて使う
             const csmFloat32 MARGIN = 0.05f;
-            _tmpBoundsOnModel.SetRect(allClippedDrawRect);
-            _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, allClippedDrawRect->Height * MARGIN);
-            //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
+            csmFloat32 scaleX = 0.0f;
+            csmFloat32 scaleY = 0.0f;
 
-            // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
-            // movePeriod' = movePeriod * scaleX + offX [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
-            const csmFloat32 scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
-            const csmFloat32 scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+
+            if (renderer->IsUsingHighPrecisionMask())
+            {
+                const csmFloat32 ppu = model.GetPixelsPerUnit();
+                const csmFloat32 maskPixelWidth = clipContext->_owner->_clippingMaskBufferSize.X;
+                const csmFloat32 maskPixelHeight = clipContext->_owner->_clippingMaskBufferSize.Y;
+                const csmFloat32 physicalMaskWidth = layoutBoundsOnTex01->Width * maskPixelWidth;
+                const csmFloat32 physicalMaskHeight = layoutBoundsOnTex01->Height * maskPixelHeight;
+
+                _tmpBoundsOnModel.SetRect(allClippedDrawRect);
+
+                if (_tmpBoundsOnModel.Width * ppu > physicalMaskWidth)
+                {
+                    _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, 0.0f);
+                    scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
+                }
+                else
+                {
+                    scaleX = ppu / physicalMaskWidth;
+                }
+
+                if (_tmpBoundsOnModel.Height * ppu > physicalMaskHeight)
+                {
+                    _tmpBoundsOnModel.Expand(0.0f, allClippedDrawRect->Height * MARGIN);
+                    scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+                }
+                else
+                {
+                    scaleY = ppu / physicalMaskHeight;
+                }
+            }
+            else
+            {
+                // モデル座標上の矩形を、適宜マージンを付けて使う
+                _tmpBoundsOnModel.SetRect(allClippedDrawRect);
+                _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, allClippedDrawRect->Height * MARGIN);
+                //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
+                // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
+                // movePeriod' = movePeriod * scaleX + offX [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
+                scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
+                scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+            }
+
 
             // マスク生成時に使う行列を求める
             {
@@ -318,7 +354,7 @@ void CubismClippingManager_DX9::CalcClippedDrawTotalBounds(CubismModel& model, C
 {
     // 被クリッピングマスク（マスクされる描画オブジェクト）の全体の矩形
     csmFloat32 clippedDrawTotalMinX = FLT_MAX, clippedDrawTotalMinY = FLT_MAX;
-    csmFloat32 clippedDrawTotalMaxX = FLT_MIN, clippedDrawTotalMaxY = FLT_MIN;
+    csmFloat32 clippedDrawTotalMaxX = -FLT_MAX, clippedDrawTotalMaxY = -FLT_MAX;
 
     // このマスクが実際に必要か判定する
     // このクリッピングを利用する「描画オブジェクト」がひとつでも使用可能であればマスクを生成する必要がある
@@ -333,7 +369,7 @@ void CubismClippingManager_DX9::CalcClippedDrawTotalBounds(CubismModel& model, C
         const csmFloat32* drawableVertexes = const_cast<csmFloat32*>(model.GetDrawableVertices(drawableIndex));
 
         csmFloat32 minX = FLT_MAX, minY = FLT_MAX;
-        csmFloat32 maxX = FLT_MIN, maxY = FLT_MIN;
+        csmFloat32 maxX = -FLT_MAX, maxY = -FLT_MAX;
 
         csmInt32 loop = drawableVertexCount * Constant::VertexStep;
         for (csmInt32 pi = Constant::VertexOffset; pi < loop; pi += Constant::VertexStep)
@@ -508,12 +544,12 @@ csmVector<CubismClippingContext*>* CubismClippingManager_DX9::GetClippingContext
     return &_clippingContextListForDraw;
 }
 
-void CubismClippingManager_DX9::SetClippingMaskBufferSize(csmInt32 size)
+void CubismClippingManager_DX9::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
-    _clippingMaskBufferSize = size;
+    _clippingMaskBufferSize = CubismVector2(width, height);
 }
 
-csmInt32 CubismClippingManager_DX9::GetClippingMaskBufferSize() const
+CubismVector2 CubismClippingManager_DX9::GetClippingMaskBufferSize() const
 {
     return _clippingMaskBufferSize;
 }
@@ -790,7 +826,8 @@ void CubismRenderer_D3D9::Initialize(CubismModel* model)
 
     if (model->IsUsingMasking())
     {
-        const csmInt32 bufferHeight = _clippingManager->GetClippingMaskBufferSize();
+        const csmInt32 bufferWidth = _clippingManager->GetClippingMaskBufferSize().X;
+        const csmInt32 bufferHeight = _clippingManager->GetClippingMaskBufferSize().Y;
 
         // バックバッファ分確保
         for (csmUint32 i = 0; i < s_bufferSetNum; i++)
@@ -803,7 +840,7 @@ void CubismRenderer_D3D9::Initialize(CubismModel* model)
         {
             _offscreenFrameBuffer[i].CreateOffscreenFrame(
                 s_useDevice,
-                bufferHeight, bufferHeight);
+                bufferWidth, bufferHeight);
         }
     }
 }
@@ -838,12 +875,12 @@ void CubismRenderer_D3D9::DoDrawModel()
     {
         _clippingManager->_colorBuffer = &_offscreenFrameBuffer[_commandBufferCurrent];
         // サイズが違う場合はここで作成しなおし
-        if (_clippingManager->_colorBuffer->GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()) ||
-            _clippingManager->_colorBuffer->GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()))
+        if (_clippingManager->_colorBuffer->GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X) ||
+            _clippingManager->_colorBuffer->GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y))
         {
             _clippingManager->_colorBuffer->DestroyOffscreenFrame();
             _clippingManager->_colorBuffer->CreateOffscreenFrame(s_useDevice,
-                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()));
+                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y));
         }
 
         _clippingManager->SetupClippingContext(s_useDevice, *GetModel(), this, *_clippingManager->_colorBuffer);
@@ -893,8 +930,8 @@ void CubismRenderer_D3D9::DoDrawModel()
                 GetRenderStateManager()->SetViewport(s_useDevice,
                     0,
                     0,
-                    _clippingManager->GetClippingMaskBufferSize(),
-                    _clippingManager->GetClippingMaskBufferSize(),
+                    _clippingManager->GetClippingMaskBufferSize().X,
+                    _clippingManager->GetClippingMaskBufferSize().Y,
                     0.0f, 1.0f);
 
                 _clippingManager->_colorBuffer->BeginDraw(s_useDevice);
@@ -1019,12 +1056,15 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
 
             if (GetAnisotropy() > 0.0)
             {
-                GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
+                GetRenderStateManager()->SetTextureFilter(device, 0, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
             }
             else
             {
-                GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+                GetRenderStateManager()->SetTextureFilter(device, 0, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
             }
+
+            // マスクには線形補間を適用
+            GetRenderStateManager()->SetTextureFilter(device, 1, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
 
             // 定数バッファ
             {
@@ -1106,11 +1146,11 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
 
         if (GetAnisotropy() > 0.0)
         {
-            GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
+            GetRenderStateManager()->SetTextureFilter(device, 0, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
         }
         else
         {
-            GetRenderStateManager()->SetTextureFilter(device, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+            GetRenderStateManager()->SetTextureFilter(device, 0, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
         }
 
         ID3DXEffect* shaderEffect = shaderManager->GetShaderEffect();
@@ -1312,14 +1352,14 @@ const csmMap<csmInt32, LPDIRECT3DTEXTURE9>& CubismRenderer_D3D9::GetBindedTextur
     return _textures;
 }
 
-void CubismRenderer_D3D9::SetClippingMaskBufferSize(csmInt32 size)
+void CubismRenderer_D3D9::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
     //FrameBufferのサイズを変更するためにインスタンスを破棄・再作成する
     CSM_DELETE_SELF(CubismClippingManager_DX9, _clippingManager);
 
     _clippingManager = CSM_NEW CubismClippingManager_DX9();
 
-    _clippingManager->SetClippingMaskBufferSize(size);
+    _clippingManager->SetClippingMaskBufferSize(width, height);
 
     _clippingManager->Initialize(
         *GetModel(),
@@ -1329,9 +1369,14 @@ void CubismRenderer_D3D9::SetClippingMaskBufferSize(csmInt32 size)
     );
 }
 
-csmInt32 CubismRenderer_D3D9::GetClippingMaskBufferSize() const
+CubismVector2 CubismRenderer_D3D9::GetClippingMaskBufferSize() const
 {
     return _clippingManager->GetClippingMaskBufferSize();
+}
+
+const csmVector<CubismOffscreenFrame_D3D9>& CubismRenderer_D3D9::GetMaskBuffer() const
+{
+    return _offscreenFrameBuffer;
 }
 
 void CubismRenderer_D3D9::InitializeConstantSettings(csmUint32 bufferSetNum, LPDIRECT3DDEVICE9 device)
@@ -1365,7 +1410,7 @@ void CubismRenderer_D3D9::SetDefaultRenderState()
 
     // フィルタ
     GetRenderStateManager()->SetTextureFilter(s_useDevice,
-        D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP
+        0, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP
     );
 }
 

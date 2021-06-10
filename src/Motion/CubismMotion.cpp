@@ -26,6 +26,11 @@ const csmChar* TargetNameModel = "Model";
 const csmChar* TargetNameParameter = "Parameter";
 const csmChar* TargetNamePartOpacity = "PartOpacity";
 
+/**
+* Cubism SDK R2 以前のモーションを再現させるなら true 、アニメータのモーションを正しく再現するなら false 。
+*/
+const csmBool UseOldBeziersCurveMotion = false;
+
 CubismMotionPoint LerpPoints(const CubismMotionPoint a, const CubismMotionPoint b, const csmFloat32 t)
 {
     CubismMotionPoint result;
@@ -56,6 +61,108 @@ csmFloat32 BezierEvaluate(const CubismMotionPoint* points, const csmFloat32 time
     {
         t = 0.0f;
     }
+
+    const CubismMotionPoint p01 = LerpPoints(points[0], points[1], t);
+    const CubismMotionPoint p12 = LerpPoints(points[1], points[2], t);
+    const CubismMotionPoint p23 = LerpPoints(points[2], points[3], t);
+
+    const CubismMotionPoint p012 = LerpPoints(p01, p12, t);
+    const CubismMotionPoint p123 = LerpPoints(p12, p23, t);
+
+    return LerpPoints(p012, p123, t).Value;
+}
+
+csmFloat32 BezierEvaluateBinarySearch(const CubismMotionPoint* points, const csmFloat32 time)
+{
+    const csmFloat32 x_error = 0.01f;
+
+    const csmFloat32 x = time;
+    csmFloat32 x1 = points[0].Time;
+    csmFloat32 x2 = points[3].Time;
+    csmFloat32 cx1 = points[1].Time;
+    csmFloat32 cx2 = points[2].Time;
+
+    csmFloat32 ta = 0.0f;
+    csmFloat32 tb = 1.0f;
+    csmFloat32 t = 0.0f;
+    int i = 0;
+
+    for (csmBool var33 = true; i < 20; ++i) {
+        if (x < x1 + x_error) {
+            t = ta;
+            break;
+        }
+
+        if (x2 - x_error < x) {
+            t = tb;
+            break;
+        }
+
+        csmFloat32 centerx = (cx1 + cx2) * 0.5f;
+        cx1 = (x1 + cx1) * 0.5f;
+        cx2 = (x2 + cx2) * 0.5f;
+        csmFloat32 ctrlx12 = (cx1 + centerx) * 0.5f;
+        csmFloat32 ctrlx21 = (cx2 + centerx) * 0.5f;
+        centerx = (ctrlx12 + ctrlx21) * 0.5f;
+        if (x < centerx) {
+            tb = (ta + tb) * 0.5f;
+            if (centerx - x_error < x) {
+                t = tb;
+                break;
+            }
+
+            x2 = centerx;
+            cx2 = ctrlx12;
+        }
+        else {
+            ta = (ta + tb) * 0.5f;
+            if (x < centerx + x_error) {
+                t = ta;
+                break;
+            }
+
+            x1 = centerx;
+            cx1 = ctrlx21;
+        }
+    }
+
+    if (i == 20) {
+        t = (ta + tb) * 0.5f;
+    }
+
+    if (t < 0.0f)
+    {
+        t = 0.0f;
+    }
+    if (t > 1.0f)
+    {
+        t = 1.0f;
+    }
+
+    const CubismMotionPoint p01 = LerpPoints(points[0], points[1], t);
+    const CubismMotionPoint p12 = LerpPoints(points[1], points[2], t);
+    const CubismMotionPoint p23 = LerpPoints(points[2], points[3], t);
+
+    const CubismMotionPoint p012 = LerpPoints(p01, p12, t);
+    const CubismMotionPoint p123 = LerpPoints(p12, p23, t);
+
+    return LerpPoints(p012, p123, t).Value;
+}
+
+csmFloat32 BezierEvaluateCardanoInterpretation(const CubismMotionPoint* points, const csmFloat32 time)
+{
+    const csmFloat32 x = time;
+    csmFloat32 x1 = points[0].Time;
+    csmFloat32 x2 = points[3].Time;
+    csmFloat32 cx1 = points[1].Time;
+    csmFloat32 cx2 = points[2].Time;
+
+    csmFloat32 a = x2 - 3.0f * cx2 + 3.0f * cx1 - x1;
+    csmFloat32 b = 3.0f * cx2 - 6.0f * cx1 + 3.0f * x1;
+    csmFloat32 c = 3.0f * cx1 - 3.0f * x1;
+    csmFloat32 d = x1 - x;
+
+    csmFloat32 t = CubismMath::CardanoAlgorithmForBezier(a, b, c, d);
 
     const CubismMotionPoint p01 = LerpPoints(points[0], points[1], t);
     const CubismMotionPoint p12 = LerpPoints(points[1], points[2], t);
@@ -409,6 +516,8 @@ void CubismMotion::Parse(const csmByte* motionJson, const csmSizeInt size)
     _motionData->Fps = json->GetMotionFps();
     _motionData->EventCount = json->GetEventCount();
 
+    csmBool areBeziersRestructed = json->GetEvaluationOptionFlag( EvaluationOptionFlag_AreBeziersRistricted );
+
     if (json->IsExistMotionFadeInTime())
     {
         _fadeInSeconds = (json->GetMotionFadeInTime() < 0.0f)
@@ -504,7 +613,13 @@ void CubismMotion::Parse(const csmByte* motionJson, const csmSizeInt size)
             }
             case CubismMotionSegmentType_Bezier: {
                 _motionData->Segments[totalSegmentCount].SegmentType = CubismMotionSegmentType_Bezier;
-                _motionData->Segments[totalSegmentCount].Evaluate = BezierEvaluate;
+                if (areBeziersRestructed || UseOldBeziersCurveMotion) {
+                    _motionData->Segments[totalSegmentCount].Evaluate = BezierEvaluate;
+                }
+                else
+                {
+                    _motionData->Segments[totalSegmentCount].Evaluate = BezierEvaluateCardanoInterpretation;
+                }
 
                 _motionData->Points[totalPointCount].Time = json->GetMotionCurveSegment(curveCount, (segmentPosition + 1));
                 _motionData->Points[totalPointCount].Value = json->GetMotionCurveSegment(curveCount, (segmentPosition + 2));

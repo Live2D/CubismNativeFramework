@@ -6,9 +6,9 @@ target_sources(${LIB_NAME}
 
 if(NOT DEFINED FRAMEWORK_SOURCE)
   message(WARNING
-    "[${LIB_NAME}] Set 'FRAMEWORK_SOURCE' variable to 'OpenGL' when using OpenGL rendering."
+    "[${LIB_NAME}] Set 'FRAMEWORK_SOURCE' variable to 'Cocos2dx' when using Cocos2d-x rendering."
   )
-  set(FRAMEWORK_SOURCE OpenGL)
+  set(FRAMEWORK_SOURCE Cocos2d)
 endif()
 
 # Add specified rendering directory.

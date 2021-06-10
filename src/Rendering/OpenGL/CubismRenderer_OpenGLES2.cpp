@@ -28,7 +28,7 @@ const csmInt32 ColorChannelCount = 4;   ///< 実験時に1チャンネルの場�
 
 CubismClippingManager_OpenGLES2::CubismClippingManager_OpenGLES2() :
                                                                    _currentFrameNo(0)
-                                                                   , _clippingMaskBufferSize(256)
+                                                                   , _clippingMaskBufferSize(256, 256)
 {
     CubismRenderer::CubismTextureColor* tmp;
     tmp = CSM_NEW CubismRenderer::CubismTextureColor();
@@ -165,7 +165,7 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
         if (!renderer->IsUsingHighPrecisionMask())
         {
             // 生成したFrameBufferと同じサイズでビューポートを設定
-            glViewport(0, 0, _clippingMaskBufferSize, _clippingMaskBufferSize);
+            glViewport(0, 0, _clippingMaskBufferSize.X, _clippingMaskBufferSize.Y);
 
             // モデル描画時にDrawMeshNowに渡される変換（モデルtoワールド座標変換）
             CubismMatrix44 modelToWorldF = renderer->GetMvpMatrix();
@@ -191,17 +191,54 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
             CubismClippingContext* clipContext = _clippingContextListForMask[clipIndex];
             csmRectF* allClippedDrawRect = clipContext->_allClippedDrawRect; //このマスクを使う、全ての描画オブジェクトの論理座標上の囲み矩形
             csmRectF* layoutBoundsOnTex01 = clipContext->_layoutBounds; //この中にマスクを収める
-
-            // モデル座標上の矩形を、適宜マージンを付けて使う
             const csmFloat32 MARGIN = 0.05f;
-            _tmpBoundsOnModel.SetRect(allClippedDrawRect);
-            _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, allClippedDrawRect->Height * MARGIN);
-            //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
+            csmFloat32 scaleX = 0.0f;
+            csmFloat32 scaleY = 0.0f;
 
-            // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
-            // movePeriod' = movePeriod * scaleX + offX     [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
-            const csmFloat32 scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
-            const csmFloat32 scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+
+            if (renderer->IsUsingHighPrecisionMask())
+            {
+                const csmFloat32 ppu = model.GetPixelsPerUnit();
+                const csmFloat32 maskPixelWidth = clipContext->_owner->_clippingMaskBufferSize.X;
+                const csmFloat32 maskPixelHeight = clipContext->_owner->_clippingMaskBufferSize.Y;
+                const csmFloat32 physicalMaskWidth = layoutBoundsOnTex01->Width * maskPixelWidth;
+                const csmFloat32 physicalMaskHeight = layoutBoundsOnTex01->Height * maskPixelHeight;
+
+
+                _tmpBoundsOnModel.SetRect(allClippedDrawRect);
+
+                if (_tmpBoundsOnModel.Width * ppu > physicalMaskWidth)
+                {
+                    _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, 0.0f);
+                    scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
+                }
+                else
+                {
+                    scaleX = ppu / physicalMaskWidth;
+                }
+
+                if (_tmpBoundsOnModel.Height * ppu > physicalMaskHeight)
+                {
+                    _tmpBoundsOnModel.Expand(0.0f, allClippedDrawRect->Height * MARGIN);
+                    scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+                }
+                else
+                {
+                    scaleY = ppu / physicalMaskHeight;
+                }
+            }
+            else
+            {
+                // モデル座標上の矩形を、適宜マージンを付けて使う
+                _tmpBoundsOnModel.SetRect(allClippedDrawRect);
+                _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, allClippedDrawRect->Height * MARGIN);
+                //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
+                // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
+                // movePeriod' = movePeriod * scaleX + offX     [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
+                scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
+                scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+            }
+
 
             // マスク生成時に使う行列を求める
             {
@@ -288,7 +325,7 @@ void CubismClippingManager_OpenGLES2::CalcClippedDrawTotalBounds(CubismModel& mo
 {
     // 被クリッピングマスク（マスクされる描画オブジェクト）の全体の矩形
     csmFloat32 clippedDrawTotalMinX = FLT_MAX, clippedDrawTotalMinY = FLT_MAX;
-    csmFloat32 clippedDrawTotalMaxX = FLT_MIN, clippedDrawTotalMaxY = FLT_MIN;
+    csmFloat32 clippedDrawTotalMaxX = -FLT_MAX, clippedDrawTotalMaxY = -FLT_MAX;
 
     // このマスクが実際に必要か判定する
     // このクリッピングを利用する「描画オブジェクト」がひとつでも使用可能であればマスクを生成する必要がある
@@ -303,7 +340,7 @@ void CubismClippingManager_OpenGLES2::CalcClippedDrawTotalBounds(CubismModel& mo
         csmFloat32* drawableVertexes = const_cast<csmFloat32*>(model.GetDrawableVertices(drawableIndex));
 
         csmFloat32 minX = FLT_MAX, minY = FLT_MAX;
-        csmFloat32 maxX = FLT_MIN, maxY = FLT_MIN;
+        csmFloat32 maxX = -FLT_MAX, maxY = -FLT_MAX;
 
         csmInt32 loop = drawableVertexCount * Constant::VertexStep;
         for (csmInt32 pi = Constant::VertexOffset; pi < loop; pi += Constant::VertexStep)
@@ -473,12 +510,12 @@ csmVector<CubismClippingContext*>* CubismClippingManager_OpenGLES2::GetClippingC
     return &_clippingContextListForDraw;
 }
 
-void CubismClippingManager_OpenGLES2::SetClippingMaskBufferSize(csmInt32 size)
+void CubismClippingManager_OpenGLES2::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
-    _clippingMaskBufferSize = size;
+    _clippingMaskBufferSize = CubismVector2(width, height);
 }
 
-csmInt32 CubismClippingManager_OpenGLES2::GetClippingMaskBufferSize() const
+CubismVector2 CubismClippingManager_OpenGLES2::GetClippingMaskBufferSize() const
 {
     return _clippingMaskBufferSize;
 }
@@ -1773,7 +1810,7 @@ void CubismRenderer_OpenGLES2::Initialize(CubismModel* model)
             model->GetDrawableMaskCounts()
         );
 
-        _offscreenFrameBuffer.CreateOffscreenFrame(_clippingManager->GetClippingMaskBufferSize(), _clippingManager->GetClippingMaskBufferSize());
+        _offscreenFrameBuffer.CreateOffscreenFrame(_clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
     }
 
     _sortedDrawableIndexList.Resize(model->GetDrawableCount(), 0);
@@ -1822,12 +1859,12 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
         PreDraw();
 
         // サイズが違う場合はここで作成しなおし
-        if (_offscreenFrameBuffer.GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()) ||
-            _offscreenFrameBuffer.GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()))
+        if (_offscreenFrameBuffer.GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X) ||
+            _offscreenFrameBuffer.GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y))
         {
             _offscreenFrameBuffer.DestroyOffscreenFrame();
             _offscreenFrameBuffer.CreateOffscreenFrame(
-                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()));
+                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y));
         }
 
         _clippingManager->SetupClippingContext(*GetModel(), this, _rendererProfile._lastFBO, _rendererProfile._lastViewport);
@@ -1867,7 +1904,7 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
             if(clipContext->_isUsing) // 書くことになっていた
             {
                 // 生成したFrameBufferと同じサイズでビューポートを設定
-                glViewport(0, 0, _clippingManager->GetClippingMaskBufferSize(), _clippingManager->GetClippingMaskBufferSize());
+                glViewport(0, 0, _clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
 
                 PreDraw(); // バッファをクリアする
 
@@ -2028,14 +2065,14 @@ const csmMap<csmInt32, GLuint>& CubismRenderer_OpenGLES2::GetBindedTextures() co
     return _textures;
 }
 
-void CubismRenderer_OpenGLES2::SetClippingMaskBufferSize(csmInt32 size)
+void CubismRenderer_OpenGLES2::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
     //FrameBufferのサイズを変更するためにインスタンスを破棄・再作成する
     CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _clippingManager);
 
     _clippingManager = CSM_NEW CubismClippingManager_OpenGLES2();
 
-    _clippingManager->SetClippingMaskBufferSize(size);
+    _clippingManager->SetClippingMaskBufferSize(width, height);
 
     _clippingManager->Initialize(
         *GetModel(),
@@ -2045,9 +2082,14 @@ void CubismRenderer_OpenGLES2::SetClippingMaskBufferSize(csmInt32 size)
     );
 }
 
-csmInt32 CubismRenderer_OpenGLES2::GetClippingMaskBufferSize() const
+CubismVector2 CubismRenderer_OpenGLES2::GetClippingMaskBufferSize() const
 {
     return _clippingManager->GetClippingMaskBufferSize();
+}
+
+const CubismOffscreenFrame_OpenGLES2* CubismRenderer_OpenGLES2::GetMaskBuffer() const
+{
+    return &_offscreenFrameBuffer;
 }
 
 void CubismRenderer_OpenGLES2::SetClippingContextBufferForMask(CubismClippingContext* clip)
