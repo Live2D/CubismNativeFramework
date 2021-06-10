@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.3] - 2021-06-10
+
+## [4-r.3-beta.1] - 2021-05-13
+
+### Added
+
+* Add a Renderer for Cocos2d-x v4.0.
+* Implement a function to get the correct value when the time axis of the Bezier handle cannot be linear.
+* Add an argument to the function `SetClippingMaskBufferSize` to set the height and width of the clipping mask buffer.
+
+### Changed
+
+* Improve the quality of Clipping Mask on high precision masking.
+
+
 ## [4-r.2] - 2021-02-17
 
 ### Added
@@ -85,6 +100,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.3]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.3-beta.1...4-r.3
+[4-r.3-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.2...4-r.3-beta.1
 [4-r.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.1...4-r.2
 [4-r.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-beta.2...4-r.1
 [4-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-beta.1...4-beta.2
