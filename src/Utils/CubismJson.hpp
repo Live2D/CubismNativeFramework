@@ -90,7 +90,13 @@ public:
      * @brief   要素をコンテナで返す(csmVector<Value*>)
      *
      */
-    virtual csmVector<Value*>* GetVector(csmVector<Value*>* defaultValue = NULL) { return defaultValue; }
+    virtual csmVector<Value*>* GetVector(csmVector<Value*>* defaultValue = NULL) {
+        if (!defaultValue)
+        {
+            defaultValue = new csmVector<Value*>;
+        }
+        return defaultValue;
+    }
 
     /**
      * @brief   要素をマップで返す(csmMap<csmString, Value*>)
@@ -203,7 +209,10 @@ public:
     /**
      *@brief Valueにエラー値をセットする
      */
-    virtual Value* SetErrorNotForClientCall(const csmChar* errorStr) { return ErrorValue; }
+    virtual Value* SetErrorNotForClientCall(const csmChar* errorStr) {
+        this->_stringBuffer = errorStr;
+        return NullValue;
+    }
 
 protected:
     csmString _stringBuffer;        ///< 文字列バッファ

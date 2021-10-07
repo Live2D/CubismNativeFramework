@@ -11,6 +11,7 @@
 #include "CubismFramework.hpp"
 #include "CubismOffscreenSurface_Cocos2dx.hpp"
 #include "CubismCommandBuffer_Cocos2dx.hpp"
+#include "Math/CubismVector2.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
 #include "Type/csmMap.hpp"
@@ -137,7 +138,7 @@ private:
      *@param  size -> クリッピングマスクバッファのサイズ
      *
      */
-    void SetClippingMaskBufferSize(csmInt32 size);
+    void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
      *@brief  クリッピングマスクバッファのサイズを取得する
@@ -145,14 +146,14 @@ private:
      *@return クリッピングマスクバッファのサイズ
      *
      */
-    csmInt32 GetClippingMaskBufferSize() const;
+    CubismVector2 GetClippingMaskBufferSize() const;
 
     csmInt32    _currentFrameNo;         ///< マスクテクスチャに与えるフレーム番号
 
     csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
     csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
     csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
-    csmInt32                                        _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
+    CubismVector2                                   _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
 
     CubismMatrix44  _tmpMatrix;              ///< マスク計算用の行列
     CubismMatrix44  _tmpMatrixForMask;       ///< マスク計算用の行列
@@ -404,10 +405,11 @@ public:
      * @brief  クリッピングマスクバッファのサイズを設定する<br>
      *         マスク用のFrameBufferを破棄・再作成するため処理コストは高い。
      *
-     * @param[in]  size -> クリッピングマスクバッファのサイズ
+     * @param[in]  width -> クリッピングマスクバッファの横サイズ
+     * @param[in]  height -> クリッピングマスクバッファの縦サイズ
      *
      */
-    void SetClippingMaskBufferSize(csmInt32 size);
+    void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
      * @brief  クリッピングマスクバッファのサイズを取得する
@@ -415,13 +417,14 @@ public:
      * @return クリッピングマスクバッファのサイズ
      *
      */
-    csmInt32 GetClippingMaskBufferSize() const;
+    CubismVector2 GetClippingMaskBufferSize() const;
 
 
-    CubismCommandBuffer_Cocos2dx* GetCommandBuffer()
-    {
-        return &_commandBuffer;
-    }
+    static CubismCommandBuffer_Cocos2dx* GetCommandBuffer();
+
+    static void StartFrame(CubismCommandBuffer_Cocos2dx* commandBuffer);
+
+    static void EndFrame(CubismCommandBuffer_Cocos2dx* commandBuffer);
 
 protected:
     /**
@@ -547,7 +550,6 @@ private:
     CubismClippingContext*              _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
 
     CubismOffscreenFrame_Cocos2dx      _offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ
-    CubismCommandBuffer_Cocos2dx       _commandBuffer;
     csmVector<CubismCommandBuffer_Cocos2dx::DrawCommandBuffer*>  _drawableDrawCommandBuffer;
 };
 

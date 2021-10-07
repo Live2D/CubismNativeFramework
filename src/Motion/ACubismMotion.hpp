@@ -8,6 +8,7 @@
 #pragma once
 
 #include "CubismFramework.hpp"
+#include "Id/CubismId.hpp"
 #include "Type/csmVector.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
@@ -178,6 +179,38 @@ public:
      */
     FinishedMotionCallback GetFinishedMotionHandler();
 
+    /**
+    * @brief        透明度のカーブが存在するかどうかを確認する
+    *
+    * @retval       true  -> キーが存在する
+    * @retval       false -> キーが存在しない
+    */
+    virtual csmBool IsExistOpacity() const;
+
+    /**
+    * @brief 透明度のカーブのインデックスを返す
+    *
+    *
+    * @return  success：透明度のカーブのインデックス
+    */
+    virtual csmInt32 GetOpacityIndex() const;
+
+    /**
+    * @brief 透明度のIdを返す
+    *
+    *
+    * @return  success：透明度のId
+    */
+    virtual CubismIdHandle GetOpacityId(csmInt32 index);
+
+    /**
+    * @brief 指定時間の透明度の値を返す
+    *
+    * @param[in]   motionTimeSeconds        現在の再生時間[秒]
+    *
+    * @return  success：モーションの当該時間におけるOpacityの値
+    */
+    virtual csmFloat32 GetOpacityValue(csmFloat32 motionTimeSeconds) const;
 
 private:
     // Prevention of copy Constructor

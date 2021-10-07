@@ -8,6 +8,7 @@
 #include "CubismMotionQueueManager.hpp"
 #include "CubismMotionQueueEntry.hpp"
 #include "CubismFramework.hpp"
+#include "CubismMotion.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
@@ -60,7 +61,7 @@ CubismMotionQueueEntryHandle CubismMotionQueueManager::StartMotion(ACubismMotion
     return motionQueueEntry->_motionQueueEntryHandle;
 }
 
-csmBool CubismMotionQueueManager::DoUpdateMotion(CubismModel* model, csmFloat32 userTimeSeconds)
+csmBool CubismMotionQueueManager::DoUpdateMotion(CubismModel* model, csmFloat32 userTimeSeconds, csmFloat32* opacity)
 {
     csmBool updated = false;
 
@@ -90,6 +91,9 @@ csmBool CubismMotionQueueManager::DoUpdateMotion(CubismModel* model, csmFloat32 
         // ------ 値を反映する ------
         motion->UpdateParameters(model, motionQueueEntry, userTimeSeconds);
         updated = true;
+
+        // ------ 不透明度の値が存在すれば反映する ------
+        opacity = new csmFloat32(motion->GetOpacityValue(userTimeSeconds - motionQueueEntry->GetStartTime()));
 
         // ------ ユーザトリガーイベントを検査する ----
         const csmVector<const csmString*>& firedList = motion->GetFiredEvent(

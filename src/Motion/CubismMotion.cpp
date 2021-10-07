@@ -26,6 +26,9 @@ const csmChar* TargetNameModel = "Model";
 const csmChar* TargetNameParameter = "Parameter";
 const csmChar* TargetNamePartOpacity = "PartOpacity";
 
+// Id
+const csmChar* IdNameOpacity = "Opacity";
+
 /**
 * Cubism SDK R2 以前のモーションを再現させるなら true 、アニメータのモーションを正しく再現するなら false 。
 */
@@ -563,6 +566,10 @@ void CubismMotion::Parse(const csmByte* motionJson, const csmSizeInt size)
         {
             _motionData->Curves[curveCount].Type = CubismMotionCurveTarget_PartOpacity;
         }
+        else
+        {
+            CubismLogWarning("Warning : Unable to get segment type from Curve! The number of \"CurveCount\" may be incorrect!");
+        }
 
         _motionData->Curves[curveCount].Id = json->GetMotionCurveId(curveCount);
 
@@ -783,6 +790,152 @@ const csmVector<const csmString*>& CubismMotion::GetFiredEvent(csmFloat32 before
     }
 
     return _firedEventValues;
+}
+
+csmBool CubismMotion::IsExistOpacity() const
+{
+    for (csmInt32 i = 0; i < _motionData->CurveCount; i++)
+    {
+        CubismMotionCurve curve = _motionData->Curves[i];
+
+        if (curve.Type != CubismMotionCurveTarget_Model)
+        {
+            continue;
+        }
+
+        if (strcmp(curve.Id->GetString().GetRawString(), IdNameOpacity) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+csmInt32 CubismMotion::GetOpacityIndex() const
+{
+    if (IsExistOpacity())
+    {
+        for (csmInt32 i = 0; i < _motionData->CurveCount; i++)
+        {
+            CubismMotionCurve curve = _motionData->Curves[i];
+
+            if (curve.Type != CubismMotionCurveTarget_Model)
+            {
+                continue;
+            }
+
+            if (strcmp(curve.Id->GetString().GetRawString(), IdNameOpacity) == 0)
+            {
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
+
+CubismIdHandle CubismMotion::GetOpacityId(csmInt32 index)
+{
+    if (index != -1)
+    {
+        CubismMotionCurve curve = _motionData->Curves[index];
+
+        if (curve.Type == CubismMotionCurveTarget_Model)
+        {
+            if (strcmp(curve.Id->GetString().GetRawString(), IdNameOpacity) == 0)
+            {
+                return CubismFramework::GetIdManager()->GetId(curve.Id->GetString().GetRawString());
+            }
+        }
+    }
+
+    return NULL;
+}
+
+csmFloat32 CubismMotion::GetOpacityValue(csmFloat32 motionTimeSeconds) const
+{
+    if (motionTimeSeconds >= 0.0f)
+    {
+        csmInt32 index = GetOpacityIndex();
+
+        if (index != -1)
+        {
+            csmInt32 baseSegmentIndex = _motionData->Curves[index].BaseSegmentIndex;
+            csmInt32 basePointIndex = _motionData->Segments[baseSegmentIndex].BasePointIndex;
+
+            csmFloat32 fps = 1.0f / _motionData->Fps;
+
+            csmFloat32 pointTime = -1.0f;
+            csmInt32 segmentPosition = 0;
+            CubismMotionSegmentType segmentType = static_cast<CubismMotionSegmentType>(_motionData->Segments[index + segmentPosition].SegmentType);
+
+            for (segmentPosition = 0; segmentPosition < _motionData->Curves[index].SegmentCount; segmentPosition++)
+            {
+                if (segmentPosition == 0)
+                {
+                    if (motionTimeSeconds == 0.0f)
+                    {
+                        return LinearEvaluate(&_motionData->Points[basePointIndex], motionTimeSeconds);
+                    }
+
+                    segmentPosition += 2;
+                }
+
+                segmentType = static_cast<CubismMotionSegmentType>(_motionData->Segments[index + segmentPosition].SegmentType);
+                basePointIndex = _motionData->Segments[index + segmentPosition].BasePointIndex;
+
+                pointTime = _motionData->Points[basePointIndex].Time;
+
+                switch (segmentType)
+                {
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_Linear:
+                        segmentPosition += 3;
+                        break;
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_Bezier:
+                        basePointIndex += 3;
+                        segmentPosition += 7;
+                        break;
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_Stepped:
+                        segmentPosition += 3;
+                        break;
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_InverseStepped:
+                        segmentPosition += 3;
+                        break;
+                    default:
+                        CSM_ASSERT(0);
+                        break;
+                }
+
+
+                if (pointTime + fps < motionTimeSeconds)
+                {
+                    continue;
+                }
+
+                switch (segmentType)
+                {
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_Linear:
+                        return LinearEvaluate(&_motionData->Points[basePointIndex], motionTimeSeconds);
+
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_Bezier:
+                        return BezierEvaluateCardanoInterpretation(&_motionData->Points[basePointIndex - 3], motionTimeSeconds);
+
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_Stepped:
+                        return SteppedEvaluate(&_motionData->Points[basePointIndex], motionTimeSeconds);
+
+                    case Live2D::Cubism::Framework::CubismMotionSegmentType_InverseStepped:
+                        return InverseSteppedEvaluate(&_motionData->Points[basePointIndex], motionTimeSeconds);
+
+                    default:
+                        CSM_ASSERT(0);
+                        break;
+                }
+            }
+        }
+    }
+
+    return 1.0f;
 }
 
 }}}
