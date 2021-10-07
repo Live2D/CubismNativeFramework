@@ -29,7 +29,7 @@ const csmInt32 ColorChannelCount = 4;   ///< 実験時に1チャンネルの場�
 
 CubismClippingManager_Cocos2dx::CubismClippingManager_Cocos2dx() :
                                                                    _currentFrameNo(0)
-                                                                   , _clippingMaskBufferSize(256)
+                                                                   , _clippingMaskBufferSize(256, 256)
 {
     CubismRenderer::CubismTextureColor* tmp;
     tmp = CSM_NEW CubismRenderer::CubismTextureColor();
@@ -193,17 +193,52 @@ void CubismClippingManager_Cocos2dx::SetupClippingContext(CubismModel& model, Cu
             CubismClippingContext* clipContext = _clippingContextListForMask[clipIndex];
             csmRectF* allClippedDrawRect = clipContext->_allClippedDrawRect; //このマスクを使う、全ての描画オブジェクトの論理座標上の囲み矩形
             csmRectF* layoutBoundsOnTex01 = clipContext->_layoutBounds; //この中にマスクを収める
-
-            // モデル座標上の矩形を、適宜マージンを付けて使う
             const csmFloat32 MARGIN = 0.05f;
-            _tmpBoundsOnModel.SetRect(allClippedDrawRect);
-            _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, allClippedDrawRect->Height * MARGIN);
-            //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
+            csmFloat32 scaleX = 0.0f;
+            csmFloat32 scaleY = 0.0f;
 
-            // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
-            // movePeriod' = movePeriod * scaleX + offX     [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
-            const csmFloat32 scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
-            const csmFloat32 scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+            if (renderer->IsUsingHighPrecisionMask())
+            {
+                const csmFloat32 ppu = model.GetPixelsPerUnit();
+                const csmFloat32 maskPixelWidth = clipContext->_owner->_clippingMaskBufferSize.X;
+                const csmFloat32 maskPixelHeight = clipContext->_owner->_clippingMaskBufferSize.Y;
+                const csmFloat32 physicalMaskWidth = layoutBoundsOnTex01->Width * maskPixelWidth;
+                const csmFloat32 physicalMaskHeight = layoutBoundsOnTex01->Height * maskPixelHeight;
+
+
+                _tmpBoundsOnModel.SetRect(allClippedDrawRect);
+
+                if (_tmpBoundsOnModel.Width * ppu > physicalMaskWidth)
+                {
+                    _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, 0.0f);
+                    scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
+                }
+                else
+                {
+                    scaleX = ppu / physicalMaskWidth;
+                }
+
+                if (_tmpBoundsOnModel.Height * ppu > physicalMaskHeight)
+                {
+                    _tmpBoundsOnModel.Expand(0.0f, allClippedDrawRect->Height * MARGIN);
+                    scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+                }
+                else
+                {
+                    scaleY = ppu / physicalMaskHeight;
+                }
+            }
+            else
+            {
+                // モデル座標上の矩形を、適宜マージンを付けて使う
+                _tmpBoundsOnModel.SetRect(allClippedDrawRect);
+                _tmpBoundsOnModel.Expand(allClippedDrawRect->Width * MARGIN, allClippedDrawRect->Height * MARGIN);
+                //########## 本来は割り当てられた領域の全体を使わず必要最低限のサイズがよい
+                // シェーダ用の計算式を求める。回転を考慮しない場合は以下のとおり
+                // movePeriod' = movePeriod * scaleX + offX     [[ movePeriod' = (movePeriod - tmpBoundsOnModel.movePeriod)*scale + layoutBoundsOnTex01.movePeriod ]]
+                scaleX = layoutBoundsOnTex01->Width / _tmpBoundsOnModel.Width;
+                scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
+            }
 
             // マスク生成時に使う行列を求める
             {
@@ -258,38 +293,33 @@ void CubismClippingManager_Cocos2dx::SetupClippingContext(CubismModel& model, Cu
                         continue;
                     }
 
+                    // Update Vertex / Index buffer.
                     {
-                        // Update Vertex / Index buffer.
+                        csmFloat32* vertices = const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex));
+                        Core::csmVector2* uvs = const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex));
+                        csmUint16* vertexIndices = const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex));
+                        const csmUint32 vertexCount = model.GetDrawableVertexCount(clipDrawIndex);
+                        const csmUint32 vertexIndexCount = model.GetDrawableVertexIndexCount(clipDrawIndex);
+
+                        drawCommandBufferData->UpdateVertexBuffer(vertices, uvs, vertexCount);
+                        drawCommandBufferData->CommitVertexBuffer();
+                        if (vertexIndexCount > 0)
                         {
-                            csmFloat32* vertices = const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex));
-                            Core::csmVector2* uvs = const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex));
-                            csmUint16* vertexIndices = const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex));
-                            const csmUint32 vertexCount = model.GetDrawableVertexCount(clipDrawIndex);
-                            const csmUint32 vertexIndexCount = model.GetDrawableVertexIndexCount(clipDrawIndex);
-
-                            drawCommandBufferData->UpdateVertexBuffer(vertices, uvs, vertexCount);
-                            drawCommandBufferData->CommitVertexBuffer();
-                            if (vertexIndexCount > 0)
-                            {
-                                drawCommandBufferData->UpdateIndexBuffer(vertexIndices, vertexIndexCount);
-                            }
-
-                            if (vertexCount <= 0)
-                            {
-                                continue;
-                            }
-
+                            drawCommandBufferData->UpdateIndexBuffer(vertexIndices, vertexIndexCount);
                         }
-                    }
 
+                        if (vertexCount <= 0)
+                        {
+                            continue;
+                        }
+
+                    }
 
                     renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
 
                     // 今回専用の変換を適用して描く
                     // チャンネルも切り替える必要がある(A,R,G,B)
                     renderer->SetClippingContextBufferForMask(clipContext);
-
-
 
                     renderer->DrawMeshCocos2d(
                         drawCommandBufferData->GetCommandDraw(),
@@ -321,7 +351,7 @@ void CubismClippingManager_Cocos2dx::CalcClippedDrawTotalBounds(CubismModel& mod
 {
     // 被クリッピングマスク（マスクされる描画オブジェクト）の全体の矩形
     csmFloat32 clippedDrawTotalMinX = FLT_MAX, clippedDrawTotalMinY = FLT_MAX;
-    csmFloat32 clippedDrawTotalMaxX = FLT_MIN, clippedDrawTotalMaxY = FLT_MIN;
+    csmFloat32 clippedDrawTotalMaxX = -FLT_MAX, clippedDrawTotalMaxY = -FLT_MAX;
 
     // このマスクが実際に必要か判定する
     // このクリッピングを利用する「描画オブジェクト」がひとつでも使用可能であればマスクを生成する必要がある
@@ -336,7 +366,7 @@ void CubismClippingManager_Cocos2dx::CalcClippedDrawTotalBounds(CubismModel& mod
         csmFloat32* drawableVertexes = const_cast<csmFloat32*>(model.GetDrawableVertices(drawableIndex));
 
         csmFloat32 minX = FLT_MAX, minY = FLT_MAX;
-        csmFloat32 maxX = FLT_MIN, maxY = FLT_MIN;
+        csmFloat32 maxX = -FLT_MAX, maxY = -FLT_MAX;
 
         csmInt32 loop = drawableVertexCount * Constant::VertexStep;
         for (csmInt32 pi = Constant::VertexOffset; pi < loop; pi += Constant::VertexStep)
@@ -506,12 +536,12 @@ csmVector<CubismClippingContext*>* CubismClippingManager_Cocos2dx::GetClippingCo
     return &_clippingContextListForDraw;
 }
 
-void CubismClippingManager_Cocos2dx::SetClippingMaskBufferSize(csmInt32 size)
+void CubismClippingManager_Cocos2dx::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
-    _clippingMaskBufferSize = size;
+    _clippingMaskBufferSize = CubismVector2(width, height);
 }
 
-csmInt32 CubismClippingManager_Cocos2dx::GetClippingMaskBufferSize() const
+CubismVector2 CubismClippingManager_Cocos2dx::GetClippingMaskBufferSize() const
 {
     return _clippingMaskBufferSize;
 }
@@ -1457,6 +1487,11 @@ void CubismRenderer::StaticRelease()
     CubismRenderer_Cocos2dx::DoStaticRelease();
 }
 
+namespace
+{
+    CubismCommandBuffer_Cocos2dx*       _commandBuffer;
+}
+
 CubismRenderer_Cocos2dx::CubismRenderer_Cocos2dx() : _clippingManager(NULL)
                                                      , _clippingContextBufferForMask(NULL)
                                                      , _clippingContextBufferForDraw(NULL)
@@ -1491,7 +1526,7 @@ void CubismRenderer_Cocos2dx::Initialize(CubismModel* model)
             model->GetDrawableMaskCounts()
         );
 
-        _offscreenFrameBuffer.CreateOffscreenFrame(_clippingManager->GetClippingMaskBufferSize(), _clippingManager->GetClippingMaskBufferSize());
+        _offscreenFrameBuffer.CreateOffscreenFrame(_clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
     }
 
     _sortedDrawableIndexList.Resize(model->GetDrawableCount(), 0);
@@ -1521,9 +1556,9 @@ void CubismRenderer_Cocos2dx::Initialize(CubismModel* model)
 
 void CubismRenderer_Cocos2dx::PreDraw()
 {
-    _commandBuffer.SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_ScissorTest, false);
-    _commandBuffer.SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_StencilTest, false);
-    _commandBuffer.SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_DepthTest, false);
+    _commandBuffer->SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_ScissorTest, false);
+    _commandBuffer->SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_StencilTest, false);
+    _commandBuffer->SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_DepthTest, false);
 
 
     //異方性フィルタリング。プラットフォームのOpenGLによっては未対応の場合があるので、未設定のときは設定しない
@@ -1542,12 +1577,12 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
         PreDraw();
 
         // サイズが違う場合はここで作成しなおし
-        if (_offscreenFrameBuffer.GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()) ||
-            _offscreenFrameBuffer.GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()))
+        if (_offscreenFrameBuffer.GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X) ||
+            _offscreenFrameBuffer.GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y))
         {
             _offscreenFrameBuffer.DestroyOffscreenFrame();
             _offscreenFrameBuffer.CreateOffscreenFrame(
-                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize()));
+                static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y));
         }
 
         _clippingManager->SetupClippingContext(*GetModel(), this, _rendererProfile._lastColorBuffer, _rendererProfile._lastViewport);
@@ -1605,15 +1640,15 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
             if(clipContext->_isUsing) // 書くことになっていた
             {
                 // 生成したFrameBufferと同じサイズでビューポートを設定
-                _commandBuffer.Viewport(0, 0, _clippingManager->GetClippingMaskBufferSize(), _clippingManager->GetClippingMaskBufferSize());
+                _commandBuffer->Viewport(0, 0, _offscreenFrameBuffer.GetViewPortSize().Width, _offscreenFrameBuffer.GetViewPortSize().Height);
 
                 PreDraw(); // バッファをクリアする
 
-                _offscreenFrameBuffer.BeginDraw(&_commandBuffer, _rendererProfile._lastColorBuffer);
+                _offscreenFrameBuffer.BeginDraw(_commandBuffer, _rendererProfile._lastColorBuffer);
 
                 // マスクをクリアする
                 // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
-                _offscreenFrameBuffer.Clear(&_commandBuffer, 1.0f, 1.0f, 1.0f, 1.0f);
+                _offscreenFrameBuffer.Clear(_commandBuffer, 1.0f, 1.0f, 1.0f, 1.0f);
             }
 
             {
@@ -1621,8 +1656,7 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
                 for (csmInt32 index = 0; index < clipDrawCount; index++)
                 {
                     const csmInt32 clipDrawIndex = clipContext->_clippingIdList[index];
-                    CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand* drawCommandMask = clipContext->_clippingCommandBufferList->At(index)->GetCommandDraw();
-
+                    CubismCommandBuffer_Cocos2dx::DrawCommandBuffer* drawCommandBufferMask = clipContext->_clippingCommandBufferList->At(index);
 
                     // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
                     if (!GetModel()->GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
@@ -1637,11 +1671,33 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
                         continue;
                     }
 
+                    // Update Vertex / Index buffer.
+                    {
+                        csmFloat32* vertices = const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(clipDrawIndex));
+                        Core::csmVector2* uvs = const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(clipDrawIndex));
+                        csmUint16* vertexIndices = const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex));
+                        const csmUint32 vertexCount = GetModel()->GetDrawableVertexCount(clipDrawIndex);
+                        const csmUint32 vertexIndexCount = GetModel()->GetDrawableVertexIndexCount(clipDrawIndex);
+
+                        drawCommandBufferMask->UpdateVertexBuffer(vertices, uvs, vertexCount);
+                        drawCommandBufferMask->CommitVertexBuffer();
+                        if (vertexIndexCount > 0)
+                        {
+                            drawCommandBufferMask->UpdateIndexBuffer(vertexIndices, vertexIndexCount);
+                        }
+
+                        if (vertexCount <= 0)
+                        {
+                            continue;
+                        }
+
+                    }
+
                     // 今回専用の変換を適用して描く
                     // チャンネルも切り替える必要がある(A,R,G,B)
                     SetClippingContextBufferForMask(clipContext);
                     DrawMeshCocos2d(
-                        drawCommandMask,
+                        drawCommandBufferMask->GetCommandDraw(),
                         GetModel()->GetDrawableTextureIndices(clipDrawIndex),
                         GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
                         GetModel()->GetDrawableVertexCount(clipDrawIndex),
@@ -1657,9 +1713,9 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
 
             {
                 // --- 後処理 ---
-                _offscreenFrameBuffer.EndDraw(&_commandBuffer);
+                _offscreenFrameBuffer.EndDraw(_commandBuffer);
                 SetClippingContextBufferForMask(NULL);
-                _commandBuffer.Viewport(_rendererProfile._lastViewport.X, _rendererProfile._lastViewport.Y, _rendererProfile._lastViewport.Width, _rendererProfile._lastViewport.Height);
+                _commandBuffer->Viewport(_rendererProfile._lastViewport.X, _rendererProfile._lastViewport.Y, _rendererProfile._lastViewport.Width, _rendererProfile._lastViewport.Height);
 
                 PreDraw(); // バッファをクリアする
             }
@@ -1713,15 +1769,15 @@ void CubismRenderer_Cocos2dx::DrawMeshCocos2d(CubismCommandBuffer_Cocos2dx::Draw
     // 裏面描画の有効・無効
     if (IsCulling())
     {
-        _commandBuffer.SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_Culling, true);
+        _commandBuffer->SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_Culling, true);
     }
     else
     {
-        _commandBuffer.SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_Culling, false);
+        _commandBuffer->SetOperationEnable(CubismCommandBuffer_Cocos2dx::OperationType_Culling, false);
     }
 
     // Cubism SDK OpenGLはマスク・アートメッシュ共にCCWが表面
-    _commandBuffer.SetWindingMode(CubismCommandBuffer_Cocos2dx::WindingType_CounterClockWise);
+    _commandBuffer->SetWindingMode(CubismCommandBuffer_Cocos2dx::WindingType_CounterClockWise);
 
     CubismTextureColor modelColorRGBA = GetModelColor();
 
@@ -1758,12 +1814,26 @@ void CubismRenderer_Cocos2dx::DrawMeshCocos2d(CubismCommandBuffer_Cocos2dx::Draw
 
 
     // ポリゴンメッシュを描画する
-    _commandBuffer.AddDrawCommand(drawCommand);
+    _commandBuffer->AddDrawCommand(drawCommand);
 
 
     // 後処理
     SetClippingContextBufferForDraw(NULL);
     SetClippingContextBufferForMask(NULL);
+}
+
+CubismCommandBuffer_Cocos2dx* CubismRenderer_Cocos2dx::GetCommandBuffer()
+{
+    return _commandBuffer;
+}
+
+void CubismRenderer_Cocos2dx::StartFrame(CubismCommandBuffer_Cocos2dx* commandBuffer)
+{
+    _commandBuffer = commandBuffer;
+}
+
+void CubismRenderer_Cocos2dx::EndFrame(CubismCommandBuffer_Cocos2dx* commandBuffer)
+{
 }
 
 CubismCommandBuffer_Cocos2dx::DrawCommandBuffer* CubismRenderer_Cocos2dx::GetDrawCommandBufferData(csmInt32 drawableIndex)
@@ -1791,14 +1861,14 @@ const csmMap<csmInt32, cocos2d::Texture2D*>& CubismRenderer_Cocos2dx::GetBindedT
     return _textures;
 }
 
-void CubismRenderer_Cocos2dx::SetClippingMaskBufferSize(csmInt32 size)
+void CubismRenderer_Cocos2dx::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
     //FrameBufferのサイズを変更するためにインスタンスを破棄・再作成する
     CSM_DELETE_SELF(CubismClippingManager_Cocos2dx, _clippingManager);
 
     _clippingManager = CSM_NEW CubismClippingManager_Cocos2dx();
 
-    _clippingManager->SetClippingMaskBufferSize(size);
+    _clippingManager->SetClippingMaskBufferSize(width, height);
 
     _clippingManager->Initialize(
         *GetModel(),
@@ -1808,7 +1878,7 @@ void CubismRenderer_Cocos2dx::SetClippingMaskBufferSize(csmInt32 size)
     );
 }
 
-csmInt32 CubismRenderer_Cocos2dx::GetClippingMaskBufferSize() const
+CubismVector2 CubismRenderer_Cocos2dx::GetClippingMaskBufferSize() const
 {
     return _clippingManager->GetClippingMaskBufferSize();
 }

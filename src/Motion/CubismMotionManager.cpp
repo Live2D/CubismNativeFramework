@@ -44,11 +44,11 @@ CubismMotionQueueEntryHandle CubismMotionManager::StartMotionPriority(ACubismMot
     return CubismMotionQueueManager::StartMotion(motion, autoDelete, _userTimeSeconds);
 }
 
-csmBool CubismMotionManager::UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds)
+csmBool CubismMotionManager::UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds, csmFloat32* opacity)
 {
     _userTimeSeconds += deltaTimeSeconds;
 
-    const csmBool updated = CubismMotionQueueManager::DoUpdateMotion(model, _userTimeSeconds);
+    const csmBool updated = CubismMotionQueueManager::DoUpdateMotion(model, _userTimeSeconds, opacity);
 
     if (IsFinished())
     {

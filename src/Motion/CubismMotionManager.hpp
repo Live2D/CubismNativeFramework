@@ -81,10 +81,11 @@ public:
      *
      * @param[in]   model   対象のモデル
      * @param[in]   deltaTimeSeconds    デルタ時間[秒]
+     * @param[in][out]   opacity 透明度の値（Nullable）
      * @retval  true    更新されている
      * @retval  false   更新されていない
      */
-    csmBool UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds);
+    csmBool UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds, csmFloat32* opacity = nullptr);
 
     /**
      * @brief モーションの予約

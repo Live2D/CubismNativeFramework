@@ -26,13 +26,13 @@ void Value::StaticReleaseNotForClientCall()
 {
     CSM_DELETE(Boolean::TrueValue);
     CSM_DELETE(Boolean::FalseValue);
-    CSM_DELETE(Error::ErrorValue);
+    CSM_DELETE(Value::ErrorValue);
     CSM_DELETE(Value::NullValue);
     CSM_DELETE(Value::s_dummyKeys);
 
     Boolean::TrueValue = NULL;
     Boolean::FalseValue = NULL;
-    Error::ErrorValue = NULL;
+    Value::ErrorValue = NULL;
     Value::NullValue = NULL;
     Value::s_dummyKeys = NULL;
 }
@@ -42,8 +42,8 @@ void Value::StaticInitializeNotForClientCall()
     Boolean::TrueValue = CSM_NEW Boolean(true);
     Boolean::FalseValue = CSM_NEW Boolean(false);
 
-    Error::ErrorValue = CSM_NEW Error("ERROR", true);
-    NullValue = CSM_NEW Utils::NullValue();
+    Value::ErrorValue = CSM_NEW Error("ERROR", true);
+    Value::NullValue = CSM_NEW Utils::NullValue();
 
     Value::s_dummyKeys = CSM_NEW csmVector<csmString>();
 }

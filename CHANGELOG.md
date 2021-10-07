@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.4-beta.1] - 2021-10-07
+
+### Added
+
+* Add a function to parse the opacity from `.motion3.json`.
+* Add a Renderer for Metal API in iOS.
+  * There are some restrictions, see [NOTICE.md](NOTICE.md).
+
+### Fixed
+
+* Fix return correct error values for out-of-index arguments in cubismjson by [@cocor-au-lait](https://github.com/cocor-au-lait).
+* Fix a warning when `SegmentType` could not be obtained when loading motion.
+* Fix renderer for Cocos2d-x v4.0.
+  * Rendering didn't work when using `USE_RENDER_TARGET` and high precision masking.
+
+
 ## [4-r.3] - 2021-06-10
 
 ## [4-r.3-beta.1] - 2021-05-13
@@ -100,6 +116,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.4-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.3...4-r.4-beta.1
 [4-r.3]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.3-beta.1...4-r.3
 [4-r.3-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.2...4-r.3-beta.1
 [4-r.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.1...4-r.2
