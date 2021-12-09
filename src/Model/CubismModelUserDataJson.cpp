@@ -22,12 +22,12 @@ const csmChar* Value = "Value";
 }
 CubismModelUserDataJson::CubismModelUserDataJson(const csmByte* buffer, csmSizeInt size)
 {
-    _json = Utils::CubismJson::Create(buffer, size);
+    CreateCubismJson(buffer, size);
 }
 
 CubismModelUserDataJson::~CubismModelUserDataJson()
 {
-    Utils::CubismJson::Delete(_json);
+    DeleteCubismJson();
 }
 
 csmInt32 CubismModelUserDataJson::GetUserDataCount() const

@@ -8,6 +8,7 @@
 #pragma once
 
 #include "ICubismModelSetting.hpp"
+#include "CubismJsonHolder.hpp"
 #include "Utils/CubismJson.hpp"
 #include "Id/CubismId.hpp"
 
@@ -19,7 +20,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
  * model3.jsonファイルをパースして値を取得する。
  *
  */
-class CubismModelSettingJson : public ICubismModelSetting
+class CubismModelSettingJson : public ICubismModelSetting, public CubismJsonHolder
 {
 public:
 
@@ -67,6 +68,8 @@ public:
 
     const csmChar* GetPoseFileName();
 
+    const csmChar* GetDisplayInfoFileName();
+
     csmInt32 GetExpressionCount();
 
     const csmChar* GetExpressionName(csmInt32 index);
@@ -106,6 +109,7 @@ private:
         FrequentNode_Groups,        ///< GetRoot()[Groups]
         FrequentNode_Moc,           ///< GetRoot()[FileReferences][Moc]
         FrequentNode_Motions,       ///< GetRoot()[FileReferences][Motions]
+        FrequentNode_DisplayInfo,   ///< GetRoot()[FileReferences][DisplayInfo]
         FrequentNode_Expressions,   ///< GetRoot()[FileReferences][Expressions]
         FrequentNode_Textures,      ///< GetRoot()[FileReferences][Textures]
         FrequentNode_Physics,       ///< GetRoot()[FileReferences][Physics]
@@ -152,6 +156,14 @@ private:
      * @retval       false -> キーが存在しない
      */
     csmBool IsExistPoseFile() const;
+
+    /**
+     * @brief        表示名称設定ファイルのキーが存在するかどうかを確認する
+     *
+     * @retval       true  -> キーが存在する
+     * @retval       false -> キーが存在しない
+     */
+    csmBool IsExistDisplayInfoFile() const;
 
     /**
      * @brief        表情設定ファイルのキーが存在するかどうかを確認する
@@ -232,7 +244,6 @@ private:
      */
     csmBool IsExistLipSyncParameters() const;
 
-    Utils::CubismJson*          _json;       ///< モデルデータjson
-    csmVector<Utils::Value*>    _jsonValue;  ///< 上jsonの頻出ノード
+    csmVector<Utils::Value*>    _jsonValue;  ///< モデルデータjsonの頻出ノード
 };
 }}}

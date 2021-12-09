@@ -79,7 +79,7 @@ public:
      *  @param  displayBufferHeight    作成するバッファ高さ
      *  @param  colorBuffer            0以外の場合、ピクセル格納領域としてcolorBufferを使用する
      */
-    csmBool CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, cocos2d::Texture2D* colorBuffer = NULL);
+    csmBool CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, cocos2d::RenderTexture* renderTexture = NULL);
 
     /**
      * @brief   CubismOffscreenFrameの削除

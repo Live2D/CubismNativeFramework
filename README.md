@@ -72,3 +72,11 @@ JSON パーサーやログ出力などのユーティリティ機能を提供し
 ## 変更履歴
 
 当リポジトリの変更履歴については [CHANGELOG.md](CHANGELOG.md) を参照ください。
+
+
+## コミュニティ
+
+ユーザー同士でCubism SDKの活用方法の提案や質問をしたい場合は、是非コミュニティをご活用ください。
+
+- [Live2D 公式コミュニティ](https://creatorsforum.live2d.com/)
+- [Live2D community(English)](http://community.live2d.com/)

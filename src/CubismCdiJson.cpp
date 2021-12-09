@@ -23,12 +23,12 @@ const csmChar* Name = "Name";
 
 CubismCdiJson::CubismCdiJson(const csmByte* buffer, csmSizeInt size)
 {
-    _json = Utils::CubismJson::Create(buffer, size);
+    CreateCubismJson(buffer, size);
 }
 
 CubismCdiJson::~CubismCdiJson()
 {
-    Utils::CubismJson::Delete(_json);
+    DeleteCubismJson();
 }
 
 // キーが存在するかどうかのチェック

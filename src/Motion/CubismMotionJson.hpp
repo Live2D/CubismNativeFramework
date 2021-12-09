@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "CubismJsonHolder.hpp"
 #include "Utils/CubismJson.hpp"
 #include "Id/CubismId.hpp"
 
@@ -26,7 +27,7 @@ enum EvaluationOptionFlag
  *
  * motion3.jsonのコンテナ。
  */
-class CubismMotionJson
+class CubismMotionJson : public CubismJsonHolder
 {
 public:
     /**
@@ -272,9 +273,6 @@ public:
     * @return  イベントの文字列
     */
     const csmChar* GetEventValue(csmInt32 userDataIndex) const;
-
-private:
-    Utils::CubismJson* _json;       ///< motion3.jsonデータ
 };
 
 }}}

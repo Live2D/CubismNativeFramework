@@ -41,6 +41,11 @@ public:
     id <MTLTexture> GetColorBuffer() const;
 
     /**
+     * @brief   カラー設定
+     */
+    void SetClearColor(float r, float g, float b, float a);
+
+    /**
      * @brief   バッファ幅取得
      */
     csmUint32 GetBufferWidth() const;
@@ -49,6 +54,11 @@ public:
      * @brief   バッファ高さ取得
      */
     csmUint32 GetBufferHeight() const;
+
+    /**
+     * @brief   現在有効かどうか
+     */
+    csmBool IsValid() const;
 
     /**
      * @brief   MTLViewport取得
@@ -60,6 +70,11 @@ public:
      */
     MTLRenderPassDescriptor* GetRenderPassDescriptor() const;
 
+    /**
+     * @brief   MTLPixelFormat指定
+     */
+    void SetMTLPixelFormat(MTLPixelFormat pixelFormat);
+
 private:
     id <MTLTexture>  _colorBuffer; ///レンダーテクスチャ
     csmBool _isInheritedRenderTexture;
@@ -67,6 +82,11 @@ private:
     csmUint32   _bufferWidth;           ///< Create時に指定された幅
     csmUint32   _bufferHeight;          ///< Create時に指定された高さ
     MTLViewport _viewPort;
+    MTLPixelFormat _pixelFormat;
+    float _clearColorR;
+    float _clearColorG;
+    float _clearColorB;
+    float _clearColorA;
 };
 
 }}}}

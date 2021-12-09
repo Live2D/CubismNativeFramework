@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "CubismJsonHolder.hpp"
 #include "Utils/CubismJson.hpp"
 #include "Math/CubismVector2.hpp"
 #include "Id/CubismId.hpp"
@@ -18,7 +19,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
  *
  * physics3.jsonのコンテナ。
  */
-class CubismPhysicsJson
+class CubismPhysicsJson : public CubismJsonHolder
 {
 public:
     /**
@@ -346,10 +347,6 @@ public:
     * @return 物理点の位置
     */
     CubismVector2 GetParticlePosition(csmInt32 physicsSettingIndex, csmInt32 vertexIndex) const;
-
-private:
-    Utils::CubismJson* _json;           ///< physics3.jsonデータ
-
 };
 
 }}}

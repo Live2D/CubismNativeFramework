@@ -59,12 +59,12 @@ const csmChar* Acceleration = "Acceleration";
 
 CubismPhysicsJson::CubismPhysicsJson(const csmByte* buffer, csmSizeInt size)
 {
-    _json = Utils::CubismJson::Create(buffer, size);
+    CreateCubismJson(buffer, size);
 }
 
 CubismPhysicsJson::~CubismPhysicsJson()
 {
-    Utils::CubismJson::Delete(_json);
+    DeleteCubismJson();
 }
 
 CubismVector2 CubismPhysicsJson::GetGravity() const

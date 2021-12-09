@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4-r.4] - 2021-12-09
+
+### Added
+
+* Add the rendering options on Metal:
+  * `USE_RENDER_TARGET`
+  * `USE_MODEL_RENDER_TARGET`
+
+* Add anisotropic filtering to Metal.
+* Add a macro to toggle the precision of floating point numbers in OpenGL fragment shaders.
+* Add a function to check `.cdi3.json` exists from `.model3.json`.
+* Add `CubismJsonHolder`, a common class used to instantiate and check the validity of `CubismJson`.
+  * Each Json parser will now warn if an class of `CubismJson` is invalid.
+
+### Changed
+
+* Change each Json parser inherits a common class `CubismJsonHolder`.
+
+### Fixed
+
+* Fix renderer for Cocos2d-x v4.0.
+   * `RenderTexture` was empty when using `USE_MODEL_RENDER_TARGET`.
+* Fix motions with different fade times from switching properly.
+* Fix a bug that motions currently played do not fade out when play a motion.
+
 
 ## [4-r.4-beta.1] - 2021-10-07
 
@@ -11,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 * Add a function to parse the opacity from `.motion3.json`.
 * Add a Renderer for Metal API in iOS.
-  * There are some restrictions, see [NOTICE.md](NOTICE.md).
+  * There are some restrictions, see [NOTICE.md](https://github.com/Live2D/CubismNativeSamples/blob/e4144053d1546473d2e76d30779e26d84b00d9f9/NOTICE.md).
 
 ### Fixed
 

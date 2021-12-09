@@ -723,7 +723,7 @@ void CubismShader_Metal::DeleteInstance()
 }
 
 
-void CubismShader_Metal::GenerateShaders()
+void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
 {
     for (csmInt32 i = 0; i < ShaderCount; i++)
     {
@@ -752,7 +752,7 @@ void CubismShader_Metal::GenerateShaders()
     _shaderSets[6]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskInvertedPremultipliedAlpha);
 
     _shaderSets[0]->RenderPipelineState = MakeRenderPipelineState(device, _shaderSets[0]->ShaderProgram, -1);
-    _shaderSets[0]->SamplerState = MakeSamplerState(device);
+    _shaderSets[0]->SamplerState = MakeSamplerState(device, renderer);
 
     _shaderSets[1]->RenderPipelineState = MakeRenderPipelineState(device, _shaderSets[1]->ShaderProgram, CubismRenderer::CubismBlendMode_Normal);
     _shaderSets[2]->RenderPipelineState = MakeRenderPipelineState(device, _shaderSets[2]->ShaderProgram, CubismRenderer::CubismBlendMode_Normal);
@@ -844,7 +844,7 @@ void CubismShader_Metal::SetupShaderProgram(CubismCommandBuffer_Metal::DrawComma
 {
     if (_shaderSets.GetSize() == 0)
     {
-        GenerateShaders();
+        GenerateShaders(renderer);
     }
 
     CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand* drawCommand = drawCommandBuffer->GetCommandDraw();
@@ -1080,7 +1080,7 @@ id<MTLDepthStencilState> CubismShader_Metal::MakeDepthStencilState(id<MTLDevice>
     return [device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 }
 
-id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device)
+id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device, CubismRenderer_Metal* renderer)
 {
     MTLSamplerDescriptor* samplerDescriptor = [MTLSamplerDescriptor new];
 
@@ -1091,6 +1091,12 @@ id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device)
     samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear;
     samplerDescriptor.mipFilter = MTLSamplerMipFilterNotMipmapped;
 
+    //異方性フィルタリング
+    if (renderer->GetAnisotropy() > 0.0f)
+    {
+        samplerDescriptor.maxAnisotropy = renderer->GetAnisotropy();
+    }
+
     return [device newSamplerStateWithDescriptor:samplerDescriptor];
 }
 
@@ -1100,8 +1106,7 @@ id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device)
 
 id<MTLCommandBuffer> CubismRenderer_Metal::s_commandBuffer = nil;
 id<MTLDevice> CubismRenderer_Metal::s_device = nil;
-id<MTLTexture> CubismRenderer_Metal::s_renderTarget = nil;
-id<MTLTexture> CubismRenderer_Metal::s_depthTarget = nil;
+MTLRenderPassDescriptor* CubismRenderer_Metal::s_renderPassDescriptor = nil;
 
 CubismRenderer* CubismRenderer::Create()
 {
@@ -1124,6 +1129,11 @@ CubismRenderer_Metal::CubismRenderer_Metal() : _clippingManager(NULL)
 CubismRenderer_Metal::~CubismRenderer_Metal()
 {
     CSM_DELETE_SELF(CubismClippingManager_Metal, _clippingManager);
+
+    for (csmInt32 i = 0; i < _drawableDrawCommandBuffer.GetSize(); ++i)
+    {
+        CSM_DELETE(_drawableDrawCommandBuffer[i]);
+    }
 }
 
 void CubismRenderer_Metal::DoStaticRelease()
@@ -1176,22 +1186,15 @@ void CubismRenderer_Metal::Initialize(CubismModel* model)
     CubismRenderer::Initialize(model);  //親クラスの処理を呼ぶ
 }
 
-void CubismRenderer_Metal::StartFrame(id<MTLDevice> device, id<MTLCommandBuffer> commandBuffer, id<MTLTexture> renderTarget, id<MTLTexture> depthTarget)
+void CubismRenderer_Metal::StartFrame(id<MTLDevice> device, id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor)
 {
     s_commandBuffer = commandBuffer;
     s_device = device;
-    s_renderTarget = renderTarget;
-    s_depthTarget = depthTarget;
+    s_renderPassDescriptor = renderPassDescriptor;
 }
 
 id <MTLRenderCommandEncoder> CubismRenderer_Metal::PreDraw(id <MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* drawableRenderDescriptor)
 {
-    //異方性フィルタリング
-    if (GetAnisotropy() > 0.0f)
-    {
-        // TODO:異方性フィルタリング、今後対応を行う。
-    }
-
     id <MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:drawableRenderDescriptor];
     return renderEncoder;
 }
@@ -1203,12 +1206,6 @@ void CubismRenderer_Metal::PostDraw(id <MTLRenderCommandEncoder> renderEncoder)
 
 void CubismRenderer_Metal::DoDrawModel()
 {
-    // If the current drawable is nil, skip rendering this frame
-    if(s_renderTarget == nil)
-    {
-        return;
-    }
-
     //------------ クリッピングマスク・バッファ前処理方式の場合 ------------
     if (_clippingManager != NULL)
     {
@@ -1228,18 +1225,7 @@ void CubismRenderer_Metal::DoDrawModel()
 
     if(!IsUsingHighPrecisionMask())
     {
-        CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand* drawCommandDraw = _drawableDrawCommandBuffer[0]->GetCommandDraw();
-        MTLRenderPassDescriptor* drawableRenderDescriptor = drawCommandDraw->GetRenderPassDescriptor();
-        // レンダーターゲット
-        drawableRenderDescriptor.colorAttachments[0].texture = s_renderTarget;
-        drawableRenderDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-        drawableRenderDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-        drawableRenderDescriptor.depthAttachment.texture = s_depthTarget;
-        drawableRenderDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-        drawableRenderDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-        drawableRenderDescriptor.depthAttachment.clearDepth = 1.0;
-
-        renderEncoder = PreDraw(s_commandBuffer, drawableRenderDescriptor);
+        renderEncoder = PreDraw(s_commandBuffer, s_renderPassDescriptor);
     }
 
     const csmInt32 drawableCount = GetModel()->GetDrawableCount();
@@ -1371,18 +1357,7 @@ void CubismRenderer_Metal::DoDrawModel()
 
         if(IsUsingHighPrecisionMask())
         {
-            CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand* drawCommandDraw = _drawableDrawCommandBuffer[0]->GetCommandDraw();
-            MTLRenderPassDescriptor* drawableRenderDescriptor = drawCommandDraw->GetRenderPassDescriptor();
-            // レンダーターゲット
-            drawableRenderDescriptor.colorAttachments[0].texture = s_renderTarget;
-            drawableRenderDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-            drawableRenderDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-            drawableRenderDescriptor.depthAttachment.texture = s_depthTarget;
-            drawableRenderDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            drawableRenderDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-            drawableRenderDescriptor.depthAttachment.clearDepth = 1.0;
-
-            renderEncoder = PreDraw(s_commandBuffer, drawableRenderDescriptor);
+            renderEncoder = PreDraw(s_commandBuffer, s_renderPassDescriptor);
         }
 
         DrawMeshMetal(

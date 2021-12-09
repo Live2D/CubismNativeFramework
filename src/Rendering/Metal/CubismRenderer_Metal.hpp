@@ -264,7 +264,7 @@ private:
     /**
      * @brief   シェーダプログラムを初期化する
      */
-    void GenerateShaders();
+    void GenerateShaders(CubismRenderer_Metal* renderer);
 
     /**
      * @brief   シェーダプログラムをロードしてアドレス返す。
@@ -277,7 +277,7 @@ private:
     ShaderProgram* LoadShaderProgram(const csmChar* vertShaderSrc, const csmChar* fragShaderSrc);
     id<MTLRenderPipelineState> MakeRenderPipelineState(id<MTLDevice> device, ShaderProgram* shaderProgram, int blendMode);
     id<MTLDepthStencilState> MakeDepthStencilState(id<MTLDevice> device);
-    id<MTLSamplerState> MakeSamplerState(id<MTLDevice> device);
+    id<MTLSamplerState> MakeSamplerState(id<MTLDevice> device, CubismRenderer_Metal* renderer);
 
     id<MTLLibrary> _shaderLib;
 
@@ -326,7 +326,7 @@ class CubismRenderer_Metal : public CubismRenderer
 
 public:
 
-    static void StartFrame(id<MTLDevice> device, id<MTLCommandBuffer> commandBuffer, id<MTLTexture> renderTarget, id<MTLTexture> depthTarget);
+    static void StartFrame(id<MTLDevice> device, id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor);
 
     /**
      * @brief    レンダラの初期化処理を実行する<br>
@@ -429,8 +429,7 @@ private:
 
     static id<MTLCommandBuffer> s_commandBuffer;
     static id<MTLDevice> s_device;
-    static id<MTLTexture> s_renderTarget;
-    static id<MTLTexture> s_depthTarget;
+    static MTLRenderPassDescriptor* s_renderPassDescriptor;
 
     /**
      * @brief   レンダラが保持する静的なリソースを解放する<br>
