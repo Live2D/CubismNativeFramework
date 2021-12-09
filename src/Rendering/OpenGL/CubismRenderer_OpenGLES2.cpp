@@ -15,6 +15,12 @@
 #include <Windows.h>
 #endif
 
+#define CSM_FRAGMENT_SHADER_FP_PRECISION_HIGH "highp"
+#define CSM_FRAGMENT_SHADER_FP_PRECISION_MID "mediump"
+#define CSM_FRAGMENT_SHADER_FP_PRECISION_LOW "lowp"
+
+#define CSM_FRAGMENT_SHADER_FP_PRECISION CSM_FRAGMENT_SHADER_FP_PRECISION_HIGH
+
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
@@ -738,7 +744,7 @@ static const csmChar* VertShaderSrcSetupMask =
 static const csmChar* FragShaderSrcSetupMask =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -761,7 +767,7 @@ static const csmChar* FragShaderSrcSetupMask =
 static const csmChar* FragShaderSrcSetupMaskTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;"
         "varying vec4 v_myPos;"
         "uniform sampler2D s_texture0;"
@@ -824,7 +830,7 @@ static const csmChar* VertShaderSrcMasked =
 static const csmChar* FragShaderSrc =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -840,7 +846,7 @@ static const csmChar* FragShaderSrc =
 static const csmChar* FragShaderSrcTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;" //v2f.texcoord
         "uniform sampler2D s_texture0;" //_MainTex
         "uniform vec4 u_baseColor;" //v2f.color
@@ -855,7 +861,7 @@ static const csmChar* FragShaderSrcTegra =
 static const csmChar* FragShaderSrcPremultipliedAlpha =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -870,7 +876,7 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
 static const csmChar* FragShaderSrcPremultipliedAlphaTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;" //v2f.texcoord
         "uniform sampler2D s_texture0;" //_MainTex
         "uniform vec4 u_baseColor;" //v2f.color
@@ -884,7 +890,7 @@ static const csmChar* FragShaderSrcPremultipliedAlphaTegra =
 static const csmChar* FragShaderSrcMask =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -907,7 +913,7 @@ static const csmChar* FragShaderSrcMask =
 static const csmChar* FragShaderSrcMaskTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"
@@ -929,7 +935,7 @@ static const csmChar* FragShaderSrcMaskTegra =
 static const csmChar* FragShaderSrcMaskInverted =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -952,7 +958,7 @@ static const csmChar* FragShaderSrcMaskInverted =
 static const csmChar* FragShaderSrcMaskInvertedTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"
@@ -974,7 +980,7 @@ static const csmChar* FragShaderSrcMaskInvertedTegra =
 static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -996,7 +1002,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
 static const csmChar* FragShaderSrcMaskPremultipliedAlphaTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"
@@ -1017,7 +1023,7 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlphaTegra =
 static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlpha =
 #if defined(CSM_TARGET_IPHONE_ES2) || defined(CSM_TARGET_ANDROID_ES2)
         "#version 100\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
 #else
         "#version 120\n"
 #endif
@@ -1039,7 +1045,7 @@ static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlpha =
 static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlphaTegra =
         "#version 100\n"
         "#extension GL_NV_shader_framebuffer_fetch : enable\n"
-        "precision mediump float;"
+        "precision " CSM_FRAGMENT_SHADER_FP_PRECISION " float;"
         "varying vec2 v_texCoord;"
         "varying vec4 v_clipPos;"
         "uniform sampler2D s_texture0;"

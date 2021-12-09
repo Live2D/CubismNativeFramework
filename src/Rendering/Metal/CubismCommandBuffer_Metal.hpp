@@ -30,10 +30,6 @@ public:
             id <MTLCommandBuffer> GetMTLCommandBuffer();
             void SetMTLCommandBuffer(id <MTLCommandBuffer> commandBuffer);
 
-            /**
-             * @brief   MTLRenderPassDescriptor生成・取得
-             */
-            MTLRenderPassDescriptor* GetRenderPassDescriptor();
             id <MTLRenderPipelineState> GetRenderPipelineState();
             void SetRenderPipelineState(id <MTLRenderPipelineState> renderPipelineState);
 

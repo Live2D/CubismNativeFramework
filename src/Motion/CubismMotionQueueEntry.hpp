@@ -233,7 +233,7 @@ public:
     *
     * @return    フェードアウト開始[秒]
     */
-    csmBool     GetFadeOutSeconds();
+    csmFloat32     GetFadeOutSeconds();
 
 private:
     csmBool         _autoDelete;                    ///< 自動削除

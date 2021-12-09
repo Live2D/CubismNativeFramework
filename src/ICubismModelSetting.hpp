@@ -97,6 +97,13 @@ public:
     virtual const csmChar* GetPoseFileName() = 0;
 
     /**
+     * @brief        表示名称設定ファイルの名前を取得する
+     *
+     * @return       表示名称設定ファイルの名前
+     */
+    virtual const csmChar* GetDisplayInfoFileName() = 0;
+
+    /**
      * @brief        表情設定ファイルの数を取得する
      *
      * @return       表情設定ファイルの数

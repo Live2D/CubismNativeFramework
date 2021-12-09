@@ -135,7 +135,7 @@ protected:
     * @retval  true    モデルへパラメータ値の反映あり
     * @retval  false   モデルへパラメータ値の反映なし(モーションの変化なし)
     */
-    virtual csmBool     DoUpdateMotion(CubismModel* model, csmFloat32 userTimeSeconds, csmFloat32* opacity = nullptr);
+    virtual csmBool     DoUpdateMotion(CubismModel* model, csmFloat32 userTimeSeconds, csmFloat32* opacity = NULL);
 
 
     csmFloat32 _userTimeSeconds;        ///< デルタ時間の積算値[秒]

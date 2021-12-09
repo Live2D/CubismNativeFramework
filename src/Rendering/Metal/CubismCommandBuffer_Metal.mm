@@ -31,14 +31,6 @@ void CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand::SetMTLCommandBuf
     _mtlCommandBuffer = commandBuffer;
 }
 
-MTLRenderPassDescriptor* CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand::GetRenderPassDescriptor()
-{
-    if (_renderPassDescriptor == NULL) {
-        _renderPassDescriptor = [MTLRenderPassDescriptor new];
-    }
-    return _renderPassDescriptor;
-}
-
 id <MTLRenderPipelineState> CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand::GetRenderPipelineState()
 {
     return _pipelineState;

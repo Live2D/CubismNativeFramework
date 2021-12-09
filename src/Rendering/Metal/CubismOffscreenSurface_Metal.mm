@@ -12,11 +12,16 @@
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
 CubismOffscreenFrame_Metal::CubismOffscreenFrame_Metal()
-    :
-     _colorBuffer(NULL)
+    : _colorBuffer(NULL)
+    , _renderPassDescriptor(NULL)
     , _isInheritedRenderTexture(false)
     , _bufferWidth(0)
     , _bufferHeight(0)
+    , _pixelFormat(MTLPixelFormatRGBA8Unorm)
+    , _clearColorR(1.0)
+    , _clearColorG(1.0)
+    , _clearColorB(1.0)
+    , _clearColorA(1.0)
 {
 }
 
@@ -34,7 +39,7 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
             _renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
             _renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
             _renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-            _renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0);
+            _renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(_clearColorR, _clearColorG, _clearColorB, _clearColorA);
 
             _renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
             _renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
@@ -49,7 +54,7 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
             texDescriptor.textureType = MTLTextureType2D;
             texDescriptor.width = displayBufferWidth;
             texDescriptor.height = displayBufferHeight;
-            texDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
+            texDescriptor.pixelFormat = _pixelFormat;
             texDescriptor.usage = MTLTextureUsageRenderTarget |
                                   MTLTextureUsageShaderRead;
             CubismRenderingInstanceSingleton_Metal *single = [CubismRenderingInstanceSingleton_Metal sharedManager];
@@ -89,7 +94,7 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
 
 void CubismOffscreenFrame_Metal::DestroyOffscreenFrame()
 {
-    if((_renderPassDescriptor != NULL) && !_isInheritedRenderTexture)
+    if(!_isInheritedRenderTexture)
     {
         _colorBuffer = NULL;
     }
@@ -99,6 +104,15 @@ void CubismOffscreenFrame_Metal::DestroyOffscreenFrame()
 id <MTLTexture> CubismOffscreenFrame_Metal::GetColorBuffer() const
 {
     return _colorBuffer;
+}
+
+
+void CubismOffscreenFrame_Metal::SetClearColor(float r, float g, float b, float a)
+{
+    _clearColorR = r;
+    _clearColorG = g;
+    _clearColorB = b;
+    _clearColorA = a;
 }
 
 csmUint32 CubismOffscreenFrame_Metal::GetBufferWidth() const
@@ -111,6 +125,11 @@ csmUint32 CubismOffscreenFrame_Metal::GetBufferHeight() const
     return _bufferHeight;
 }
 
+csmBool CubismOffscreenFrame_Metal::IsValid() const
+{
+    return _renderPassDescriptor != NULL;
+}
+
 const MTLViewport* CubismOffscreenFrame_Metal::GetViewport() const
 {
     return &_viewPort;
@@ -119,6 +138,11 @@ const MTLViewport* CubismOffscreenFrame_Metal::GetViewport() const
 MTLRenderPassDescriptor* CubismOffscreenFrame_Metal::GetRenderPassDescriptor() const
 {
     return _renderPassDescriptor;
+}
+
+void CubismOffscreenFrame_Metal::SetMTLPixelFormat(MTLPixelFormat pixelFormat)
+{
+    _pixelFormat = pixelFormat;
 }
 
 }}}}

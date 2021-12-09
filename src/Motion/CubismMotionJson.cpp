@@ -36,12 +36,12 @@ const csmChar* Value = "Value";
 
 CubismMotionJson::CubismMotionJson(const csmByte* buffer, csmSizeInt size)
 {
-    _json = Utils::CubismJson::Create(buffer, size);
+    CreateCubismJson(buffer, size);
 }
 
 CubismMotionJson::~CubismMotionJson()
 {
-    Utils::CubismJson::Delete(_json);
+    DeleteCubismJson();
 }
 
 csmFloat32 CubismMotionJson::GetMotionDuration() const

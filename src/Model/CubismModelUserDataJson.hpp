@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "CubismJsonHolder.hpp"
 #include "Utils/CubismJson.hpp"
 #include "Model/CubismModel.hpp"
 #include "Id/CubismIdManager.hpp"
@@ -14,7 +15,7 @@
 //--------- LIVE2D NAMESPACE ------------
 namespace Live2D {  namespace Cubism {  namespace Framework {
 
-class CubismModelUserDataJson
+class CubismModelUserDataJson : public CubismJsonHolder
 {
 public:
     /**
@@ -84,9 +85,6 @@ public:
     * @return      ユーザデータ
     */
     const csmChar* GetUserDataValue(csmInt32 i) const;
-
-private:
-    Utils::CubismJson* _json;
 };
 
 }}}

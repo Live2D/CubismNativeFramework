@@ -85,7 +85,7 @@ public:
      * @retval  true    更新されている
      * @retval  false   更新されていない
      */
-    csmBool UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds, csmFloat32* opacity = nullptr);
+    csmBool UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds, csmFloat32* opacity = NULL);
 
     /**
      * @brief モーションの予約

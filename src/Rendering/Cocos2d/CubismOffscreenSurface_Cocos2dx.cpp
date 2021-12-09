@@ -63,14 +63,14 @@ void CubismOffscreenFrame_Cocos2dx::Clear(CubismCommandBuffer_Cocos2dx* commandB
     commandBuffer->Clear(r, g, b, a);
 }
 
-csmBool CubismOffscreenFrame_Cocos2dx::CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, cocos2d::Texture2D* colorBuffer)
+csmBool CubismOffscreenFrame_Cocos2dx::CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, cocos2d::RenderTexture* renderTexture)
 {
     // 一旦削除
     DestroyOffscreenFrame();
 
     do
     {
-        if (colorBuffer == 0)
+        if (!renderTexture)
         {
             // The inherited RenderTexture is nothing.
             // Make a RenderTexture.
@@ -104,7 +104,8 @@ csmBool CubismOffscreenFrame_Cocos2dx::CreateOffscreenFrame(csmUint32 displayBuf
         else
         {
             // Use the inherited RenderTexture.
-            _colorBuffer = colorBuffer;
+            _renderTexture = renderTexture;
+            _colorBuffer = _renderTexture->getSprite()->getTexture();
 
 
             _isInheritedRenderTexture = true;

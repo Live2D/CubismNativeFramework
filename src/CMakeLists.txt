@@ -9,6 +9,7 @@ target_sources(${LIB_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismFrameworkConfig.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismModelSettingJson.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismModelSettingJson.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismJsonHolder.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ICubismAllocator.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ICubismModelSetting.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Live2DCubismCore.hpp

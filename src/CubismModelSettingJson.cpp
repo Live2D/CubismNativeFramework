@@ -34,6 +34,7 @@ const csmChar* HitAreas = "HitAreas";
 const csmChar* Moc = "Moc";
 const csmChar* Textures = "Textures";
 const csmChar* Physics = "Physics";
+const csmChar* DisplayInfo = "DisplayInfo";
 const csmChar* Pose = "Pose";
 const csmChar* Expressions = "Expressions";
 const csmChar* Motions = "Motions";
@@ -102,6 +103,11 @@ csmBool CubismModelSettingJson::IsExistPhysicsFile() const
 csmBool CubismModelSettingJson::IsExistPoseFile() const
 {
     Utils::Value& node = (*_jsonValue[FrequentNode_Pose]);
+    return !node.IsNull() && !node.IsError();
+}
+csmBool CubismModelSettingJson::IsExistDisplayInfoFile() const
+{
+    Utils::Value& node = (*_jsonValue[FrequentNode_DisplayInfo]);
     return !node.IsNull() && !node.IsError();
 }
 csmBool CubismModelSettingJson::IsExistExpressionFile() const
@@ -173,7 +179,7 @@ csmBool CubismModelSettingJson::IsExistLipSyncParameters() const
 
 CubismModelSettingJson::CubismModelSettingJson(const csmByte* buffer, csmSizeInt size)
 {
-    _json = Utils::CubismJson::Create(buffer, size);
+    CreateCubismJson(buffer, size);
 
     if (_json)
     {
@@ -183,6 +189,7 @@ CubismModelSettingJson::CubismModelSettingJson(const csmByte* buffer, csmSizeInt
         _jsonValue.PushBack(&(_json->GetRoot()[Groups]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Moc]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Motions]));
+        _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][DisplayInfo]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Expressions]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Textures]));
         _jsonValue.PushBack(&(_json->GetRoot()[FileReferences][Physics]));
@@ -193,7 +200,7 @@ CubismModelSettingJson::CubismModelSettingJson(const csmByte* buffer, csmSizeInt
 
 CubismModelSettingJson::~CubismModelSettingJson()
 {
-    Utils::CubismJson::Delete( _json);
+    DeleteCubismJson();
 }
 
 Utils::CubismJson* CubismModelSettingJson::GetJsonPointer() const
@@ -241,7 +248,7 @@ const csmChar* CubismModelSettingJson::GetHitAreaName(csmInt32 index)
     return (*_jsonValue[FrequentNode_HitAreas])[index][Name].GetRawString();
 }
 
-// 物理演算、パーツ切り替え、表情ファイルについて
+// 物理演算、表示名称、パーツ切り替え、表情ファイルについて
 const csmChar* CubismModelSettingJson::GetPhysicsFileName()
 {
     if (!IsExistPhysicsFile())return "";
@@ -252,6 +259,12 @@ const csmChar* CubismModelSettingJson::GetPoseFileName()
 {
     if (!IsExistPoseFile())return "";
     return (*_jsonValue[FrequentNode_Pose]).GetRawString();
+}
+
+const csmChar* CubismModelSettingJson::GetDisplayInfoFileName()
+{
+    if (!IsExistDisplayInfoFile())return "";
+    return (*_jsonValue[FrequentNode_DisplayInfo]).GetRawString();
 }
 
 csmInt32 CubismModelSettingJson::GetExpressionCount()

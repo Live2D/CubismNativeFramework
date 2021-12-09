@@ -93,7 +93,10 @@ csmBool CubismMotionQueueManager::DoUpdateMotion(CubismModel* model, csmFloat32 
         updated = true;
 
         // ------ 不透明度の値が存在すれば反映する ------
-        opacity = new csmFloat32(motion->GetOpacityValue(userTimeSeconds - motionQueueEntry->GetStartTime()));
+        if (opacity)
+        {
+            *opacity = motion->GetOpacityValue(userTimeSeconds - motionQueueEntry->GetStartTime());
+        }
 
         // ------ ユーザトリガーイベントを検査する ----
         const csmVector<const csmString*>& firedList = motion->GetFiredEvent(

@@ -143,10 +143,10 @@ void CubismMotionQueueEntry::SetLastCheckEventTime(csmFloat32 checkTime)
 
 csmBool CubismMotionQueueEntry::IsTriggeredFadeOut()
 {
-    return this->_IsTriggeredFadeOut && _endTimeSeconds < 0.0f;
+    return this->_IsTriggeredFadeOut;
 }
 
-csmBool CubismMotionQueueEntry::GetFadeOutSeconds()
+csmFloat32 CubismMotionQueueEntry::GetFadeOutSeconds()
 {
     return this->_fadeOutSeconds;
 }

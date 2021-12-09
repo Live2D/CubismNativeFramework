@@ -7,12 +7,13 @@
 
 #pragma once
 
+#include "CubismJsonHolder.hpp"
 #include "Utils/CubismJson.hpp"
 
 //--------- LIVE2D NAMESPACE ------------
 namespace Live2D {  namespace Cubism {  namespace Framework {
 
-class CubismCdiJson
+class CubismCdiJson : public CubismJsonHolder
 {
 public:
     /**
@@ -85,8 +86,6 @@ private:
      * @retval       false -> キーが存在しない
      */
     csmBool IsExistParts() const;
-
-    Utils::CubismJson* _json;
 };
 
 }}}
