@@ -18,6 +18,8 @@ static const csmChar* CubismShaderEffectSrc =
         "float4x4 projectMatrix;"\
         "float4x4 clipMatrix;"\
         "float4 baseColor;"\
+        "float4 multiplyColor;"\
+        "float4 screenColor;"\
         "float4 channelFlag;"\
     "}"\
     "Texture2D mainTexture : register(t0);"\
@@ -74,20 +76,29 @@ static const csmChar* CubismShaderEffectSrc =
 "/* Pixel Shader */"\
     "/* normal */"\
     "float4 PixelNormal(VS_OUT In) : SV_Target{"\
-        "float4 color = mainTexture.Sample(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "color.xyz *= color.w;"\
         "return color;"\
     "}"\
     \
     "/* normal premult alpha */"\
     "float4 PixelNormalPremult(VS_OUT In) : SV_Target{"\
-        "float4 color = mainTexture.Sample(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "return color;"\
     "}"\
     \
     "/* masked */\n"\
     "float4 PixelMasked(VS_OUT In) : SV_Target{\n"\
-        "float4 color = mainTexture.Sample(mainSampler, In.uv) * baseColor;\n"\
+        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "color.xyz *= color.w;\n"\
         "float4 clipMask = (1.0 - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
@@ -96,7 +107,10 @@ static const csmChar* CubismShaderEffectSrc =
     "}"\
     "/* masked inverted*/\n"\
     "float4 PixelMaskedInverted(VS_OUT In) : SV_Target{\n"\
-        "float4 color = mainTexture.Sample(mainSampler, In.uv) * baseColor;\n"\
+        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "color.xyz *= color.w;\n"\
         "float4 clipMask = (1.0 - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
@@ -105,7 +119,10 @@ static const csmChar* CubismShaderEffectSrc =
     "}"\
     "/* masked premult alpha */\n"\
     "float4 PixelMaskedPremult(VS_OUT In) : SV_Target{\n"\
-        "float4 color = mainTexture.Sample(mainSampler, In.uv) * baseColor;\n"\
+        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;\n"\
         "float4 clipMask = (1.0 - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
         "color = color * maskVal;\n"\
@@ -113,7 +130,10 @@ static const csmChar* CubismShaderEffectSrc =
     "}"\
     "/* masked inverted premult alpha */\n"\
     "float4 PixelMaskedInvertedPremult(VS_OUT In) : SV_Target{\n"\
-        "float4 color = mainTexture.Sample(mainSampler, In.uv) * baseColor;\n"\
+        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;\n"\
         "float4 clipMask = (1.0 - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
         "color = color * (1.0 - maskVal);\n"\

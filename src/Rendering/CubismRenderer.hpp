@@ -53,6 +53,15 @@ public:
             , A(1.0f) {};
 
         /**
+         * @brief   コンストラクタ
+         */
+        CubismTextureColor(csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
+            : R(r)
+            , G(g)
+            , B(b)
+            , A(a) {};
+
+        /**
          * @brief   デストラクタ
          */
         virtual ~CubismTextureColor() {};

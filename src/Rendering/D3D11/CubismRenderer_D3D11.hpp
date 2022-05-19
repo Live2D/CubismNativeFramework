@@ -333,6 +333,8 @@ public:
      * @param[in]  device          -> 使用デバイス
      * @param[in]  textureNo        -> 使用テクスチャ番号。基本的にCubismModel::GetDrawableTextureIndicesで返されたもの
      * @param[in]  modelColorRGBA   -> 描画カラー
+     * @param[in]  multiplyColor   -> 乗算色
+     * @param[in]  screenColor   -> スクリーン色
      * @param[in]  colorBlendMode   -> ブレンドモード
      * @param[in]  invertedMask      -> マスク使用時のマスクの反転使用
      *
@@ -340,7 +342,7 @@ public:
     void ExecuteDraw(ID3D11Device* device, ID3D11DeviceContext* renderContext,
         ID3D11Buffer* vertexBuffer, ID3D11Buffer* indexBuffer, ID3D11Buffer* constantBuffer,
         const csmInt32 indexCount,
-        const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, CubismBlendMode colorBlendMode, csmBool invertedMask);
+        const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 protected:
     /**
@@ -383,6 +385,7 @@ protected:
     void DrawMeshDX11(csmInt32 drawableIndex
         , csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
         , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+        , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
         , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 

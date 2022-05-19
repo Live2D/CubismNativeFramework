@@ -244,6 +244,8 @@ private:
         GLint SamplerTexture0Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture0)
         GLint SamplerTexture1Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture1)
         GLint UniformBaseColorLocation;     ///< シェーダプログラムに渡す変数のアドレス(BaseColor)
+        GLint UniformMultiplyColorLocation; ///< シェーダプログラムに渡す変数のアドレス(MultiplyColor)
+        GLint UniformScreenColorLocation;   ///< シェーダプログラムに渡す変数のアドレス(ScreenColor)
         GLint UnifromChannelFlagLocation;   ///< シェーダプログラムに渡す変数のアドレス(ChannelFlag)
     };
 
@@ -277,6 +279,8 @@ private:
                             , csmFloat32* uvArray, csmFloat32 opacity
                             , CubismRenderer::CubismBlendMode colorBlendMode
                             , CubismRenderer::CubismTextureColor baseColor
+                            , CubismRenderer::CubismTextureColor multiplyColor
+                            , CubismRenderer::CubismTextureColor screenColor
                             , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4
                             , csmBool invertedMask);
 
@@ -476,6 +480,7 @@ public:
      *
      */
     const CubismOffscreenFrame_OpenGLES2* GetMaskBuffer() const;
+
 protected:
     /**
      * @brief   コンストラクタ
@@ -491,7 +496,11 @@ protected:
      * @brief   モデルを描画する実際の処理
      *
      */
-    void DoDrawModel();
+    virtual void DoDrawModel() override;
+
+    void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
+            , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+            , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask) override;
 
     /**
      * @brief   [オーバーライド]<br>
@@ -504,13 +513,16 @@ protected:
      * @param[in]   indexArray      ->  ポリゴンメッシュのインデックス配列
      * @param[in]   vertexArray     ->  ポリゴンメッシュの頂点配列
      * @param[in]   uvArray         ->  uv配列
+     * @param[in]   multiplyColor    ->  乗算色
+     * @param[in]   screenColor         ->  スクリーン色
      * @param[in]   opacity         ->  不透明度
      * @param[in]   colorBlendMode  ->  カラー合成タイプ
      * @param[in]   invertedMask     ->  マスク使用時のマスクの反転使用
      *
      */
-    void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
+    void DrawMeshOpenGL(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
                   , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+                  , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
                   , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 

@@ -329,6 +329,8 @@ void CubismClippingManager_Cocos2dx::SetupClippingContext(CubismModel& model, Cu
                         const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
                         const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
                         reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
+                        model.GetMultiplyColor(clipDrawIndex),
+                        model.GetScreenColor(clipDrawIndex),
                         model.GetDrawableOpacity(clipDrawIndex),
                         CubismRenderer::CubismBlendMode_Normal,   //クリッピングは通常描画を強制
                         false   // マスク生成時はクリッピングの反転使用は全く関係がない
@@ -828,9 +830,14 @@ static const csmChar* FragShaderSrc =
     "varying vec2 v_texCoord;" //v2f.texcoord
     "uniform sampler2D s_texture0;" //_MainTex
     "uniform vec4 u_baseColor;" //v2f.color
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 color = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = texColor.rgb + u_screenColor.rgb - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 color = texColor * u_baseColor;"
     "gl_FragColor = vec4(color.rgb * color.a,  color.a);"
     "}";
 #if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
@@ -840,9 +847,14 @@ static const csmChar* FragShaderSrcTegra =
     "varying vec2 v_texCoord;" //v2f.texcoord
     "uniform sampler2D s_texture0;" //_MainTex
     "uniform vec4 u_baseColor;" //v2f.color
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 color = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = texColor.rgb + u_screenColor.rgb - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 color = texColor * u_baseColor;"
     "gl_FragColor = vec4(color.rgb * color.a,  color.a);"
     "}";
 #endif
@@ -855,9 +867,14 @@ static const csmChar* FragShaderSrcPremultipliedAlpha =
     "varying vec2 v_texCoord;" //v2f.texcoord
     "uniform sampler2D s_texture0;" //_MainTex
     "uniform vec4 u_baseColor;" //v2f.color
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "gl_FragColor = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = (texColor.rgb + u_screenColor.rgb * texColor.a) - (texColor.rgb * u_screenColor.rgb);"
+    "gl_FragColor = texColor * u_baseColor;"
     "}";
 #if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
 static const csmChar* FragShaderSrcPremultipliedAlphaTegra =
@@ -866,9 +883,14 @@ static const csmChar* FragShaderSrcPremultipliedAlphaTegra =
     "varying vec2 v_texCoord;" //v2f.texcoord
     "uniform sampler2D s_texture0;" //_MainTex
     "uniform vec4 u_baseColor;" //v2f.color
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "gl_FragColor = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = (texColor.rgb + u_screenColor.rgb * texColor.a) - (texColor.rgb * u_screenColor.rgb);"
+    "gl_FragColor = texColor * u_baseColor;"
     "}";
 #endif
 
@@ -883,9 +905,14 @@ static const csmChar* FragShaderSrcMask =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = texColor.rgb + u_screenColor.rgb - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
@@ -902,9 +929,14 @@ static const csmChar* FragShaderSrcMaskTegra =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = texColor.rgb + u_screenColor.rgb - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
@@ -924,9 +956,14 @@ static const csmChar* FragShaderSrcMaskInverted =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = texColor.rgb + u_screenColor.rgb - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
@@ -943,9 +980,14 @@ static const csmChar* FragShaderSrcMaskInvertedTegra =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = texColor.rgb + u_screenColor.rgb - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "col_formask.rgb = col_formask.rgb  * col_formask.a ;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
@@ -965,9 +1007,14 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlpha =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = (texColor.rgb + u_screenColor.rgb * texColor.a) - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
     "col_formask = col_formask * maskVal;"
@@ -983,9 +1030,14 @@ static const csmChar* FragShaderSrcMaskPremultipliedAlphaTegra =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = (texColor.rgb + u_screenColor.rgb * texColor.a) - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
     "col_formask = col_formask * maskVal;"
@@ -1004,9 +1056,14 @@ static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlpha =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = (texColor.rgb + u_screenColor.rgb * texColor.a) - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
     "col_formask = col_formask * (1.0 - maskVal);"
@@ -1022,9 +1079,14 @@ static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlphaTegra =
     "uniform sampler2D s_texture1;"
     "uniform vec4 u_channelFlag;"
     "uniform vec4 u_baseColor;"
+    "uniform vec4 u_multiplyColor;"
+    "uniform vec4 u_screenColor;"
     "void main()"
     "{"
-    "vec4 col_formask = texture2D(s_texture0 , v_texCoord) * u_baseColor;"
+    "vec4 texColor = texture2D(s_texture0 , v_texCoord);"
+    "texColor.rgb = texColor.rgb * u_multiplyColor.rgb;"
+    "texColor.rgb = (texColor.rgb + u_screenColor.rgb * texColor.a) - (texColor.rgb * u_screenColor.rgb);"
+    "vec4 col_formask = texColor * u_baseColor;"
     "vec4 clipMask = (1.0 - texture2D(s_texture1, v_clipPos.xy / v_clipPos.w)) * u_channelFlag;"
     "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"
     "col_formask = col_formask * (1.0 - maskVal);"
@@ -1152,6 +1214,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[0]->UniformClipMatrixLocation = _shaderSets[0]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[0]->UnifromChannelFlagLocation = _shaderSets[0]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[0]->UniformBaseColorLocation = _shaderSets[0]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[0]->UniformMultiplyColorLocation = _shaderSets[0]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[0]->UniformScreenColorLocation = _shaderSets[0]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 通常
     _shaderSets[1]->AttributePositionLocation = _shaderSets[1]->ShaderProgram->getAttributeLocation("a_position");
@@ -1159,6 +1223,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[1]->SamplerTexture0Location = _shaderSets[1]->ShaderProgram->getUniformLocation("s_texture0");
     _shaderSets[1]->UniformMatrixLocation = _shaderSets[1]->ShaderProgram->getUniformLocation("u_matrix");
     _shaderSets[1]->UniformBaseColorLocation = _shaderSets[1]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[1]->UniformMultiplyColorLocation = _shaderSets[1]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[1]->UniformScreenColorLocation = _shaderSets[1]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 通常（クリッピング）
     _shaderSets[2]->AttributePositionLocation = _shaderSets[2]->ShaderProgram->getAttributeLocation("a_position");
@@ -1169,6 +1235,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[2]->UniformClipMatrixLocation = _shaderSets[2]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[2]->UnifromChannelFlagLocation = _shaderSets[2]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[2]->UniformBaseColorLocation = _shaderSets[2]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[2]->UniformMultiplyColorLocation = _shaderSets[2]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[2]->UniformScreenColorLocation = _shaderSets[2]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 通常（クリッピング・反転）
     _shaderSets[3]->AttributePositionLocation = _shaderSets[3]->ShaderProgram->getAttributeLocation("a_position");
@@ -1179,6 +1247,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[3]->UniformClipMatrixLocation = _shaderSets[3]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[3]->UnifromChannelFlagLocation = _shaderSets[3]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[3]->UniformBaseColorLocation = _shaderSets[3]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[3]->UniformMultiplyColorLocation = _shaderSets[3]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[3]->UniformScreenColorLocation = _shaderSets[3]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 通常（PremultipliedAlpha）
     _shaderSets[4]->AttributePositionLocation = _shaderSets[4]->ShaderProgram->getAttributeLocation("a_position");
@@ -1186,6 +1256,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[4]->SamplerTexture0Location = _shaderSets[4]->ShaderProgram->getUniformLocation("s_texture0");
     _shaderSets[4]->UniformMatrixLocation = _shaderSets[4]->ShaderProgram->getUniformLocation("u_matrix");
     _shaderSets[4]->UniformBaseColorLocation = _shaderSets[4]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[4]->UniformMultiplyColorLocation = _shaderSets[4]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[4]->UniformScreenColorLocation = _shaderSets[4]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 通常（クリッピング、PremultipliedAlpha）
     _shaderSets[5]->AttributePositionLocation = _shaderSets[5]->ShaderProgram->getAttributeLocation("a_position");
@@ -1196,6 +1268,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[5]->UniformClipMatrixLocation = _shaderSets[5]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[5]->UnifromChannelFlagLocation = _shaderSets[5]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[5]->UniformBaseColorLocation = _shaderSets[5]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[5]->UniformMultiplyColorLocation = _shaderSets[5]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[5]->UniformScreenColorLocation = _shaderSets[5]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 通常（クリッピング・反転、PremultipliedAlpha）
     _shaderSets[6]->AttributePositionLocation = _shaderSets[6]->ShaderProgram->getAttributeLocation("a_position");
@@ -1206,6 +1280,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[6]->UniformClipMatrixLocation = _shaderSets[6]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[6]->UnifromChannelFlagLocation = _shaderSets[6]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[6]->UniformBaseColorLocation = _shaderSets[6]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[6]->UniformMultiplyColorLocation = _shaderSets[6]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[6]->UniformScreenColorLocation = _shaderSets[6]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 加算
     _shaderSets[7]->AttributePositionLocation = _shaderSets[7]->ShaderProgram->getAttributeLocation("a_position");
@@ -1213,6 +1289,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[7]->SamplerTexture0Location = _shaderSets[7]->ShaderProgram->getUniformLocation("s_texture0");
     _shaderSets[7]->UniformMatrixLocation = _shaderSets[7]->ShaderProgram->getUniformLocation("u_matrix");
     _shaderSets[7]->UniformBaseColorLocation = _shaderSets[7]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[7]->UniformMultiplyColorLocation = _shaderSets[7]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[7]->UniformScreenColorLocation = _shaderSets[7]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 加算（クリッピング）
     _shaderSets[8]->AttributePositionLocation = _shaderSets[8]->ShaderProgram->getAttributeLocation("a_position");
@@ -1223,6 +1301,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[8]->UniformClipMatrixLocation = _shaderSets[8]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[8]->UnifromChannelFlagLocation = _shaderSets[8]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[8]->UniformBaseColorLocation = _shaderSets[8]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[8]->UniformMultiplyColorLocation = _shaderSets[8]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[8]->UniformScreenColorLocation = _shaderSets[8]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 加算（クリッピング・反転）
     _shaderSets[9]->AttributePositionLocation = _shaderSets[9]->ShaderProgram->getAttributeLocation("a_position");
@@ -1233,6 +1313,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[9]->UniformClipMatrixLocation = _shaderSets[9]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[9]->UnifromChannelFlagLocation = _shaderSets[9]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[9]->UniformBaseColorLocation = _shaderSets[9]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[9]->UniformMultiplyColorLocation = _shaderSets[9]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[9]->UniformScreenColorLocation = _shaderSets[9]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 加算（PremultipliedAlpha）
     _shaderSets[10]->AttributePositionLocation = _shaderSets[10]->ShaderProgram->getAttributeLocation("a_position");
@@ -1240,6 +1322,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[10]->SamplerTexture0Location = _shaderSets[10]->ShaderProgram->getUniformLocation("s_texture0");
     _shaderSets[10]->UniformMatrixLocation = _shaderSets[10]->ShaderProgram->getUniformLocation("u_matrix");
     _shaderSets[10]->UniformBaseColorLocation = _shaderSets[10]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[10]->UniformMultiplyColorLocation = _shaderSets[10]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[10]->UniformScreenColorLocation = _shaderSets[10]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 加算（クリッピング、PremultipliedAlpha）
     _shaderSets[11]->AttributePositionLocation = _shaderSets[11]->ShaderProgram->getAttributeLocation("a_position");
@@ -1250,6 +1334,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[11]->UniformClipMatrixLocation = _shaderSets[11]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[11]->UnifromChannelFlagLocation = _shaderSets[11]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[11]->UniformBaseColorLocation = _shaderSets[11]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[11]->UniformMultiplyColorLocation = _shaderSets[11]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[11]->UniformScreenColorLocation = _shaderSets[11]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 加算（クリッピング・反転、PremultipliedAlpha）
     _shaderSets[12]->AttributePositionLocation = _shaderSets[12]->ShaderProgram->getAttributeLocation("a_position");
@@ -1260,6 +1346,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[12]->UniformClipMatrixLocation = _shaderSets[12]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[12]->UnifromChannelFlagLocation = _shaderSets[12]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[12]->UniformBaseColorLocation = _shaderSets[12]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[12]->UniformMultiplyColorLocation = _shaderSets[12]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[12]->UniformScreenColorLocation = _shaderSets[12]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 乗算
     _shaderSets[13]->AttributePositionLocation = _shaderSets[13]->ShaderProgram->getAttributeLocation("a_position");
@@ -1267,6 +1355,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[13]->SamplerTexture0Location = _shaderSets[13]->ShaderProgram->getUniformLocation("s_texture0");
     _shaderSets[13]->UniformMatrixLocation = _shaderSets[13]->ShaderProgram->getUniformLocation("u_matrix");
     _shaderSets[13]->UniformBaseColorLocation = _shaderSets[13]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[13]->UniformMultiplyColorLocation = _shaderSets[13]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[13]->UniformScreenColorLocation = _shaderSets[13]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 乗算（クリッピング）
     _shaderSets[14]->AttributePositionLocation = _shaderSets[14]->ShaderProgram->getAttributeLocation("a_position");
@@ -1277,6 +1367,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[14]->UniformClipMatrixLocation = _shaderSets[14]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[14]->UnifromChannelFlagLocation = _shaderSets[14]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[14]->UniformBaseColorLocation = _shaderSets[14]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[14]->UniformMultiplyColorLocation = _shaderSets[14]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[14]->UniformScreenColorLocation = _shaderSets[14]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 乗算（クリッピング・反転）
     _shaderSets[15]->AttributePositionLocation = _shaderSets[15]->ShaderProgram->getAttributeLocation("a_position");
@@ -1287,6 +1379,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[15]->UniformClipMatrixLocation = _shaderSets[15]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[15]->UnifromChannelFlagLocation = _shaderSets[15]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[15]->UniformBaseColorLocation = _shaderSets[15]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[15]->UniformMultiplyColorLocation = _shaderSets[15]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[15]->UniformScreenColorLocation = _shaderSets[15]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 乗算（PremultipliedAlpha）
     _shaderSets[16]->AttributePositionLocation = _shaderSets[16]->ShaderProgram->getAttributeLocation( "a_position");
@@ -1294,6 +1388,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[16]->SamplerTexture0Location = _shaderSets[16]->ShaderProgram->getUniformLocation("s_texture0");
     _shaderSets[16]->UniformMatrixLocation = _shaderSets[16]->ShaderProgram->getUniformLocation("u_matrix");
     _shaderSets[16]->UniformBaseColorLocation = _shaderSets[16]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[16]->UniformMultiplyColorLocation = _shaderSets[16]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[16]->UniformScreenColorLocation = _shaderSets[16]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 乗算（クリッピング、PremultipliedAlpha）
     _shaderSets[17]->AttributePositionLocation = _shaderSets[17]->ShaderProgram->getAttributeLocation("a_position");
@@ -1304,6 +1400,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[17]->UniformClipMatrixLocation = _shaderSets[17]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[17]->UnifromChannelFlagLocation = _shaderSets[17]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[17]->UniformBaseColorLocation = _shaderSets[17]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[17]->UniformMultiplyColorLocation = _shaderSets[17]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[17]->UniformScreenColorLocation = _shaderSets[17]->ShaderProgram->getUniformLocation("u_screenColor");
 
     // 乗算（クリッピング・反転、PremultipliedAlpha）
     _shaderSets[18]->AttributePositionLocation = _shaderSets[18]->ShaderProgram->getAttributeLocation("a_position");
@@ -1314,6 +1412,8 @@ void CubismShader_Cocos2dx::GenerateShaders()
     _shaderSets[18]->UniformClipMatrixLocation = _shaderSets[18]->ShaderProgram->getUniformLocation("u_clipMatrix");
     _shaderSets[18]->UnifromChannelFlagLocation = _shaderSets[18]->ShaderProgram->getUniformLocation("u_channelFlag");
     _shaderSets[18]->UniformBaseColorLocation = _shaderSets[18]->ShaderProgram->getUniformLocation("u_baseColor");
+    _shaderSets[18]->UniformMultiplyColorLocation = _shaderSets[18]->ShaderProgram->getUniformLocation("u_multiplyColor");
+    _shaderSets[18]->UniformScreenColorLocation = _shaderSets[18]->ShaderProgram->getUniformLocation("u_screenColor");
 }
 
 void CubismShader_Cocos2dx::SetupShaderProgram(CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand* drawCommand, CubismRenderer_Cocos2dx* renderer, cocos2d::Texture2D* texture
@@ -1321,6 +1421,8 @@ void CubismShader_Cocos2dx::SetupShaderProgram(CubismCommandBuffer_Cocos2dx::Dra
                                                 , csmFloat32* uvArray, csmFloat32 opacity
                                                 , CubismRenderer::CubismBlendMode colorBlendMode
                                                 , CubismRenderer::CubismTextureColor baseColor
+                                                , CubismRenderer::CubismTextureColor multiplyColor
+                                                , CubismRenderer::CubismTextureColor screenColor
                                                 , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4
                                                 , csmBool invertedMask)
 {
@@ -1369,6 +1471,12 @@ void CubismShader_Cocos2dx::SetupShaderProgram(CubismCommandBuffer_Cocos2dx::Dra
                                     rect->GetRight() * 2.0f - 1.0f,
                                     rect->GetBottom() * 2.0f - 1.0f };
         programState->setUniform(shaderSet->UniformBaseColorLocation, base, sizeof(float) * 4);
+
+        csmFloat32 multiply[4] = { multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
+        programState->setUniform(shaderSet->UniformMultiplyColorLocation, multiply, sizeof(float) * 4);
+
+        csmFloat32 screen[4] = { screenColor.R, screenColor.G, screenColor.B, screenColor.A };
+        programState->setUniform(shaderSet->UniformScreenColorLocation, screen, sizeof(float) * 4);
 
         blendDescriptor->sourceRGBBlendFactor = cocos2d::backend::BlendFactor::ZERO;
         blendDescriptor->destinationRGBBlendFactor = cocos2d::backend::BlendFactor::ONE_MINUS_SRC_COLOR;
@@ -1446,6 +1554,12 @@ void CubismShader_Cocos2dx::SetupShaderProgram(CubismCommandBuffer_Cocos2dx::Dra
 
         csmFloat32 base[4] = { baseColor.R, baseColor.G, baseColor.B, baseColor.A };
         programState->setUniform(shaderSet->UniformBaseColorLocation, base, sizeof(float) * 4);
+
+        csmFloat32 multiply[4] = { multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
+        programState->setUniform(shaderSet->UniformMultiplyColorLocation, multiply, sizeof(float) * 4);
+
+        csmFloat32 screen[4] = { screenColor.R, screenColor.G, screenColor.B, screenColor.A };
+        programState->setUniform(shaderSet->UniformScreenColorLocation, screen, sizeof(float) * 4);
     }
 
     programState->getVertexLayout()->setLayout(sizeof(csmFloat32) * 4);
@@ -1704,6 +1818,8 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
                         const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
                         const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(clipDrawIndex)),
                         reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(clipDrawIndex))),
+                        GetModel()->GetMultiplyColor(clipDrawIndex),
+                        GetModel()->GetScreenColor(clipDrawIndex),
                         GetModel()->GetDrawableOpacity(clipDrawIndex),
                         CubismRenderer::CubismBlendMode_Normal,   //クリッピングは通常描画を強制
                         false // マスク生成時はクリッピングの反転使用は全く関係がない
@@ -1741,6 +1857,8 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
             const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(drawableIndex)),
             const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(drawableIndex)),
             reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(drawableIndex))),
+            GetModel()->GetMultiplyColor(drawableIndex),
+            GetModel()->GetScreenColor(drawableIndex),
             GetModel()->GetDrawableOpacity(drawableIndex),
             GetModel()->GetDrawableBlendMode(drawableIndex),
             GetModel()->GetDrawableInvertedMask(drawableIndex) // マスクを反転使用するか
@@ -1760,6 +1878,7 @@ void CubismRenderer_Cocos2dx::DrawMesh(csmInt32 textureNo, csmInt32 indexCount, 
 
 void CubismRenderer_Cocos2dx::DrawMeshCocos2d(CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand* drawCommand, csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
                                         , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+                                        , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
                                         , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask)
 {
 #ifndef CSM_DEBUG
@@ -1808,7 +1927,7 @@ void CubismRenderer_Cocos2dx::DrawMeshCocos2d(CubismCommandBuffer_Cocos2dx::Draw
 
     CubismShader_Cocos2dx::GetInstance()->SetupShaderProgram(
         drawCommand, this, drawTexture, vertexCount, vertexArray, uvArray
-        , opacity, colorBlendMode, modelColorRGBA, IsPremultipliedAlpha()
+        , opacity, colorBlendMode, modelColorRGBA, multiplyColor, screenColor, IsPremultipliedAlpha()
         , GetMvpMatrix(), invertedMask
     );
 

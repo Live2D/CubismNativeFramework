@@ -16,6 +16,8 @@ static const csmChar* CubismShaderEffectSrc =
     "float4x4 projectMatrix;"\
     "float4x4 clipMatrix;"\
     "float4 baseColor;"\
+    "float4 multiplyColor;"\
+    "float4 screenColor;"\
     "float4 channelFlag;"\
     "texture mainTexture;"\
     "texture maskTexture;"\
@@ -77,20 +79,29 @@ static const csmChar* CubismShaderEffectSrc =
 "/* Pixel Shader */"\
     "/* normal */"\
     "float4 PixelNormal(VS_OUT In) : COLOR0{"\
-        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = tex2D(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "color.xyz *= color.w;"\
         "return color;"\
     "}"\
     \
     "/* normal premult alpha */"\
     "float4 PixelNormalPremult(VS_OUT In) : COLOR0{"\
-        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = tex2D(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "return color;"\
     "}"\
     \
     "/* masked */"\
     "float4 PixelMasked(VS_OUT In) : COLOR0{"\
-        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = tex2D(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "color.xyz *= color.w;"\
         "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
@@ -99,7 +110,10 @@ static const csmChar* CubismShaderEffectSrc =
     "}"\
     "/* masked inverted */"
     "float4 PixelMaskedInverted(VS_OUT In) : COLOR0{"\
-        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = tex2D(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "color.xyz *= color.w;"\
         "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
@@ -108,7 +122,10 @@ static const csmChar* CubismShaderEffectSrc =
     "}"\
     "/* masked premult alpha */"\
     "float4 PixelMaskedPremult(VS_OUT In) : COLOR0{"\
-        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = tex2D(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
         "color = color * maskVal;"\
@@ -116,7 +133,10 @@ static const csmChar* CubismShaderEffectSrc =
     "}"\
     "/* masked inverted premult alpha */"\
     "float4 PixelMaskedInvertedPremult(VS_OUT In) : COLOR0{"\
-        "float4 color = tex2D(mainSampler, In.uv) * baseColor;"\
+        "float4 texColor = tex2D(mainSampler, In.uv);"\
+        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
+        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
+        "float4 color = texColor * baseColor;"\
         "float4 clipMask = (1.0 - tex2D(maskSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;"\
         "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;"\
         "color = color * (1.0 - maskVal);"\

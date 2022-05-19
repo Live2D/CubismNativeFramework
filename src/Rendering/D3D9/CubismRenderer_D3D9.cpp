@@ -329,6 +329,8 @@ void CubismClippingManager_DX9::SetupClippingContext(LPDIRECT3DDEVICE9 device, C
                         const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
                         const_cast<csmFloat32*>(model.GetDrawableVertices(clipDrawIndex)),
                         reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(model.GetDrawableVertexUvs(clipDrawIndex))),
+                        model.GetMultiplyColor(clipDrawIndex),
+                        model.GetScreenColor(clipDrawIndex),
                         model.GetDrawableOpacity(clipDrawIndex),
                         CubismRenderer::CubismBlendMode::CubismBlendMode_Normal, //クリッピングは通常描画を強制
                         false   // マスク生成時はクリッピングの反転使用は全く関係がない
@@ -961,6 +963,8 @@ void CubismRenderer_D3D9::DoDrawModel()
                         const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
                         const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(clipDrawIndex)),
                         reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(clipDrawIndex))),
+                        GetModel()->GetMultiplyColor(clipDrawIndex),
+                        GetModel()->GetScreenColor(clipDrawIndex),
                         GetModel()->GetDrawableOpacity(clipDrawIndex),
                         CubismRenderer::CubismBlendMode::CubismBlendMode_Normal, //クリッピングは通常描画を強制
                         false   // マスク生成時はクリッピングの反転使用は全く関係がない
@@ -992,6 +996,8 @@ void CubismRenderer_D3D9::DoDrawModel()
             const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(drawableIndex)),
             const_cast<csmFloat32*>(GetModel()->GetDrawableVertices(drawableIndex)),
             reinterpret_cast<csmFloat32*>(const_cast<Core::csmVector2*>(GetModel()->GetDrawableVertexUvs(drawableIndex))),
+            GetModel()->GetMultiplyColor(drawableIndex),
+            GetModel()->GetScreenColor(drawableIndex),
             GetModel()->GetDrawableOpacity(drawableIndex),
             GetModel()->GetDrawableBlendMode(drawableIndex),
             GetModel()->GetDrawableInvertedMask(drawableIndex)    // マスクを反転使用するか
@@ -1005,7 +1011,7 @@ void CubismRenderer_D3D9::DoDrawModel()
 
 void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9* vertexArray, csmUint16* indexArray,
     const csmInt32 vertexCount, const csmInt32 triangleCount,
-    const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, CubismBlendMode colorBlendMode, csmBool invertedMask)
+    const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor, CubismBlendMode colorBlendMode, csmBool invertedMask)
 {
     // 使用シェーダエフェクト取得
     CubismShader_D3D9* shaderManager = Live2D::Cubism::Framework::Rendering::CubismRenderer_D3D9::GetShaderManager();
@@ -1076,6 +1082,12 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
 
                 D3DXVECTOR4 color(rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f);
                 shaderEffect->SetVector("baseColor", &color);
+
+                D3DXVECTOR4 shaderMultiplyColor(multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
+                shaderEffect->SetVector("multiplyColor", &shaderMultiplyColor);
+
+                D3DXVECTOR4 shaderScreenColor(screenColor.R, screenColor.G, screenColor.B, screenColor.A);
+                shaderEffect->SetVector("screenColor", &shaderScreenColor);
 
                 D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
                 shaderEffect->SetVector("channelFlag", &channel);
@@ -1236,6 +1248,11 @@ void CubismRenderer_D3D9::ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9
                 shaderEffect->SetMatrix("projectMatrix", &proj);
                 D3DXVECTOR4 color(modelColorRGBA.R, modelColorRGBA.G, modelColorRGBA.B, modelColorRGBA.A);
                 shaderEffect->SetVector("baseColor", &color);
+
+                D3DXVECTOR4 shaderMultiplyColor(multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
+                shaderEffect->SetVector("multiplyColor", &shaderMultiplyColor);
+                D3DXVECTOR4 shaderScreenColor(screenColor.R, screenColor.G, screenColor.B, screenColor.A);
+                shaderEffect->SetVector("screenColor", &shaderScreenColor);
             }
 
             // パラメータ反映
@@ -1261,6 +1278,7 @@ void CubismRenderer_D3D9::DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmI
 void CubismRenderer_D3D9::DrawMeshDX9( csmInt32 drawableIndex
     , csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
     , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+    , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
     , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask)
 {
     if (s_useDevice == NULL)
@@ -1318,7 +1336,7 @@ void CubismRenderer_D3D9::DrawMeshDX9( csmInt32 drawableIndex
     // シェーダーセット
     ExecuteDraw(s_useDevice, _vertexStore[drawableIndex], _indexStore[drawableIndex],
         vertexCount, indexCount/3,
-        textureNo, modelColorRGBA, colorBlendMode, invertedMask);
+        textureNo, modelColorRGBA, multiplyColor, screenColor, colorBlendMode, invertedMask);
 
     SetClippingContextBufferForDraw(NULL);
     SetClippingContextBufferForMask(NULL);

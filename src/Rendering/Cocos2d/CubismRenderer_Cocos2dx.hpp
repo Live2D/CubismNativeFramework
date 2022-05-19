@@ -247,6 +247,8 @@ private:
         cocos2d::backend::UniformLocation SamplerTexture0Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture0)
         cocos2d::backend::UniformLocation SamplerTexture1Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture1)
         cocos2d::backend::UniformLocation UniformBaseColorLocation;     ///< シェーダプログラムに渡す変数のアドレス(BaseColor)
+        cocos2d::backend::UniformLocation UniformMultiplyColorLocation;     ///< シェーダプログラムに渡す変数のアドレス(MultiplyColor)
+        cocos2d::backend::UniformLocation UniformScreenColorLocation;     ///< シェーダプログラムに渡す変数のアドレス(ScreenColor)
         cocos2d::backend::UniformLocation UnifromChannelFlagLocation;   ///< シェーダプログラムに渡す変数のアドレス(ChannelFlag)
     };
 
@@ -280,6 +282,8 @@ private:
                             , csmFloat32* uvArray, csmFloat32 opacity
                             , CubismRenderer::CubismBlendMode colorBlendMode
                             , CubismRenderer::CubismTextureColor baseColor
+                            , CubismRenderer::CubismTextureColor multiplyColor
+                            , CubismRenderer::CubismTextureColor screenColor
                             , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4
                             , csmBool invertedMask);
 
@@ -464,6 +468,7 @@ protected:
 
     void DrawMeshCocos2d(CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand* drawCommand, csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
                   , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+                  , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
                   , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
     CubismCommandBuffer_Cocos2dx::DrawCommandBuffer* GetDrawCommandBufferData(csmInt32 drawableIndex);

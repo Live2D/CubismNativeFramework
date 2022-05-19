@@ -113,7 +113,10 @@ FragShaderSrc(NormalRasterizerData in [[stage_in]],
               constant CubismNormalShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
               sampler smp [[sampler(0)]])
 {
-    float4 color = texture.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture.sample(smp, in.texCoord);
+    texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
+    texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
+    float4 color = texColor * uniforms.baseColor;
     float4 gl_FragColor = float4(color.rgb * color.a,  color.a);
 
     return gl_FragColor;
@@ -126,7 +129,10 @@ FragShaderSrcPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
                         constant CubismNormalShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                         sampler smp [[sampler(0)]])
 {
-    float4 gl_FragColor = texture.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture.sample(smp, in.texCoord);
+    texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
+    texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
+    float4 gl_FragColor = texColor * uniforms.baseColor;
 
     return gl_FragColor;
 }
@@ -139,7 +145,10 @@ FragShaderSrcMask(MaskedRasterizerData in [[stage_in]],
                     constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                     sampler smp [[sampler(0)]])
 {
-    float4 col_formask = texture0.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture0.sample(smp, in.texCoord);
+    texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
+    texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
+    float4 col_formask = texColor * uniforms.baseColor;
     col_formask.rgb = col_formask.rgb  * col_formask.a ;
     float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
@@ -156,7 +165,10 @@ FragShaderSrcMaskInverted(MaskedRasterizerData in [[stage_in]],
                     constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                     sampler smp [[sampler(0)]])
 {
-    float4 col_formask = texture0.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture0.sample(smp, in.texCoord);
+    texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
+    texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
+    float4 col_formask = texColor * uniforms.baseColor;
     col_formask.rgb = col_formask.rgb  * col_formask.a ;
     float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
@@ -173,7 +185,10 @@ FragShaderSrcMaskPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
                                     constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                                     sampler smp [[sampler(0)]])
 {
-    float4 col_formask = texture0.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture0.sample(smp, in.texCoord);
+    texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
+    texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
+    float4 col_formask = texColor * uniforms.baseColor;
     float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     col_formask = col_formask * maskVal;
@@ -189,7 +204,10 @@ FragShaderSrcMaskInvertedPremultipliedAlpha(MaskedRasterizerData in [[stage_in]]
                     constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                     sampler smp [[sampler(0)]])
 {
-    float4 col_formask = texture0.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture0.sample(smp, in.texCoord);
+    texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
+    texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
+    float4 col_formask = texColor * uniforms.baseColor;
     float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     col_formask = col_formask * (1.0 - maskVal);

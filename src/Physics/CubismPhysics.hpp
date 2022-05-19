@@ -54,6 +54,13 @@ public:
     static void Delete(CubismPhysics* physics);
 
     /**
+     * @brief パラメータのリセット
+     *
+     * パラメータをリセットする。
+     */
+     void Reset();
+
+    /**
      * @brief 物理演算の評価
      *
      * 物理演算を評価する。

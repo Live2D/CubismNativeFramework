@@ -446,6 +446,23 @@ void CubismPhysics::Initialize()
     }
 }
 
+/// Reset the physics states.
+void CubismPhysics::Reset()
+{
+    // set default options.
+    _options.Gravity.Y = -1.0f;
+    _options.Gravity.X = 0.0f;
+    _options.Wind.X = 0.0f;
+    _options.Wind.Y = 0.0f;
+
+    _physicsRig->Gravity.X = 0.0f;
+    _physicsRig->Gravity.Y = 0.0f;
+    _physicsRig->Wind.X = 0.0f;
+    _physicsRig->Wind.Y = 0.0f;
+
+    Initialize();
+}
+
 CubismPhysics* CubismPhysics::Create(const csmByte* buffer, csmSizeInt size)
 {
     CubismPhysics* ret = CSM_NEW CubismPhysics();

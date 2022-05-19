@@ -94,18 +94,16 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
 
 void CubismOffscreenFrame_Metal::DestroyOffscreenFrame()
 {
-    if(!_isInheritedRenderTexture)
+    if (!_isInheritedRenderTexture)
     {
         _colorBuffer = NULL;
     }
-
 }
 
 id <MTLTexture> CubismOffscreenFrame_Metal::GetColorBuffer() const
 {
     return _colorBuffer;
 }
-
 
 void CubismOffscreenFrame_Metal::SetClearColor(float r, float g, float b, float a)
 {
