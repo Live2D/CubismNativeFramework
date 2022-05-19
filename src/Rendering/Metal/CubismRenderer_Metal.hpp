@@ -257,6 +257,8 @@ private:
                             , csmFloat32 opacity
                             , CubismRenderer::CubismBlendMode colorBlendMode
                             , CubismRenderer::CubismTextureColor baseColor
+                            , CubismRenderer::CubismTextureColor multiplyColor
+                            , CubismRenderer::CubismTextureColor screenColor
                             , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4
                             , csmBool invertedMask
                             , id <MTLRenderCommandEncoder> renderEncoder);
@@ -415,6 +417,7 @@ protected:
 
     void DrawMeshMetal(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
                   , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+                  , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
                   , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask
                   , csmInt32 drawableIndex
                   , id <MTLRenderCommandEncoder> renderEncoder);

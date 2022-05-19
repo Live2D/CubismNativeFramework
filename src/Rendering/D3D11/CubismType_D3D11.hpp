@@ -28,6 +28,8 @@ struct CubismConstantBufferD3D11
     DirectX::XMFLOAT4X4 projectMatrix;
     DirectX::XMFLOAT4X4 clipMatrix;
     DirectX::XMFLOAT4 baseColor;
+    DirectX::XMFLOAT4 multiplyColor;
+    DirectX::XMFLOAT4 screenColor;
     DirectX::XMFLOAT4 channelFlag;
 };
 

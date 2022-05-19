@@ -23,6 +23,8 @@ typedef struct
 {
     simd::float4x4 matrix;
     vector_float4 baseColor;
+    vector_float4 multiplyColor;
+    vector_float4 screenColor;
 
 } CubismNormalShaderUniforms;
 
@@ -46,6 +48,8 @@ typedef struct
 {
     vector_float4 channelFlag;
     vector_float4 baseColor;
+    vector_float4 multiplyColor;
+    vector_float4 screenColor;
 
 } CubismFragMaskedShaderUniforms;
 

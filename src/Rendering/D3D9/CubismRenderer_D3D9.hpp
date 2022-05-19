@@ -335,13 +335,15 @@ public:
      * @param[in]  device          -> 使用デバイス
      * @param[in]  textureNo        -> 使用テクスチャ番号。基本的にCubismModel::GetDrawableTextureIndicesで返されたもの
      * @param[in]  modelColorRGBA   -> 描画カラー
+     * @param[in]  multiplyColor   -> 乗算色
+     * @param[in]  screenColor   -> スクリーン色
      * @param[in]  colorBlendMode   -> ブレンドモード
      * @param[in]  invertedMask      -> マスク使用時のマスクの反転設定
      *
      */
     void ExecuteDraw(LPDIRECT3DDEVICE9 device, CubismVertexD3D9* vertexArray, csmUint16* indexArray,
         const csmInt32 vertexCount, const csmInt32 triangleCount,
-        const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, CubismBlendMode colorBlendMode, csmBool invertedMask);
+        const csmInt32 textureNo, CubismTextureColor& modelColorRGBA, const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor, CubismBlendMode colorBlendMode, csmBool invertedMask);
 
 protected:
     /**
@@ -379,8 +381,8 @@ protected:
     void DrawMeshDX9(csmInt32 drawableIndex
         , csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
         , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
+        , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
         , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
-
 
 private:
 
