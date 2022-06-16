@@ -316,7 +316,7 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
 
                     renderer->DrawMeshMetal(
                         drawCommandBufferData,
-                        model.GetDrawableTextureIndices(clipDrawIndex),
+                        model.GetDrawableTextureIndex(clipDrawIndex),
                         model.GetDrawableVertexIndexCount(clipDrawIndex),
                         model.GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
@@ -1329,7 +1329,7 @@ void CubismRenderer_Metal::DoDrawModel()
                     SetClippingContextBufferForMask(clipContext);
                     DrawMeshMetal(
                         clipContext->_clippingCommandBufferList->At(index),
-                        GetModel()->GetDrawableTextureIndices(clipDrawIndex),
+                        GetModel()->GetDrawableTextureIndex(clipDrawIndex),
                         GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
                         GetModel()->GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
@@ -1372,7 +1372,7 @@ void CubismRenderer_Metal::DoDrawModel()
 
         DrawMeshMetal(
             _drawableDrawCommandBuffer[drawableIndex],
-            GetModel()->GetDrawableTextureIndices(drawableIndex),
+            GetModel()->GetDrawableTextureIndex(drawableIndex),
             GetModel()->GetDrawableVertexIndexCount(drawableIndex),
             GetModel()->GetDrawableVertexCount(drawableIndex),
             const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(drawableIndex)),

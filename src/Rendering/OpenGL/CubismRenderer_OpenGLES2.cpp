@@ -304,7 +304,7 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
                     renderer->SetClippingContextBufferForMask(clipContext);
 
                     renderer->DrawMeshOpenGL(
-                        model.GetDrawableTextureIndices(clipDrawIndex),
+                        model.GetDrawableTextureIndex(clipDrawIndex),
                         model.GetDrawableVertexIndexCount(clipDrawIndex),
                         model.GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
@@ -2047,7 +2047,7 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
                     SetClippingContextBufferForMask(clipContext);
 
                     DrawMeshOpenGL(
-                        GetModel()->GetDrawableTextureIndices(clipDrawIndex),
+                        GetModel()->GetDrawableTextureIndex(clipDrawIndex),
                         GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
                         GetModel()->GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
@@ -2078,7 +2078,7 @@ void CubismRenderer_OpenGLES2::DoDrawModel()
         IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
 
         DrawMeshOpenGL(
-            GetModel()->GetDrawableTextureIndices(drawableIndex),
+            GetModel()->GetDrawableTextureIndex(drawableIndex),
             GetModel()->GetDrawableVertexIndexCount(drawableIndex),
             GetModel()->GetDrawableVertexCount(drawableIndex),
             const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(drawableIndex)),

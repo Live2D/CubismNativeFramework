@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4-r.5-beta.3] - 2022-06-16
+
+### Fixed
+
+* `GetDrawableTextureIndices` function in `CubismModel` has been renamed to `GetDrawableTextureIndex` because the name was not correct.
+  * `GetDrawableTextureIndices` function is marked as deprecated.
+* Fix physics system behaviour when exists Physics Fps Setting in .physics3.json.
+* Fix force close problem when invalid `physics3.json` is read.
+* Fixed memory leak in Cocos2d-x.
+
 
 ## [4-r.5-beta.2] - 2022-06-02
 
@@ -163,6 +173,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.2...4-r.5-beta.3
 [4-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.1...4-r.5-beta.2
 [4-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.4...4-r.5-beta.1
 [4-r.4]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.4-beta.1...4-r.4

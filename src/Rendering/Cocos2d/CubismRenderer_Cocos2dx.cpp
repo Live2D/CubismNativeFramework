@@ -323,7 +323,7 @@ void CubismClippingManager_Cocos2dx::SetupClippingContext(CubismModel& model, Cu
 
                     renderer->DrawMeshCocos2d(
                         drawCommandBufferData->GetCommandDraw(),
-                        model.GetDrawableTextureIndices(clipDrawIndex),
+                        model.GetDrawableTextureIndex(clipDrawIndex),
                         model.GetDrawableVertexIndexCount(clipDrawIndex),
                         model.GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
@@ -1617,6 +1617,31 @@ CubismRenderer_Cocos2dx::CubismRenderer_Cocos2dx() : _clippingManager(NULL)
 CubismRenderer_Cocos2dx::~CubismRenderer_Cocos2dx()
 {
     CSM_DELETE_SELF(CubismClippingManager_Cocos2dx, _clippingManager);
+
+    if (_drawableDrawCommandBuffer.GetSize() > 0)
+    {
+        for (csmInt32 i = 0 ; i < _drawableDrawCommandBuffer.GetSize() ; i++)
+        {
+            if (_drawableDrawCommandBuffer[i] != NULL)
+            {
+                CSM_DELETE(_drawableDrawCommandBuffer[i]);
+            }
+        }
+    }
+
+    if (_drawableDrawCommandBuffer.GetSize() > 0)
+    {
+        _drawableDrawCommandBuffer.Clear();
+    }
+
+    if (_textures.GetSize() > 0)
+    {
+        _textures.Clear();
+    }
+    if (_offscreenFrameBuffer.IsValid())
+    {
+        _offscreenFrameBuffer.DestroyOffscreenFrame();
+    }
 }
 
 void CubismRenderer_Cocos2dx::DoStaticRelease()
@@ -1812,7 +1837,7 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
                     SetClippingContextBufferForMask(clipContext);
                     DrawMeshCocos2d(
                         drawCommandBufferMask->GetCommandDraw(),
-                        GetModel()->GetDrawableTextureIndices(clipDrawIndex),
+                        GetModel()->GetDrawableTextureIndex(clipDrawIndex),
                         GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
                         GetModel()->GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
@@ -1851,7 +1876,7 @@ void CubismRenderer_Cocos2dx::DoDrawModel()
 
         DrawMeshCocos2d(
             drawCommandDraw,
-            GetModel()->GetDrawableTextureIndices(drawableIndex),
+            GetModel()->GetDrawableTextureIndex(drawableIndex),
             GetModel()->GetDrawableVertexIndexCount(drawableIndex),
             GetModel()->GetDrawableVertexCount(drawableIndex),
             const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(drawableIndex)),

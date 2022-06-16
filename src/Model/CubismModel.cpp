@@ -446,6 +446,11 @@ csmInt32 CubismModel::GetDrawableCount() const
 
 csmInt32 CubismModel::GetDrawableTextureIndices(csmInt32 drawableIndex) const
 {
+    return GetDrawableTextureIndex(drawableIndex);
+}
+
+csmInt32 CubismModel::GetDrawableTextureIndex(csmInt32 drawableIndex) const
+{
     const csmInt32* textureIndices = Core::csmGetDrawableTextureIndices(_model);
     return textureIndices[drawableIndex];
 }

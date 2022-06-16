@@ -341,6 +341,9 @@ public:
     const csmInt32*     GetDrawableRenderOrders() const;
 
     /**
+     * @deprecated
+     * 関数名が誤っていたため、代替となる getDrawableTextureIndex を追加し、この関数は非推奨となりました。
+     *
      * @brief Drawableのテクスチャインデックスリストの取得
      *
      * Drawableのテクスチャインデックスリストを取得する。
@@ -349,6 +352,16 @@ public:
      * @return  Drawableのテクスチャインデックスリスト
      */
     csmInt32            GetDrawableTextureIndices(csmInt32 drawableIndex) const;
+
+    /**
+     * @brief Drawableのテクスチャインデックスリストの取得
+     *
+     * Drawableのテクスチャインデックスを取得する。
+     *
+     * @param[in]   drawableIndex   Drawableのインデックス
+     * @return  Drawableのテクスチャインデックス
+     */
+    csmInt32            GetDrawableTextureIndex(csmInt32 drawableIndex) const;
 
     /**
      * @brief Drawableの頂点インデックスの個数の取得
