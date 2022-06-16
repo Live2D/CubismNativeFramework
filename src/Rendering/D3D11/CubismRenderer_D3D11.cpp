@@ -322,7 +322,7 @@ void CubismClippingManager_D3D11::SetupClippingContext(ID3D11DeviceContext* rend
                     // チャンネルも切り替える必要がある(A,R,G,B)
                     renderer->SetClippingContextBufferForMask(clipContext);
                     renderer->DrawMeshDX11(clipDrawIndex,
-                        model.GetDrawableTextureIndices(clipDrawIndex),
+                        model.GetDrawableTextureIndex(clipDrawIndex),
                         model.GetDrawableVertexIndexCount(clipDrawIndex),
                         model.GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(model.GetDrawableVertexIndices(clipDrawIndex)),
@@ -1028,7 +1028,7 @@ void CubismRenderer_D3D11::DoDrawModel()
                     // チャンネルも切り替える必要がある(A,R,G,B)
                     SetClippingContextBufferForMask(clipContext);
                     DrawMeshDX11(clipDrawIndex,
-                        GetModel()->GetDrawableTextureIndices(clipDrawIndex),
+                        GetModel()->GetDrawableTextureIndex(clipDrawIndex),
                         GetModel()->GetDrawableVertexIndexCount(clipDrawIndex),
                         GetModel()->GetDrawableVertexCount(clipDrawIndex),
                         const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(clipDrawIndex)),
@@ -1061,7 +1061,7 @@ void CubismRenderer_D3D11::DoDrawModel()
         IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
 
         DrawMeshDX11(drawableIndex,
-            GetModel()->GetDrawableTextureIndices(drawableIndex),
+            GetModel()->GetDrawableTextureIndex(drawableIndex),
             GetModel()->GetDrawableVertexIndexCount(drawableIndex),
             GetModel()->GetDrawableVertexCount(drawableIndex),
             const_cast<csmUint16*>(GetModel()->GetDrawableVertexIndices(drawableIndex)),

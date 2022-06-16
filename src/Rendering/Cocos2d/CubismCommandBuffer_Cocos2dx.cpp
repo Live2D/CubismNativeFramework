@@ -17,6 +17,10 @@ CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand::DrawCommand()
 
 CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand::~DrawCommand()
 {
+    if (_command.getPipelineDescriptor().programState != NULL)
+    {
+        _command.getPipelineDescriptor().programState->release();
+    }
 }
 
 cocos2d::backend::BlendDescriptor* CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommand::GetBlendDescriptor()
@@ -43,7 +47,10 @@ CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::DrawCommandBuffer()
 
 CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::~DrawCommandBuffer()
 {
-    CSM_FREE(_drawBuffer);
+    if (_drawBuffer != NULL)
+    {
+        CSM_FREE(_drawBuffer);
+    }
 }
 
 void CubismCommandBuffer_Cocos2dx::DrawCommandBuffer::CreateVertexBuffer(csmSizeInt stride, csmSizeInt count)

@@ -15,7 +15,7 @@
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
-/// physics constatnts
+/// physics constants
 namespace {
 
 /// physics types tags.
@@ -32,6 +32,8 @@ const csmFloat32 MaximumWeight = 100.0f;
 /// Constant of threshold of movement.
 const csmFloat32 MovementThreshold = 0.001f;
 
+/// Constant of maximum allowed delta time
+const csmFloat32 MaxDeltaTime = 5.0f;
 
 csmFloat32 GetRangeValue(csmFloat32 min, csmFloat32 max)
 {
@@ -40,7 +42,6 @@ csmFloat32 GetRangeValue(csmFloat32 min, csmFloat32 max)
 
     return CubismMath::AbsF(maxValue - minValue);
 }
-
 
 /// Gets sign.
 ///
@@ -62,7 +63,6 @@ csmInt32 Sign(csmFloat32 value)
 
     return ret;
 }
-
 
 csmFloat32 GetDefaultValue(csmFloat32 min, csmFloat32 max)
 {
@@ -132,7 +132,7 @@ csmFloat32 NormalizeParameterValue(
 
         break;
     }
-    default:{
+    default: {
         break;
     }
     }
@@ -336,7 +336,7 @@ void UpdateParticles(CubismPhysicsParticle* strand, csmInt32 strandCount, Cubism
             strand[i].Velocity *= strand[i].Mobility;
         }
 
-        strand[i].Force = CubismVector2( 0.0f, 0.0f );
+        strand[i].Force = CubismVector2(0.0f, 0.0f);
         strand[i].LastGravity = currentGravity;
     }
 }
@@ -400,6 +400,8 @@ CubismPhysics::CubismPhysics()
     _options.Gravity.X = 0;
     _options.Wind.X = 0;
     _options.Wind.Y = 0;
+    _currentRemainTime = 0.0f;
+    _parameterCache = csmVector<csmFloat32>(0);
 }
 
 CubismPhysics::~CubismPhysics()
@@ -430,7 +432,7 @@ void CubismPhysics::Initialize()
         strand[0].Velocity = CubismVector2(0.0f, 0.0f);
         strand[0].Force = CubismVector2(0.0f, 0.0f);
 
-        // Initialize paritcles.
+        // Initialize particles.
         for (i = 1; i < currentSetting->ParticleCount; ++i)
         {
             radius = CubismVector2(0.0f, 0.0f);
@@ -468,8 +470,14 @@ CubismPhysics* CubismPhysics::Create(const csmByte* buffer, csmSizeInt size)
     CubismPhysics* ret = CSM_NEW CubismPhysics();
 
     ret->Parse(buffer, size);
-    ret->_physicsRig->Gravity.Y = 0;
 
+    if (!ret->_isJsonValid)
+    {
+        Delete(ret);
+        return NULL;
+    }
+
+    ret->_physicsRig->Gravity.Y = 0;
     return ret;
 }
 
@@ -484,14 +492,27 @@ void CubismPhysics::Parse(const csmByte* physicsJson, csmSizeInt size)
 
     CubismPhysicsJson* json = CSM_NEW CubismPhysicsJson(physicsJson, size);
 
+    _isJsonValid = json->IsValid();
+
+    if (!_isJsonValid)
+    {
+        CSM_DELETE(json);
+        return;
+    }
+
     _physicsRig->Gravity = json->GetGravity();
     _physicsRig->Wind = json->GetWind();
     _physicsRig->SubRigCount = json->GetSubRigCount();
+
+    _physicsRig->Fps = json->GetFps();
 
     _physicsRig->Settings.UpdateSize(_physicsRig->SubRigCount, CubismPhysicsSubRig(), true);
     _physicsRig->Inputs.UpdateSize(json->GetTotalInputCount(), CubismPhysicsInput(), true);
     _physicsRig->Outputs.UpdateSize(json->GetTotalOutputCount(), CubismPhysicsOutput(), true);
     _physicsRig->Particles.UpdateSize(json->GetVertexCount(), CubismPhysicsParticle(), true);
+
+    _currentRigOutputs.Clear();
+    _previousRigOutputs.Clear();
 
     csmInt32 inputIndex = 0, outputIndex = 0, particleIndex = 0;
     for (csmUint32 i = 0; i < _physicsRig->Settings.GetSize(); ++i)
@@ -537,6 +558,15 @@ void CubismPhysics::Parse(const csmByte* physicsJson, csmSizeInt size)
         // Output
         _physicsRig->Settings[i].OutputCount = json->GetOutputCount(i);
         _physicsRig->Settings[i].BaseOutputIndex = outputIndex;
+
+        PhysicsOutput currentRigOutput;
+        currentRigOutput.output.Resize(_physicsRig->Settings[i].OutputCount);
+        _currentRigOutputs.PushBack(currentRigOutput);
+
+        PhysicsOutput previousRigOutput;
+        previousRigOutput.output.Resize(_physicsRig->Settings[i].OutputCount);
+        _previousRigOutputs.PushBack(previousRigOutput);
+
         for (csmInt32 j = 0; j < _physicsRig->Settings[i].OutputCount; ++j)
         {
             _physicsRig->Outputs[outputIndex + j].DestinationParameterIndex = -1;
@@ -589,6 +619,44 @@ void CubismPhysics::Parse(const csmByte* physicsJson, csmSizeInt size)
     CSM_DELETE(json);
 }
 
+/// Pendulum interpolation weights
+///
+/// 振り子の計算結果は保存され、パラメータへの出力は保存された前回の結果で補間されます。
+/// The result of the pendulum calculation is saved and
+/// the output to the parameters is interpolated with the saved previous result of the pendulum calculation.
+///
+/// 図で示すと[1]と[2]で補間されます。
+/// The figure shows the interpolation between [1] and [2].
+///
+/// 補間の重みは最新の振り子計算タイミングと次回のタイミングの間で見た現在時間で決定する。
+/// The weight of the interpolation are determined by the current time seen between
+/// the latest pendulum calculation timing and the next timing.
+///
+/// 図で示すと[2]と[4]の間でみた(3)の位置の重みになる。
+/// Figure shows the weight of position (3) as seen between [2] and [4].
+///
+/// 解釈として振り子計算のタイミングと重み計算のタイミングがズレる。
+/// As an interpretation, the pendulum calculation and weights are misaligned.
+///
+/// physics3.jsonにFPS情報が存在しない場合は常に前の振り子状態で設定される。
+/// If there is no FPS information in physics3.json, it is always set in the previous pendulum state.
+///
+/// この仕様は補間範囲を逸脱したことが原因の震えたような見た目を回避を目的にしている。
+/// The purpose of this specification is to avoid the quivering appearance caused by deviations from the interpolation range.
+///
+/// ------------ time -------------->
+///
+///    　　　　　　　　|+++++|------| <- weight
+/// ==[1]====#=====[2]---(3)----(4)
+///          ^ output contents
+///
+/// 1:_previousRigOutputs
+/// 2:_currentRigOutputs
+/// 3:_currentRemainTime (now rendering)
+/// 4:next particles timing
+///
+/// @param model
+/// @param deltaTimeSeconds  rendering delta time.
 void CubismPhysics::Evaluate(CubismModel* model, csmFloat32 deltaTimeSeconds)
 {
     csmFloat32 totalAngle;
@@ -602,100 +670,185 @@ void CubismPhysics::Evaluate(CubismModel* model, csmFloat32 deltaTimeSeconds)
     CubismPhysicsOutput* currentOutput;
     CubismPhysicsParticle* currentParticles;
 
+    if (0.0f >= deltaTimeSeconds)
+    {
+        return;
+    }
+
     csmFloat32* parameterValue;
     const csmFloat32* parameterMaximumValue;
     const csmFloat32* parameterMinimumValue;
     const csmFloat32* parameterDefaultValue;
+
+    csmFloat32 physicsDeltaTime;
+    _currentRemainTime += deltaTimeSeconds;
+    if (_currentRemainTime > MaxDeltaTime)
+    {
+        _currentRemainTime = 0.0f;
+    }
 
     parameterValue = Core::csmGetParameterValues(model->GetModel());
     parameterMaximumValue = Core::csmGetParameterMaximumValues(model->GetModel());
     parameterMinimumValue = Core::csmGetParameterMinimumValues(model->GetModel());
     parameterDefaultValue = Core::csmGetParameterDefaultValues(model->GetModel());
 
-    for (settingIndex = 0; settingIndex < _physicsRig->SubRigCount; ++settingIndex)
+    if (_parameterCache.GetSize() < model->GetParameterCount())
     {
-        totalAngle = 0.0f;
-        totalTranslation.X = 0.0f;
-        totalTranslation.Y = 0.0f;
-        currentSetting = &_physicsRig->Settings[settingIndex];
-        currentInput = &_physicsRig->Inputs[currentSetting->BaseInputIndex];
-        currentOutput = &_physicsRig->Outputs[currentSetting->BaseOutputIndex];
-        currentParticles = &_physicsRig->Particles[currentSetting->BaseParticleIndex];
+        _parameterCache.Resize(model->GetParameterCount());
+    }
 
-        // Load input parameters.
-        for (i = 0; i < currentSetting->InputCount; ++i)
+    if (_physicsRig->Fps > 0.0f)
+    {
+        physicsDeltaTime = 1.0f / _physicsRig->Fps;
+    }
+    else
+    {
+        physicsDeltaTime = deltaTimeSeconds;
+    }
+
+    while (_currentRemainTime >= physicsDeltaTime)
+    {
+        // copyRigOutputs _currentRigOutputs to _previousRigOutputs
+        for (settingIndex = 0; settingIndex < _physicsRig->SubRigCount; ++settingIndex)
         {
-            weight = currentInput[i].Weight / MaximumWeight;
-
-            if (currentInput[i].SourceParameterIndex == -1)
+            currentSetting = &_physicsRig->Settings[settingIndex];
+            currentOutput = &_physicsRig->Outputs[currentSetting->BaseOutputIndex];
+            for (i = 0; i < currentSetting->OutputCount; ++i)
             {
-                currentInput[i].SourceParameterIndex = model->GetParameterIndex(currentInput[i].Source.Id);
+                _previousRigOutputs[settingIndex].output[i] = _currentRigOutputs[settingIndex].output[i];
             }
-
-            currentInput[i].GetNormalizedParameterValue(
-                &totalTranslation,
-                &totalAngle,
-                parameterValue[currentInput[i].SourceParameterIndex],
-                parameterMinimumValue[currentInput[i].SourceParameterIndex],
-                parameterMaximumValue[currentInput[i].SourceParameterIndex],
-                parameterDefaultValue[currentInput[i].SourceParameterIndex],
-                &currentSetting->NormalizationPosition,
-                &currentSetting->NormalizationAngle,
-                currentInput[i].Reflect,
-                weight
-            );
         }
 
-        radAngle = CubismMath::DegreesToRadian(-totalAngle);
-
-        totalTranslation.X = (totalTranslation.X * CubismMath::CosF(radAngle) - totalTranslation.Y * CubismMath::SinF(radAngle));
-        totalTranslation.Y = (totalTranslation.X * CubismMath::SinF(radAngle) + totalTranslation.Y * CubismMath::CosF(radAngle));
-
-        // Calculate particles position.
-        UpdateParticles(
-            currentParticles,
-            currentSetting->ParticleCount,
-            totalTranslation,
-            totalAngle,
-            _options.Wind,
-            MovementThreshold * currentSetting->NormalizationPosition.Maximum,
-            deltaTimeSeconds,
-            AirResistance
-        );
-
-        // Update output parameters.
-        for (i = 0; i < currentSetting->OutputCount; ++i)
+        // copy parameter model to cache
+        for (csmInt32 j = 0; j < model->GetParameterCount(); ++j)
         {
-            particleIndex = currentOutput[i].VertexIndex;
+            _parameterCache[j] = parameterValue[j];
+        }
 
-            if (particleIndex < 1 || particleIndex >= currentSetting->ParticleCount)
+        for (settingIndex = 0; settingIndex < _physicsRig->SubRigCount; ++settingIndex)
+        {
+            totalAngle = 0.0f;
+            totalTranslation.X = 0.0f;
+            totalTranslation.Y = 0.0f;
+            currentSetting = &_physicsRig->Settings[settingIndex];
+            currentInput = &_physicsRig->Inputs[currentSetting->BaseInputIndex];
+            currentOutput = &_physicsRig->Outputs[currentSetting->BaseOutputIndex];
+            currentParticles = &_physicsRig->Particles[currentSetting->BaseParticleIndex];
+
+            // Load input parameters.
+            for (i = 0; i < currentSetting->InputCount; ++i)
             {
-                break;
+                weight = currentInput[i].Weight / MaximumWeight;
+
+                if (currentInput[i].SourceParameterIndex == -1)
+                {
+                    currentInput[i].SourceParameterIndex = model->GetParameterIndex(currentInput[i].Source.Id);
+                }
+
+                currentInput[i].GetNormalizedParameterValue(
+                    &totalTranslation,
+                    &totalAngle,
+                    _parameterCache[currentInput[i].SourceParameterIndex],
+                    parameterMinimumValue[currentInput[i].SourceParameterIndex],
+                    parameterMaximumValue[currentInput[i].SourceParameterIndex],
+                    parameterDefaultValue[currentInput[i].SourceParameterIndex],
+                    &currentSetting->NormalizationPosition,
+                    &currentSetting->NormalizationAngle,
+                    currentInput[i].Reflect,
+                    weight
+                );
             }
 
-            if (currentOutput[i].DestinationParameterIndex == -1)
-            {
-                currentOutput[i].DestinationParameterIndex = model->GetParameterIndex(currentOutput[i].Destination.Id);
-            }
+            radAngle = CubismMath::DegreesToRadian(-totalAngle);
 
-            CubismVector2 translation;
-            translation.X = currentParticles[particleIndex].Position.X - currentParticles[particleIndex - 1].Position.X;
-            translation.Y = currentParticles[particleIndex].Position.Y - currentParticles[particleIndex - 1].Position.Y;
+            totalTranslation.X = (totalTranslation.X * CubismMath::CosF(radAngle) - totalTranslation.Y * CubismMath::SinF(radAngle));
+            totalTranslation.Y = (totalTranslation.X * CubismMath::SinF(radAngle) + totalTranslation.Y * CubismMath::CosF(radAngle));
 
-            outputValue = currentOutput[i].GetValue(
-                translation,
+            // Calculate particles position.
+            UpdateParticles(
                 currentParticles,
-                particleIndex,
-                currentOutput[i].Reflect,
-                _options.Gravity
+                currentSetting->ParticleCount,
+                totalTranslation,
+                totalAngle,
+                _options.Wind,
+                MovementThreshold * currentSetting->NormalizationPosition.Maximum,
+                physicsDeltaTime,
+                AirResistance
             );
 
+            // Update output parameters.
+            for (i = 0; i < currentSetting->OutputCount; ++i)
+            {
+                particleIndex = currentOutput[i].VertexIndex;
+
+                if (particleIndex < 1 || particleIndex >= currentSetting->ParticleCount)
+                {
+                    break;
+                }
+
+                if (currentOutput[i].DestinationParameterIndex == -1)
+                {
+                    currentOutput[i].DestinationParameterIndex = model->GetParameterIndex(currentOutput[i].Destination.Id);
+                }
+
+                CubismVector2 translation;
+                translation.X = currentParticles[particleIndex].Position.X - currentParticles[particleIndex - 1].Position.X;
+                translation.Y = currentParticles[particleIndex].Position.Y - currentParticles[particleIndex - 1].Position.Y;
+
+                outputValue = currentOutput[i].GetValue(
+                    translation,
+                    currentParticles,
+                    particleIndex,
+                    currentOutput[i].Reflect,
+                    _options.Gravity
+                );
+
+                _currentRigOutputs[settingIndex].output[i] = outputValue;
+
+                UpdateOutputParameterValue(
+                        &_parameterCache[currentOutput[i].DestinationParameterIndex],
+                        parameterMinimumValue[currentOutput[i].DestinationParameterIndex],
+                        parameterMaximumValue[currentOutput[i].DestinationParameterIndex],
+                        outputValue,
+                        &currentOutput[i]);
+            }
+        }
+
+        _currentRemainTime -= physicsDeltaTime;
+    }
+
+    const float alpha = _currentRemainTime / physicsDeltaTime;
+    Interpolate(model, alpha);
+}
+
+void CubismPhysics::Interpolate(CubismModel* model, csmFloat32 weight)
+{
+    csmInt32 i, settingIndex;
+    CubismPhysicsOutput* currentOutput;
+    CubismPhysicsSubRig* currentSetting;
+    csmFloat32* parameterValue;
+    const csmFloat32* parameterMaximumValue;
+    const csmFloat32* parameterMinimumValue;
+
+    parameterValue = Core::csmGetParameterValues(model->GetModel());
+    parameterMaximumValue = Core::csmGetParameterMaximumValues(model->GetModel());
+    parameterMinimumValue = Core::csmGetParameterMinimumValues(model->GetModel());
+
+    for (settingIndex = 0; settingIndex < _physicsRig->SubRigCount; ++settingIndex)
+    {
+        currentSetting = &_physicsRig->Settings[settingIndex];
+        currentOutput = &_physicsRig->Outputs[currentSetting->BaseOutputIndex];
+
+        // Load input parameters.
+        for (i = 0; i < currentSetting->OutputCount; ++i)
+        {
             UpdateOutputParameterValue(
                 &parameterValue[currentOutput[i].DestinationParameterIndex],
                 parameterMinimumValue[currentOutput[i].DestinationParameterIndex],
                 parameterMaximumValue[currentOutput[i].DestinationParameterIndex],
-                outputValue,
-                &currentOutput[i]);
+                _previousRigOutputs[settingIndex].output[i] * (1 - weight) + _currentRigOutputs[settingIndex].output[i] * weight,
+                &currentOutput[i]
+            );
         }
     }
 }

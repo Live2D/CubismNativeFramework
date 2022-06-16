@@ -331,7 +331,7 @@ public:
      * @brief  使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行
      *
      * @param[in]  device          -> 使用デバイス
-     * @param[in]  textureNo        -> 使用テクスチャ番号。基本的にCubismModel::GetDrawableTextureIndicesで返されたもの
+     * @param[in]  textureNo        -> 使用テクスチャ番号。基本的にCubismModel::GetDrawableTextureIndexで返されたもの
      * @param[in]  modelColorRGBA   -> 描画カラー
      * @param[in]  multiplyColor   -> 乗算色
      * @param[in]  screenColor   -> スクリーン色

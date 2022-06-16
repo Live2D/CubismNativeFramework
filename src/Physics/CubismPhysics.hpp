@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Math/CubismVector2.hpp"
+#include "CubismPhysicsInternal.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
@@ -29,8 +30,18 @@ public:
      */
     struct Options
     {
-        CubismVector2 Gravity;          ///< 重力方向
-        CubismVector2 Wind;             ///< 風の方向
+        CubismVector2 Gravity; ///< 重力方向
+        CubismVector2 Wind; ///< 風の方向
+    };
+
+    /**
+     * @brief 物理演算出力結果
+     *
+     * パラメータに適用する前の物理演算の出力結果
+     */
+    struct PhysicsOutput
+    {
+        csmVector<csmFloat32> output;
     };
 
     /**
@@ -58,7 +69,7 @@ public:
      *
      * パラメータをリセットする。
      */
-     void Reset();
+    void Reset();
 
     /**
      * @brief 物理演算の評価
@@ -88,7 +99,6 @@ public:
      */
     const Options& GetOptions() const;
 
-
 private:
     /**
      * @brief コンストラクタ
@@ -113,7 +123,7 @@ private:
      *
      * physics3.jsonをパースする。
      *
-     * @param[in]   physicsJson     physics3.jsonが読み込まれいるバッファ
+     * @param[in]   physicsJson     physics3.jsonが読み込まれているバッファ
      * @param[in]   size            バッファのサイズ
      */
     void Parse(const csmByte* physicsJson, csmSizeInt size);
@@ -125,8 +135,27 @@ private:
      */
     void Initialize();
 
-    CubismPhysicsRig*   _physicsRig;          ///< 物理演算のデータ
-    Options             _options;             ///< オプション
+    /**
+     * @brief 物理演算結果の適用
+     *
+     * 振り子演算の最新の結果と一つ前の結果から指定した重みで適用する。
+     *
+     * @param model 物理演算の結果を適用するモデル
+     * @param weight 最新結果の重み
+     */
+    void Interpolate(CubismModel* model, csmFloat32 weight);
+
+    CubismPhysicsRig* _physicsRig; ///< 物理演算のデータ
+    Options _options; ///< オプション
+
+    csmVector<PhysicsOutput> _currentRigOutputs; ///< 最新の振り子計算の結果
+    csmVector<PhysicsOutput> _previousRigOutputs; ///< 一つ前の振り子計算の結果
+
+    csmFloat32 _currentRemainTime; ///< 物理演算が処理していない時間
+
+    csmVector<csmFloat32> _parameterCache; ///< Evaluateで利用するパラメータのキャッシュ
+
+    csmBool _isJsonValid; ///< 正しくJsonデータが取得出来たか
 };
 
 }}}
