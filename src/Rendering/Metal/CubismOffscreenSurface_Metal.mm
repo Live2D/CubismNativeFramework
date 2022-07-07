@@ -14,7 +14,6 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 CubismOffscreenFrame_Metal::CubismOffscreenFrame_Metal()
     : _colorBuffer(NULL)
     , _renderPassDescriptor(NULL)
-    , _isInheritedRenderTexture(false)
     , _bufferWidth(0)
     , _bufferHeight(0)
     , _pixelFormat(MTLPixelFormatRGBA8Unorm)
@@ -32,11 +31,11 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
 
     do
     {
-        if (colorBuffer == nil)
+        if (colorBuffer == NULL)
         {
             csmBool initResult = false;
 
-            _renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+            _renderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
             _renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
             _renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             _renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(_clearColorR, _clearColorG, _clearColorB, _clearColorA);
@@ -47,10 +46,9 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
 
             _renderPassDescriptor.renderTargetWidth = displayBufferWidth;
             _renderPassDescriptor.renderTargetHeight = displayBufferHeight;
-            _isInheritedRenderTexture = false;
 
             // Set up a texture for rendering to and sampling from
-            MTLTextureDescriptor *texDescriptor = [[MTLTextureDescriptor alloc] init];
+            MTLTextureDescriptor *texDescriptor = [[[MTLTextureDescriptor alloc] init] autorelease];
             texDescriptor.textureType = MTLTextureType2D;
             texDescriptor.width = displayBufferWidth;
             texDescriptor.height = displayBufferHeight;
@@ -65,7 +63,6 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
         else
         {
             _colorBuffer = colorBuffer;
-            _isInheritedRenderTexture = true;
         }
 
         if (_colorBuffer)
@@ -94,9 +91,16 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
 
 void CubismOffscreenFrame_Metal::DestroyOffscreenFrame()
 {
-    if (!_isInheritedRenderTexture)
+    if (_colorBuffer != NULL)
     {
+        [_colorBuffer release];
         _colorBuffer = NULL;
+    }
+
+    if (_renderPassDescriptor != NULL)
+    {
+        [_renderPassDescriptor release];
+        _renderPassDescriptor = NULL;
     }
 }
 

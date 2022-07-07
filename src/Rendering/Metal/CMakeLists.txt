@@ -11,8 +11,10 @@ target_sources(${LIB_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/MetalShaderTypes.h
 )
 
-set_source_files_properties(
-  CubismRenderingInstanceSingleton_Metal.m
-  TARGET_DIRECTORY ${LIB_NAME}
-  PROPERTIES COMPILE_FLAGS "-fno-objc-arc"
+# Disable ARC
+set_target_properties(
+    ${LIB_NAME}
+    PROPERTIES
+    MACOSX_BUNDLE YES
+    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC NO
 )

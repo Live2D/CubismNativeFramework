@@ -18,10 +18,12 @@ CubismMoc* CubismMoc::Create(const csmByte* mocBytes, csmSizeInt size)
     memcpy(alignedBuffer, mocBytes, size);
 
     Core::csmMoc* moc = Core::csmReviveMocInPlace(alignedBuffer, size);
+    const Core::csmMocVersion version = Core::csmGetMocVersion(alignedBuffer, size);
 
     if (moc)
     {
         cubismMoc = CSM_NEW CubismMoc(moc);
+        cubismMoc->_mocVersion = version;
     }
 
     return cubismMoc;
@@ -35,6 +37,7 @@ void CubismMoc::Delete(CubismMoc* moc)
 CubismMoc::CubismMoc(Core::csmMoc* moc)
                         : _moc(moc)
                         , _modelCount(0)
+                        , _mocVersion(0)
 { }
 
 CubismMoc::~CubismMoc()
@@ -67,6 +70,16 @@ void CubismMoc::DeleteModel(CubismModel* model)
 {
     CSM_DELETE_SELF(CubismModel, model);
     --_modelCount;
+}
+
+Core::csmMocVersion CubismMoc::GetLatestMocVersion()
+{
+    return Core::csmGetLatestMocVersion();
+}
+
+Core::csmMocVersion CubismMoc::GetMocVersion()
+{
+    return _mocVersion;
 }
 
 }}}

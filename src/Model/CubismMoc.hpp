@@ -57,6 +57,24 @@ public:
      */
     void DeleteModel(CubismModel* model);
 
+    /**
+     * @brief 最新の.moc3 Versionを取得
+     *
+     * 最新の.moc3 Versionを取得する。
+     *
+     * @return  最新の.moc3 Version
+     */
+    static Core::csmMocVersion GetLatestMocVersion();
+
+    /**
+     * @brief 読み込んだモデルの.moc3 Versionを取得
+     *
+     * 読み込んだモデルの.moc3 Versionを取得する。
+     *
+     * @return  読み込んだモデルの.moc3 Version
+     */
+    Core::csmMocVersion GetMocVersion();
+
 private:
     /**
      * @brief コンストラクタ
@@ -74,6 +92,7 @@ private:
 
     Core::csmMoc*     _moc;             ///< Mocデータ
     csmInt32          _modelCount;      ///< Mocデータから作られたモデルの個数
+    csmUint32         _mocVersion;      ///< 読み込んだモデルの.moc3 Version
 };
 
 }}}
