@@ -28,7 +28,7 @@ class CubismModel
 public:
 
     /**
-    * @brief テクスチャの色をRGBAで扱うための構造体
+     * @brief テクスチャの色をRGBAで扱うための構造体
     */
     struct DrawableColorData
     {
@@ -185,6 +185,16 @@ public:
      * @return パラメータの個数
      */
     csmInt32    GetParameterCount() const;
+
+    /**
+     * @brief パラメータの種類の取得
+     *
+     * パラメータの種類を取得する。
+     *
+     * @return Core::csmParameterType_Normal -> 通常のパラメータ
+     *         Core::csmParameterType_BlendShape -> ブレンドシェイプパラメータ
+     */
+    Core::csmParameterType GetParameterType(csmUint32 parameterIndex) const;
 
     /**
      * @brief パラメータの最大値の取得
@@ -452,6 +462,15 @@ public:
      * @return  Drawableのスクリーン色
      */
     Core::csmVector4 GetDrawableScreenColor(csmInt32 drawableIndex) const;
+
+    /**
+     * @brief Drawableの親パーツのインデックスの取得
+     *
+     * Drawableの親パーツのインデックスを取得する。
+     *
+     * @return drawableの親パーツのインデックス
+     */
+    csmInt32 GetDrawableParentPartIndex(csmUint32 parameterIndex) const;
 
     /**
      * @brief Drawableのカリング情報の取得

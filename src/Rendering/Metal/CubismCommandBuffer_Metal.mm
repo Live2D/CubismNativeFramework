@@ -14,11 +14,26 @@ namespace Cubism {
 namespace Framework {
 namespace Rendering {
 CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand::DrawCommand()
+: _mtlCommandBuffer(NULL)
+, _pipelineState(NULL)
+, _renderPassDescriptor(NULL)
 {
 }
 
 CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand::~DrawCommand()
 {
+    if (_mtlCommandBuffer != NULL)
+    {
+        _mtlCommandBuffer = NULL;
+    }
+    if (_pipelineState != NULL)
+    {
+        _pipelineState = NULL;
+    }
+    if (_renderPassDescriptor != NULL)
+    {
+        _renderPassDescriptor = NULL;
+    }
 }
 
 id <MTLCommandBuffer> CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand::GetMTLCommandBuffer()
@@ -45,11 +60,26 @@ CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommandBuffer()
     : _vbStride(0)
     , _vbCount(0)
     , _ibCount(0)
+    , _vertices(NULL)
+    , _uvs(NULL)
+    , _indices(NULL)
 {
 }
 
 CubismCommandBuffer_Metal::DrawCommandBuffer::~DrawCommandBuffer()
 {
+    if (_vertices != NULL)
+    {
+        [_vertices release];
+    }
+    if (_uvs != NULL)
+    {
+        [_uvs release];
+    }
+    if (_indices != NULL)
+    {
+        [_indices release];
+    }
 }
 
 void CubismCommandBuffer_Metal::DrawCommandBuffer::CreateVertexBuffer(id<MTLDevice> device, csmSizeInt stride, csmSizeInt count)

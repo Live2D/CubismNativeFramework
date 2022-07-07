@@ -610,8 +610,11 @@ CubismClippingContext::~CubismClippingContext()
     {
         for (csmUint32 i = 0; i < _clippingCommandBufferList->GetSize(); ++i)
         {
-            CSM_DELETE(_clippingCommandBufferList->At(i));
-            _clippingCommandBufferList->At(i) = NULL;
+            if (_clippingCommandBufferList->At(i) != NULL)
+            {
+                CSM_DELETE(_clippingCommandBufferList->At(i));
+                _clippingCommandBufferList->At(i) = NULL;
+            }
         }
 
         CSM_DELETE(_clippingCommandBufferList);
@@ -1026,7 +1029,7 @@ CubismShader_Metal::ShaderProgram* CubismShader_Metal::LoadShaderProgram(const c
 
 id<MTLRenderPipelineState> CubismShader_Metal::MakeRenderPipelineState(id<MTLDevice> device, CubismShader_Metal::ShaderProgram* shaderProgram, int blendMode)
 {
-    MTLRenderPipelineDescriptor* renderPipelineDescriptor = [MTLRenderPipelineDescriptor new];
+    MTLRenderPipelineDescriptor* renderPipelineDescriptor = [[[MTLRenderPipelineDescriptor alloc] init] autorelease];
     NSError *error;
 
     renderPipelineDescriptor.vertexFunction = shaderProgram->vertexFunction;
@@ -1080,7 +1083,7 @@ id<MTLRenderPipelineState> CubismShader_Metal::MakeRenderPipelineState(id<MTLDev
 
 id<MTLDepthStencilState> CubismShader_Metal::MakeDepthStencilState(id<MTLDevice> device)
 {
-    MTLDepthStencilDescriptor* depthStencilDescriptor = [MTLDepthStencilDescriptor new];
+    MTLDepthStencilDescriptor* depthStencilDescriptor = [[[MTLDepthStencilDescriptor alloc] init] autorelease];
 
     depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionAlways;
     depthStencilDescriptor.depthWriteEnabled = YES;
@@ -1090,7 +1093,7 @@ id<MTLDepthStencilState> CubismShader_Metal::MakeDepthStencilState(id<MTLDevice>
 
 id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device, CubismRenderer_Metal* renderer)
 {
-    MTLSamplerDescriptor* samplerDescriptor = [MTLSamplerDescriptor new];
+    MTLSamplerDescriptor* samplerDescriptor = [[[MTLSamplerDescriptor alloc] init] autorelease];
 
     samplerDescriptor.rAddressMode = MTLSamplerAddressModeRepeat;
     samplerDescriptor.sAddressMode = MTLSamplerAddressModeRepeat;
@@ -1138,9 +1141,26 @@ CubismRenderer_Metal::~CubismRenderer_Metal()
 {
     CSM_DELETE_SELF(CubismClippingManager_Metal, _clippingManager);
 
-    for (csmInt32 i = 0; i < _drawableDrawCommandBuffer.GetSize(); ++i)
+    if (_drawableDrawCommandBuffer.GetSize() > 0)
     {
-        CSM_DELETE(_drawableDrawCommandBuffer[i]);
+        for (csmInt32 i = 0; i < _drawableDrawCommandBuffer.GetSize(); ++i)
+        {
+            if (_drawableDrawCommandBuffer[i] != NULL)
+            {
+                CSM_DELETE(_drawableDrawCommandBuffer[i]);
+            }
+        }
+
+        _drawableDrawCommandBuffer.Clear();
+    }
+
+    if (_textures.GetSize() > 0)
+    {
+        _textures.Clear();
+    }
+    if (_offscreenFrameBuffer.IsValid())
+    {
+        _offscreenFrameBuffer.DestroyOffscreenFrame();
     }
 }
 

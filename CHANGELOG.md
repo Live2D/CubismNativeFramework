@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4-r.5-beta.4] - 2022-07-07
+
+### Added
+
+* Add a function to get the latest .moc3 Version and the .moc3 Version of the loaded model.
+* Add a function to get the type of parameters of the model.
+* Add a function to get the parent part of the model's Drawable.
+
+### Changed
+
+* Disable ARC in Metal renderer.
+
+### Fixed
+
+* Fix dangling pointer in `GetRenderPassDescriptor` function for Metal.
+
+
+
 ## [4-r.5-beta.3] - 2022-06-16
 
 ### Fixed
@@ -173,6 +191,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.5-beta.4]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.3...4-r.5-beta.4
 [4-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.2...4-r.5-beta.3
 [4-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.1...4-r.5-beta.2
 [4-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.4...4-r.5-beta.1

@@ -135,6 +135,11 @@ csmInt32 CubismModel::GetParameterCount() const
     return Core::csmGetParameterCount(_model);
 }
 
+Core::csmParameterType CubismModel::GetParameterType(csmUint32 parameterIndex) const
+{
+    return Core::csmGetParameterTypes(_model)[parameterIndex];
+}
+
 csmFloat32 CubismModel::GetParameterDefaultValue(csmUint32 parameterIndex) const
 {
     return Core::csmGetParameterDefaultValues(_model)[parameterIndex];
@@ -501,6 +506,11 @@ Core::csmVector4 CubismModel::GetDrawableScreenColor(csmInt32 drawableIndex) con
 {
     const Core::csmVector4* screenColors = Core::csmGetDrawableScreenColors(_model);
     return screenColors[drawableIndex];
+}
+
+csmInt32 CubismModel::GetDrawableParentPartIndex(csmUint32 parameterIndex) const
+{
+    return Core::csmGetPartParentPartIndices(_model)[parameterIndex];
 }
 
 csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const

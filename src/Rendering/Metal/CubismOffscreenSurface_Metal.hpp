@@ -77,7 +77,6 @@ public:
 
 private:
     id <MTLTexture>  _colorBuffer; ///レンダーテクスチャ
-    csmBool _isInheritedRenderTexture;
     MTLRenderPassDescriptor *_renderPassDescriptor;
     csmUint32   _bufferWidth;           ///< Create時に指定された幅
     csmUint32   _bufferHeight;          ///< Create時に指定された高さ
