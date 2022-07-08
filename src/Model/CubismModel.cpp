@@ -508,9 +508,9 @@ Core::csmVector4 CubismModel::GetDrawableScreenColor(csmInt32 drawableIndex) con
     return screenColors[drawableIndex];
 }
 
-csmInt32 CubismModel::GetDrawableParentPartIndex(csmUint32 parameterIndex) const
+csmInt32 CubismModel::GetDrawableParentPartIndex(csmUint32 drawableIndex) const
 {
-    return Core::csmGetPartParentPartIndices(_model)[parameterIndex];
+    return Core::csmGetDrawableParentPartIndices(_model)[drawableIndex];
 }
 
 csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
