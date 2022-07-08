@@ -468,9 +468,10 @@ public:
      *
      * Drawableの親パーツのインデックスを取得する。
      *
+     * @param[in]   drawableIndex   Drawableのインデックス
      * @return drawableの親パーツのインデックス
      */
-    csmInt32 GetDrawableParentPartIndex(csmUint32 parameterIndex) const;
+    csmInt32 GetDrawableParentPartIndex(csmUint32 drawableIndex) const;
 
     /**
      * @brief Drawableのカリング情報の取得
