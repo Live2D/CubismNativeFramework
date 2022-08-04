@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.5-beta.5] - 2022-08-04
+
+### Fixed
+
+* Fix a bug in which processing was interrupted when an invalid vertex was specified in the middle of a physics operation.
+* Fix physics system input to be split by the physics setting time.
+* Fix a tiny memory leak in Cubism physics.
+
+
 ## [4-r.5-beta.4.1] - 2022-07-08
 
 ### Fixed
@@ -27,7 +36,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 * Fix dangling pointer in `GetRenderPassDescriptor` function for Metal.
-
 
 
 ## [4-r.5-beta.3] - 2022-06-16
@@ -199,6 +207,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.5-beta.5]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.4.1...4-r.5-beta.5
 [4-r.5-beta.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.4...4-r.5-beta.4.1
 [4-r.5-beta.4]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.3...4-r.5-beta.4
 [4-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.2...4-r.5-beta.3

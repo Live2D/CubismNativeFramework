@@ -153,7 +153,8 @@ private:
 
     csmFloat32 _currentRemainTime; ///< 物理演算が処理していない時間
 
-    csmVector<csmFloat32> _parameterCache; ///< Evaluateで利用するパラメータのキャッシュ
+    csmVector<csmFloat32> _parameterCache;      ///< Evaluateで利用するパラメータのキャッシュ
+    csmVector<csmFloat32> _parameterInputCache; ///< UpdateParticlesが動くときの入力をキャッシュ
 
     csmBool _isJsonValid; ///< 正しくJsonデータが取得出来たか
 };

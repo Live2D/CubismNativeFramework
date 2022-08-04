@@ -401,12 +401,13 @@ CubismPhysics::CubismPhysics()
     _options.Wind.X = 0;
     _options.Wind.Y = 0;
     _currentRemainTime = 0.0f;
-    _parameterCache = csmVector<csmFloat32>(0);
 }
 
 CubismPhysics::~CubismPhysics()
 {
     CSM_DELETE(_physicsRig);
+    _parameterCache.Clear();
+    _parameterInputCache.Clear();
 }
 
 /// Initializes physics.
@@ -696,6 +697,13 @@ void CubismPhysics::Evaluate(CubismModel* model, csmFloat32 deltaTimeSeconds)
     {
         _parameterCache.Resize(model->GetParameterCount());
     }
+    if (_parameterInputCache.GetSize() < model->GetParameterCount())
+    {
+        _parameterInputCache.Resize(model->GetParameterCount());
+        for (int j = 0; j < model->GetParameterCount(); ++j) {
+            _parameterInputCache[j] = parameterValue[j];
+        }
+    }
 
     if (_physicsRig->Fps > 0.0f)
     {
@@ -719,10 +727,15 @@ void CubismPhysics::Evaluate(CubismModel* model, csmFloat32 deltaTimeSeconds)
             }
         }
 
-        // copy parameter model to cache
+        // 入力キャッシュとパラメータで線形補間してUpdateParticlesするタイミングでの入力を計算する。
+        // Calculate the input at the timing to UpdateParticles by linear interpolation with the _parameterInputCache and parameterValue.
+        // _parameterCacheはグループ間での値の伝搬の役割があるので_parameterInputCacheとの分離が必要。
+        // _parameterCache needs to be separated from _parameterInputCache because of its role in propagating values between groups.
+        float inputWeight =  physicsDeltaTime / _currentRemainTime;
         for (csmInt32 j = 0; j < model->GetParameterCount(); ++j)
         {
-            _parameterCache[j] = parameterValue[j];
+            _parameterCache[j] = _parameterInputCache[j] * (1.0f - inputWeight) + parameterValue[j] * inputWeight;
+            _parameterInputCache[j] = _parameterCache[j];
         }
 
         for (settingIndex = 0; settingIndex < _physicsRig->SubRigCount; ++settingIndex)
@@ -781,14 +794,14 @@ void CubismPhysics::Evaluate(CubismModel* model, csmFloat32 deltaTimeSeconds)
             {
                 particleIndex = currentOutput[i].VertexIndex;
 
-                if (particleIndex < 1 || particleIndex >= currentSetting->ParticleCount)
-                {
-                    break;
-                }
-
                 if (currentOutput[i].DestinationParameterIndex == -1)
                 {
                     currentOutput[i].DestinationParameterIndex = model->GetParameterIndex(currentOutput[i].Destination.Id);
+                }
+
+                if (particleIndex < 1 || particleIndex >= currentSetting->ParticleCount)
+                {
+                    continue;
                 }
 
                 CubismVector2 translation;
@@ -842,6 +855,11 @@ void CubismPhysics::Interpolate(CubismModel* model, csmFloat32 weight)
         // Load input parameters.
         for (i = 0; i < currentSetting->OutputCount; ++i)
         {
+            if (currentOutput[i].DestinationParameterIndex == -1)
+            {
+                continue;
+            }
+
             UpdateOutputParameterValue(
                 &parameterValue[currentOutput[i].DestinationParameterIndex],
                 parameterMinimumValue[currentOutput[i].DestinationParameterIndex],
