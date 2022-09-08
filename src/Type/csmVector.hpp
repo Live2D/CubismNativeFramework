@@ -524,6 +524,11 @@ private:
      */
     void Copy(const csmVector& c)
     {
+        if (c._capacity == 0)
+        {
+            return;
+        }
+
         _size = c._size;
         _capacity = c._capacity;
 

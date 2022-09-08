@@ -41,7 +41,7 @@ public:
      */
     struct PhysicsOutput
     {
-        csmVector<csmFloat32> output;
+        csmVector<csmFloat32> outputs;
     };
 
     /**
@@ -70,6 +70,12 @@ public:
      * パラメータをリセットする。
      */
     void Reset();
+
+    /**
+     * @brief 現在のパラメータ値で物理演算が安定化する状態を演算する。
+     * @param[in]   model       物理演算の結果を適用するモデル
+     */
+    void Stabilization(CubismModel* model);
 
     /**
      * @brief 物理演算の評価
@@ -153,8 +159,8 @@ private:
 
     csmFloat32 _currentRemainTime; ///< 物理演算が処理していない時間
 
-    csmVector<csmFloat32> _parameterCache;      ///< Evaluateで利用するパラメータのキャッシュ
-    csmVector<csmFloat32> _parameterInputCache; ///< UpdateParticlesが動くときの入力をキャッシュ
+    csmVector<csmFloat32> _parameterCaches;      ///< Evaluateで利用するパラメータのキャッシュ
+    csmVector<csmFloat32> _parameterInputCaches; ///< UpdateParticlesが動くときの入力をキャッシュ
 
     csmBool _isJsonValid; ///< 正しくJsonデータが取得出来たか
 };
