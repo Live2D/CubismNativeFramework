@@ -524,13 +524,14 @@ private:
      */
     void Copy(const csmVector& c)
     {
-        if (c._capacity == 0)
-        {
-            return;
-        }
-
         _size = c._size;
         _capacity = c._capacity;
+
+        if (c._capacity == 0)
+        {
+            _ptr = NULL;
+            return;
+        }
 
         _ptr = (T*)CSM_MALLOC(_capacity * sizeof(T));
 
@@ -641,12 +642,15 @@ void csmVector<T>::PrepareCapacity(csmInt32 newSize)
 template<class T>
 void csmVector<T>::Clear()
 {
-    for (csmInt32 i = 0; i < _size; i++)
+    if (_ptr != NULL)
     {
-        _ptr[i].~T();
-    }
+        for (csmInt32 i = 0; i < _size; i++)
+        {
+            _ptr[i].~T();
+        }
 
-    CSM_FREE(_ptr);
+        CSM_FREE(_ptr);
+    }
 
     _ptr = NULL;
     _size = 0;

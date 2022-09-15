@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.5.1] - 2022-09-15
+
+### Fixed
+
+* Fix a bug that caused a crash if an empty array existed in json.
+
+
 ## [4-r.5] - 2022-09-08
 
 ### Added
@@ -219,6 +226,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.5.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5...4-r.5.1
 [4-r.5]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.5...4-r.5
 [4-r.5-beta.5]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.4.1...4-r.5-beta.5
 [4-r.5-beta.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.4...4-r.5-beta.4.1
