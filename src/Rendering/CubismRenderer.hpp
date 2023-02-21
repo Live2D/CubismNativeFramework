@@ -98,6 +98,14 @@ public:
      */
     virtual void Initialize(Framework::CubismModel* model);
 
+    /**
+    * @brief   レンダラの初期化処理を実行する<br>
+    *           引数に渡したモデルからレンダラの初期化処理に必要な情報を取り出すことができる
+    *
+    * @param[in]  model -> モデルのインスタンス
+    * @param[in]  maskBufferCount -> バッファの生成数
+    */
+    virtual void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount);
 
     /**
      * @brief   モデルを描画する

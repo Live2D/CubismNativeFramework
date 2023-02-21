@@ -19,11 +19,12 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 ********************************************************************************************************************/
 ///< ファイルスコープの変数宣言
 namespace {
-const csmInt32 ColorChannelCount = 4;   ///< 実験時に1チャンネルの場合は1、RGBだけの場合は3、アルファも含める場合は4
+const csmInt32 ColorChannelCount = 4;   // 実験時に1チャンネルの場合は1、RGBだけの場合は3、アルファも含める場合は4
+const csmInt32 ClippingMaskMaxCountOnDefault = 36;  // 通常のフレームバッファ1枚あたりのマスク最大数
+const csmInt32 ClippingMaskMaxCountOnMultiRenderTexture = 32;   // フレームバッファが2枚以上ある場合のフレームバッファ1枚あたりのマスク最大数
 }
 
 CubismClippingManager_Metal::CubismClippingManager_Metal() :
-                                                _currentFrameNo(0),
                                                 _clippingMaskBufferSize(256, 256)
 {
     CubismRenderer::CubismTextureColor* tmp;
@@ -73,10 +74,24 @@ CubismClippingManager_Metal::~CubismClippingManager_Metal()
         if (_channelColors[i]) CSM_DELETE(_channelColors[i]);
         _channelColors[i] = NULL;
     }
+
+    if (_clearedFrameBufferFlags.GetSize() != 0)
+    {
+        _clearedFrameBufferFlags.Clear();
+        _clearedFrameBufferFlags = NULL;
+    }
 }
 
-void CubismClippingManager_Metal::Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts)
+void CubismClippingManager_Metal::Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts, const csmInt32 maskBufferCount)
 {
+    _renderTextureCount = maskBufferCount;
+
+    // レンダーテクスチャのクリアフラグの設定
+    for (csmInt32 i = 0; i < _renderTextureCount; ++i)
+    {
+        _clearedFrameBufferFlags.PushBack(false);
+    }
+
     //クリッピングマスクを使う描画オブジェクトを全て登録する
     //クリッピングマスクは、通常数個程度に限定して使うものとする
     for (csmInt32 i = 0; i < drawableCount; i++)
@@ -137,8 +152,6 @@ CubismClippingContext* CubismClippingManager_Metal::FindSameClip(const csmInt32*
 
 void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, CubismRenderer_Metal* renderer, CubismOffscreenFrame_Metal* lastColorBuffer, csmRectF lastViewport)
 {
-    _currentFrameNo++;
-
     // 全てのクリッピングを用意する
     // 同じクリップ（複数の場合はまとめて１つのクリップ）を使う場合は１度だけ設定する
     csmInt32 usingClipCount = 0;
@@ -165,17 +178,32 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
         // 前処理方式の場合
         if (!renderer->IsUsingHighPrecisionMask())
         {
-            // 生成したFrameBufferと同じサイズでビューポートを設定
-
-            // モデル描画時にDrawMeshNowに渡される変換（モデルtoワールド座標変換）
-            CubismMatrix44 modelToWorldF = renderer->GetMvpMatrix();
-
-            renderEncoder = renderer->PreDraw(renderer->s_commandBuffer, renderer->_offscreenFrameBuffer.GetRenderPassDescriptor());
-            [renderEncoder setViewport:clipVp];
+            // 後の計算のためにインデックスの最初をセットする。
+            _currentOffscreenFrameBuffer = renderer->GetOffScreenFrameBuffer(0);
+            renderEncoder = renderer->PreDraw(renderer->s_commandBuffer, _currentOffscreenFrameBuffer->GetRenderPassDescriptor());
         }
 
         // 各マスクのレイアウトを決定していく
         SetupLayoutBounds(renderer->IsUsingHighPrecisionMask() ? 0 : usingClipCount);
+
+        // サイズがレンダーテクスチャの枚数と合わない場合は合わせる
+        if (_clearedFrameBufferFlags.GetSize() != _renderTextureCount)
+        {
+            _clearedFrameBufferFlags.Clear();
+
+            for (csmInt32 i = 0; i < _renderTextureCount; ++i)
+            {
+                _clearedFrameBufferFlags.PushBack(false);
+            }
+        }
+        else
+        {
+            // マスクのクリアフラグを毎フレーム開始時に初期化
+            for (csmInt32 i = 0; i < _renderTextureCount; ++i)
+            {
+                _clearedFrameBufferFlags[i] = false;
+            }
+        }
 
         // 実際にマスクを生成する
         // 全てのマスクをどの様にレイアウトして描くかを決定し、ClipContext , ClippedDrawContext に記憶する
@@ -189,11 +217,25 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
             csmFloat32 scaleX = 0.0f;
             csmFloat32 scaleY = 0.0f;
 
+            // clipContextに設定したレンダーテクスチャをインデックスで取得
+            CubismOffscreenFrame_Metal* clipContextOffscreenFrameBuffer = renderer->GetOffScreenFrameBuffer(clipContext->_bufferIndex);
+
+            // 現在のレンダーテクスチャがclipContextのものと異なる場合
+            if (_currentOffscreenFrameBuffer != clipContextOffscreenFrameBuffer &&
+                !renderer->IsUsingHighPrecisionMask())
+            {
+                _currentOffscreenFrameBuffer = clipContextOffscreenFrameBuffer;
+
+                [renderEncoder endEncoding];
+                // マスク用RenderTextureをactiveにセット
+                renderEncoder = renderer->PreDraw(renderer->s_commandBuffer, _currentOffscreenFrameBuffer->GetRenderPassDescriptor());
+            }
+
             if (renderer->IsUsingHighPrecisionMask())
             {
                 const csmFloat32 ppu = model.GetPixelsPerUnit();
-                const csmFloat32 maskPixelWidth = clipContext->_owner->_clippingMaskBufferSize.X;
-                const csmFloat32 maskPixelHeight = clipContext->_owner->_clippingMaskBufferSize.Y;
+                const csmFloat32 maskPixelWidth = clipContext->GetClippingManager()->_clippingMaskBufferSize.X;
+                const csmFloat32 maskPixelHeight = clipContext->GetClippingManager()->_clippingMaskBufferSize.Y;
                 const csmFloat32 physicalMaskWidth = layoutBoundsOnTex01->Width * maskPixelWidth;
                 const csmFloat32 physicalMaskHeight = layoutBoundsOnTex01->Height * maskPixelHeight;
 
@@ -246,8 +288,7 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
                     // view to Layout0..1
                     _tmpMatrix.TranslateRelative(layoutBoundsOnTex01->X, layoutBoundsOnTex01->Y); //new = [translate]
                     _tmpMatrix.ScaleRelative(scaleX, scaleY); //new = [translate][scale]
-                    _tmpMatrix.TranslateRelative(-_tmpBoundsOnModel.X, -_tmpBoundsOnModel.Y);
-                    //new = [translate][scale][translate]
+                    _tmpMatrix.TranslateRelative(-_tmpBoundsOnModel.X, -_tmpBoundsOnModel.Y); //new = [translate][scale][translate]
                 }
                 // tmpMatrixForMask が計算結果
                 _tmpMatrixForMask.SetMatrix(_tmpMatrix.GetArray());
@@ -260,8 +301,7 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
                 {
                     _tmpMatrix.TranslateRelative(layoutBoundsOnTex01->X, layoutBoundsOnTex01->Y); //new = [translate]
                     _tmpMatrix.ScaleRelative(scaleX, scaleY); //new = [translate][scale]
-                    _tmpMatrix.TranslateRelative(-_tmpBoundsOnModel.X, -_tmpBoundsOnModel.Y);
-                    //new = [translate][scale][translate]
+                    _tmpMatrix.TranslateRelative(-_tmpBoundsOnModel.X, -_tmpBoundsOnModel.Y); //new = [translate][scale][translate]
                 }
 
                 _tmpMatrixForDraw.SetMatrix(_tmpMatrix.GetArray());
@@ -309,6 +349,14 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
                     }
 
                     renderer->IsCulling(model.GetDrawableCulling(clipDrawIndex) != 0);
+
+                    // マスクがクリアされていないなら処理する
+                    if (!_clearedFrameBufferFlags[clipContext->_bufferIndex])
+                    {
+                        // 生成したFrameBufferと同じサイズでビューポートを設定
+                        [renderEncoder setViewport:clipVp];
+                        _clearedFrameBufferFlags[clipContext->_bufferIndex] = true;
+                    }
 
                     // 今回専用の変換を適用して描く
                     // チャンネルも切り替える必要がある(A,R,G,B)
@@ -406,8 +454,21 @@ void CubismClippingManager_Metal::CalcClippedDrawTotalBounds(CubismModel& model,
 
 void CubismClippingManager_Metal::SetupLayoutBounds(csmInt32 usingClipCount) const
 {
-    if (usingClipCount <= 0)
-    {// この場合は一つのマスクターゲットを毎回クリアして使用する
+    const csmInt32 useClippingMaskMaxCount = _renderTextureCount <= 1
+        ? ClippingMaskMaxCountOnDefault
+        : ClippingMaskMaxCountOnMultiRenderTexture * _renderTextureCount;
+
+    if (usingClipCount <= 0 || usingClipCount > useClippingMaskMaxCount)
+    {
+        if (usingClipCount > useClippingMaskMaxCount)
+        {
+            // マスクの制限数の警告を出す
+            csmInt32 count = usingClipCount - useClippingMaskMaxCount;
+            CubismLogError("not supported mask count : %d\n[Details] render texture count: %d\n, mask count : %d"
+                , usingClipCount - useClippingMaskMaxCount, _renderTextureCount, usingClipCount);
+        }
+
+        // この場合は一つのマスクターゲットを毎回クリアして使用する
         for (csmUint32 index = 0; index < _clippingContextListForMask.GetSize(); index++)
         {
             CubismClippingContext* cc = _clippingContextListForMask[index];
@@ -416,107 +477,131 @@ void CubismClippingManager_Metal::SetupLayoutBounds(csmInt32 usingClipCount) con
             cc->_layoutBounds->Y = 0.0f;
             cc->_layoutBounds->Width = 1.0f;
             cc->_layoutBounds->Height = 1.0f;
+            cc->_bufferIndex = 0;
         }
         return;
     }
 
+    // レンダーテクスチャが1枚なら9分割する（最大36枚）
+    const csmInt32 layoutCountMaxValue = _renderTextureCount <= 1 ? 9 : 8;
+
     // ひとつのRenderTextureを極力いっぱいに使ってマスクをレイアウトする
     // マスクグループの数が4以下ならRGBA各チャンネルに１つずつマスクを配置し、5以上6以下ならRGBAを2,2,1,1と配置する
+    const csmInt32 countPerSheetDiv = usingClipCount / _renderTextureCount; // レンダーテクスチャ1枚あたり何枚割り当てるか
+    const csmInt32 countPerSheetMod = usingClipCount % _renderTextureCount; // この番号のレンダーテクスチャまでに一つずつ配分する
 
     // RGBAを順番に使っていく。
-    const csmInt32 div = usingClipCount / ColorChannelCount; //１チャンネルに配置する基本のマスク個数
-    const csmInt32 mod = usingClipCount % ColorChannelCount; //余り、この番号のチャンネルまでに１つずつ配分する
+    const csmInt32 div = countPerSheetDiv / ColorChannelCount; //１チャンネルに配置する基本のマスク個数
+    const csmInt32 mod = countPerSheetDiv % ColorChannelCount; //余り、この番号のチャンネルまでに１つずつ配分する
 
     // RGBAそれぞれのチャンネルを用意していく(0:R , 1:G , 2:B, 3:A, )
     csmInt32 curClipIndex = 0; //順番に設定していく
 
-    for (csmInt32 channelNo = 0; channelNo < ColorChannelCount; channelNo++)
+    for (csmInt32 renderTextureNo = 0; renderTextureNo < _renderTextureCount; renderTextureNo++)
     {
-        // このチャンネルにレイアウトする数
-        const csmInt32 layoutCount = div + (channelNo < mod ? 1 : 0);
+        for (csmInt32 channelNo = 0; channelNo < ColorChannelCount; channelNo++)
+        {
+            // このチャンネルにレイアウトする数
+            csmInt32 layoutCount = div + (channelNo < mod ? 1 : 0);
 
-        // 分割方法を決定する
-        if (layoutCount == 0)
-        {
-            // 何もしない
-        }
-        else if (layoutCount == 1)
-        {
-            //全てをそのまま使う
-            CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-            cc->_layoutChannelNo = channelNo;
-            cc->_layoutBounds->X = 0.0f;
-            cc->_layoutBounds->Y = 0.0f;
-            cc->_layoutBounds->Width = 1.0f;
-            cc->_layoutBounds->Height = 1.0f;
-        }
-        else if (layoutCount == 2)
-        {
-            for (csmInt32 i = 0; i < layoutCount; i++)
+            // このレンダーテクスチャにまだ割り当てられていなければ追加する
+            const csmInt32 checkChannelNo = mod + 1 >= ColorChannelCount ? 0 : mod + 1;
+            if (layoutCount < layoutCountMaxValue && channelNo == checkChannelNo)
             {
-                const csmInt32 xpos = i % 2;
+                layoutCount += renderTextureNo < countPerSheetMod ? 1 : 0;
+            }
 
+            // 分割方法を決定する
+            if (layoutCount == 0)
+            {
+                // 何もしない
+            }
+            else if (layoutCount == 1)
+            {
+                //全てをそのまま使う
                 CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
                 cc->_layoutChannelNo = channelNo;
-
-                cc->_layoutBounds->X = xpos * 0.5f;
-                cc->_layoutBounds->Y = 0.0f;
-                cc->_layoutBounds->Width = 0.5f;
-                cc->_layoutBounds->Height = 1.0f;
-                //UVを2つに分解して使う
-            }
-        }
-        else if (layoutCount <= 4)
-        {
-            //4分割して使う
-            for (csmInt32 i = 0; i < layoutCount; i++)
-            {
-                const csmInt32 xpos = i % 2;
-                const csmInt32 ypos = i / 2;
-
-                CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                cc->_layoutChannelNo = channelNo;
-
-                cc->_layoutBounds->X = xpos * 0.5f;
-                cc->_layoutBounds->Y = ypos * 0.5f;
-                cc->_layoutBounds->Width = 0.5f;
-                cc->_layoutBounds->Height = 0.5f;
-            }
-        }
-        else if (layoutCount <= 9)
-        {
-            //9分割して使う
-            for (csmInt32 i = 0; i < layoutCount; i++)
-            {
-                const csmInt32 xpos = i % 3;
-                const csmInt32 ypos = i / 3;
-
-                CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                cc->_layoutChannelNo = channelNo;
-
-                cc->_layoutBounds->X = xpos / 3.0f;
-                cc->_layoutBounds->Y = ypos / 3.0f;
-                cc->_layoutBounds->Width = 1.0f / 3.0f;
-                cc->_layoutBounds->Height = 1.0f / 3.0f;
-            }
-        }
-        else
-        {
-            CubismLogError("not supported mask count : %d", layoutCount);
-
-            // 開発モードの場合は停止させる
-            CSM_ASSERT(0);
-
-            // 引き続き実行する場合、 SetupShaderProgramでオーバーアクセスが発生するので仕方なく適当に入れておく
-            // もちろん描画結果はろくなことにならない
-            for (csmInt32 i = 0; i < layoutCount; i++)
-            {
-                CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                cc->_layoutChannelNo = 0;
                 cc->_layoutBounds->X = 0.0f;
                 cc->_layoutBounds->Y = 0.0f;
                 cc->_layoutBounds->Width = 1.0f;
                 cc->_layoutBounds->Height = 1.0f;
+                cc->_bufferIndex = renderTextureNo;
+            }
+            else if (layoutCount == 2)
+            {
+                for (csmInt32 i = 0; i < layoutCount; i++)
+                {
+                    const csmInt32 xpos = i % 2;
+
+                    CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
+                    cc->_layoutChannelNo = channelNo;
+
+                    cc->_layoutBounds->X = xpos * 0.5f;
+                    cc->_layoutBounds->Y = 0.0f;
+                    cc->_layoutBounds->Width = 0.5f;
+                    cc->_layoutBounds->Height = 1.0f;
+                    cc->_bufferIndex = renderTextureNo;
+                    //UVを2つに分解して使う
+                }
+            }
+            else if (layoutCount <= 4)
+            {
+                //4分割して使う
+                for (csmInt32 i = 0; i < layoutCount; i++)
+                {
+                    const csmInt32 xpos = i % 2;
+                    const csmInt32 ypos = i / 2;
+
+                    CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
+                    cc->_layoutChannelNo = channelNo;
+
+                    cc->_layoutBounds->X = xpos * 0.5f;
+                    cc->_layoutBounds->Y = ypos * 0.5f;
+                    cc->_layoutBounds->Width = 0.5f;
+                    cc->_layoutBounds->Height = 0.5f;
+                    cc->_bufferIndex = renderTextureNo;
+                }
+            }
+            else if (layoutCount <= 9)
+            {
+                //9分割して使う
+                for (csmInt32 i = 0; i < layoutCount; i++)
+                {
+                    const csmInt32 xpos = i % 3;
+                    const csmInt32 ypos = i / 3;
+
+                    CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
+                    cc->_layoutChannelNo = channelNo;
+
+                    cc->_layoutBounds->X = xpos / 3.0f;
+                    cc->_layoutBounds->Y = ypos / 3.0f;
+                    cc->_layoutBounds->Width = 1.0f / 3.0f;
+                    cc->_layoutBounds->Height = 1.0f / 3.0f;
+                    cc->_bufferIndex = renderTextureNo;
+                }
+            }
+            // マスクの制限枚数を超えた場合の処理
+            else
+            {
+                csmInt32 count = usingClipCount - useClippingMaskMaxCount;
+                CubismLogError("not supported mask count : %d\n[Details] render texture count: %d\n, mask count : %d"
+                    , count, _renderTextureCount, usingClipCount);
+
+                // 開発モードの場合は停止させる
+                CSM_ASSERT(0);
+
+                // 引き続き実行する場合、 SetupShaderProgramでオーバーアクセスが発生するので仕方なく適当に入れておく
+                // もちろん描画結果はろくなことにならない
+                for (csmInt32 i = 0; i < layoutCount; i++)
+                {
+                    CubismClippingContext* cc = _clippingContextListForMask[curClipIndex++];
+                    cc->_layoutChannelNo = 0;
+                    cc->_layoutBounds->X = 0.0f;
+                    cc->_layoutBounds->Y = 0.0f;
+                    cc->_layoutBounds->Width = 1.0f;
+                    cc->_layoutBounds->Height = 1.0f;
+                    cc->_bufferIndex = 0;
+                }
             }
         }
     }
@@ -540,6 +625,11 @@ void CubismClippingManager_Metal::SetClippingMaskBufferSize(csmFloat32 width, cs
 CubismVector2 CubismClippingManager_Metal::GetClippingMaskBufferSize() const
 {
     return _clippingMaskBufferSize;
+}
+
+csmInt32 CubismClippingManager_Metal::GetRenderTextureCount() const
+{
+    return _renderTextureCount;
 }
 
 /*********************************************************************************************************************
@@ -928,7 +1018,7 @@ void CubismShader_Metal::SetupShaderProgram(CubismCommandBuffer_Metal::DrawComma
             CubismFragMaskedShaderUniforms fragMaskedShaderUniforms;
 
             // frameBufferに書かれたテクスチャ
-            id <MTLTexture> tex = renderer->_offscreenFrameBuffer.GetColorBuffer();
+            id <MTLTexture> tex = renderer->GetOffScreenFrameBuffer(renderer->GetClippingContextBufferForDraw()->_bufferIndex)->GetColorBuffer();
 
             //テクスチャ設定
             [renderEncoder setFragmentTexture:tex atIndex:1];
@@ -1158,10 +1248,12 @@ CubismRenderer_Metal::~CubismRenderer_Metal()
     {
         _textures.Clear();
     }
-    if (_offscreenFrameBuffer.IsValid())
+
+    for (csmUint32 i = 0; i < _offscreenFrameBuffers.GetSize(); ++i)
     {
-        _offscreenFrameBuffer.DestroyOffscreenFrame();
+        _offscreenFrameBuffers[i].DestroyOffscreenFrame();
     }
+    _offscreenFrameBuffers.Clear();
 }
 
 void CubismRenderer_Metal::DoStaticRelease()
@@ -1172,6 +1264,17 @@ void CubismRenderer_Metal::DoStaticRelease()
 
 void CubismRenderer_Metal::Initialize(CubismModel* model)
 {
+    Initialize(model, 1);
+}
+
+void CubismRenderer_Metal::Initialize(CubismModel* model, csmInt32 maskBufferCount)
+{
+    // 1未満は1に補正する
+    if (maskBufferCount < 1)
+    {
+        maskBufferCount = 1;
+        CubismLogWarning("The number of render textures must be an integer greater than or equal to 1. Set the number of render textures to 1.");
+    }
 
     CubismRenderingInstanceSingleton_Metal *single = [CubismRenderingInstanceSingleton_Metal sharedManager];
     id <MTLDevice> device = [single getMTLDevice];
@@ -1184,10 +1287,18 @@ void CubismRenderer_Metal::Initialize(CubismModel* model)
             *model,
             model->GetDrawableCount(),
             model->GetDrawableMasks(),
-            model->GetDrawableMaskCounts()
+            model->GetDrawableMaskCounts(),
+            maskBufferCount
         );
 
-        _offscreenFrameBuffer.CreateOffscreenFrame(_clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
+        _offscreenFrameBuffers.Clear();
+
+        for (csmInt32 i = 0; i < maskBufferCount; ++i)
+        {
+            CubismOffscreenFrame_Metal offscreenFrameBuffer;
+            offscreenFrameBuffer.CreateOffscreenFrame(_clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
+            _offscreenFrameBuffers.PushBack(offscreenFrameBuffer);
+        }
     }
 
     _sortedDrawableIndexList.Resize(model->GetDrawableCount(), 0);
@@ -1211,7 +1322,7 @@ void CubismRenderer_Metal::Initialize(CubismModel* model)
         }
     }
 
-    CubismRenderer::Initialize(model);  //親クラスの処理を呼ぶ
+    CubismRenderer::Initialize(model, maskBufferCount);  //親クラスの処理を呼ぶ
 }
 
 void CubismRenderer_Metal::StartFrame(id<MTLDevice> device, id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor)
@@ -1238,14 +1349,17 @@ void CubismRenderer_Metal::DoDrawModel()
     if (_clippingManager != NULL)
     {
         // サイズが違う場合はここで作成しなおし
-        if (_offscreenFrameBuffer.GetBufferWidth() != _clippingManager->GetClippingMaskBufferSize().X ||
-            _offscreenFrameBuffer.GetBufferHeight() != _clippingManager->GetClippingMaskBufferSize().Y)
+        for (csmInt32 i = 0; i < _clippingManager->GetRenderTextureCount(); ++i)
         {
-            _offscreenFrameBuffer.DestroyOffscreenFrame();
-            _offscreenFrameBuffer.CreateOffscreenFrame(
-                _clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
+            if (_offscreenFrameBuffers[i].GetBufferWidth() != _clippingManager->GetClippingMaskBufferSize().X ||
+                _offscreenFrameBuffers[i].GetBufferHeight() != _clippingManager->GetClippingMaskBufferSize().Y)
+            {
+                _offscreenFrameBuffers[i].CreateOffscreenFrame(
+                    _clippingManager->GetClippingMaskBufferSize().X,
+                    _clippingManager->GetClippingMaskBufferSize().Y
+                );
+            }
         }
-
         _clippingManager->SetupClippingContext(*GetModel(), this, _rendererProfile._lastColorBuffer, _rendererProfile._lastViewport);
     }
 
@@ -1304,7 +1418,7 @@ void CubismRenderer_Metal::DoDrawModel()
             MTLViewport clipVp = {0, 0, _clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y, 0.0, 1.0};
             if(clipContext->_isUsing) // 書くことになっていた
             {
-                renderEncoder = PreDraw(s_commandBuffer, _offscreenFrameBuffer.GetRenderPassDescriptor());
+                renderEncoder = PreDraw(s_commandBuffer, _offscreenFrameBuffers[ clipContext->_bufferIndex].GetRenderPassDescriptor());
                 [renderEncoder setViewport:clipVp];
             }
 
@@ -1457,6 +1571,8 @@ void CubismRenderer_Metal::DrawMeshMetal(CubismCommandBuffer_Metal::DrawCommandB
         }
     }
 
+    [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+
     id <MTLTexture> drawTexture;   // シェーダに渡すテクスチャ
 
     // テクスチャマップからバインド済みテクスチャIDを取得
@@ -1516,6 +1632,14 @@ const csmMap<csmInt32, id <MTLTexture>>& CubismRenderer_Metal::GetBindedTextures
 
 void CubismRenderer_Metal::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
+    if (_clippingManager == NULL)
+    {
+        return;
+    }
+
+    // インスタンス破棄前にレンダーテクスチャの数を保存
+    const csmInt32 renderTextureCount = _clippingManager->GetRenderTextureCount();
+
     //FrameBufferのサイズを変更するためにインスタンスを破棄・再作成する
     CSM_DELETE_SELF(CubismClippingManager_Metal, _clippingManager);
 
@@ -1527,13 +1651,24 @@ void CubismRenderer_Metal::SetClippingMaskBufferSize(csmFloat32 width, csmFloat3
         *GetModel(),
         GetModel()->GetDrawableCount(),
         GetModel()->GetDrawableMasks(),
-        GetModel()->GetDrawableMaskCounts()
+        GetModel()->GetDrawableMaskCounts(),
+        renderTextureCount
     );
+}
+
+csmInt32 CubismRenderer_Metal::GetRenderTextureCount() const
+{
+    return _clippingManager->GetRenderTextureCount();
 }
 
 CubismVector2 CubismRenderer_Metal::GetClippingMaskBufferSize() const
 {
     return _clippingManager->GetClippingMaskBufferSize();
+}
+
+CubismOffscreenFrame_Metal* CubismRenderer_Metal::GetOffScreenFrameBuffer(csmInt32 index)
+{
+    return &_offscreenFrameBuffers[index];
 }
 
 void CubismRenderer_Metal::SetClippingContextBufferForMask(CubismClippingContext* clip)

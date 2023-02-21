@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.6] - 2023-02-21
+
+### Added
+
+* Add API to allow users to configure culling.
+* The number of render textures used can now be increased arbitrarily.
+  * The maximum number of masks when using multiple render textures has been increased to "number of render textures * 32".
+
+### Fixed
+
+* Fix a bug that models with culling were not rendered correctly in Metal.
+* Fix a bug that caused some masks to be rendered incorrectly when using 17 or more masks in DirectX systems.
+
+### Removed
+
+* Remove unnecessary variable `modelToWorldF` in renderer.
+
+
 ## [4-r.5.1] - 2022-09-15
 
 ### Fixed
@@ -226,6 +244,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.6]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5.1...4-r.6
 [4-r.5.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5...4-r.5.1
 [4-r.5]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.5...4-r.5
 [4-r.5-beta.5]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.4.1...4-r.5-beta.5

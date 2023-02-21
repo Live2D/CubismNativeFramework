@@ -33,6 +33,11 @@ CubismRenderer::~CubismRenderer()
 
 void CubismRenderer::Initialize(Framework::CubismModel* model)
 {
+    Initialize(model, 1);
+}
+
+void CubismRenderer::Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount)
+{
     _model = model;
 }
 
