@@ -87,6 +87,11 @@ public:
     void DestroyOffscreenFrame();
 
     /**
+     * @brief   レンダーテクスチャメンバーへのアクセッサ
+     */
+    GLuint GetRenderTexture() const;
+
+    /**
      * @brief   カラーバッファメンバーへのアクセッサ
      */
     GLuint GetColorBuffer() const;

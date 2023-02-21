@@ -231,7 +231,7 @@ public:
      *  レンダラを生成して初期化を実行する。
      *
      */
-    void CreateRenderer();
+    void CreateRenderer(csmInt32 maskBufferCount = 1);
 
     /**
      *  @brief  レンダラの解放

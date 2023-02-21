@@ -130,6 +130,11 @@ void CubismOffscreenFrame_OpenGLES2::DestroyOffscreenFrame()
     }
 }
 
+GLuint CubismOffscreenFrame_OpenGLES2::GetRenderTexture() const
+{
+    return _renderTexture;
+}
+
 GLuint CubismOffscreenFrame_OpenGLES2::GetColorBuffer() const
 {
     return _colorBuffer;

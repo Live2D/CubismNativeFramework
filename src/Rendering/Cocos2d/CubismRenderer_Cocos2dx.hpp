@@ -92,8 +92,9 @@ private:
      * @param[in]   drawableCount   ->  描画オブジェクトの数
      * @param[in]   drawableMasks   ->  描画オブジェクトをマスクする描画オブジェクトのインデックスのリスト
      * @param[in]   drawableMaskCounts   ->  描画オブジェクトをマスクする描画オブジェクトの数
+     * @param[in]   maskBufferCount ->  バッファの生成数
      */
-    void Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts);
+    void Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts, const csmInt32 maskBufferCount);
 
     /**
      * @brief   クリッピングコンテキストを作成する。モデル描画時に実行する。
@@ -141,19 +142,28 @@ private:
     void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
-     *@brief  クリッピングマスクバッファのサイズを取得する
+     * @brief  クリッピングマスクバッファのサイズを取得する
      *
-     *@return クリッピングマスクバッファのサイズ
+     * @return クリッピングマスクバッファのサイズ
      *
      */
     CubismVector2 GetClippingMaskBufferSize() const;
 
-    csmInt32    _currentFrameNo;         ///< マスクテクスチャに与えるフレーム番号
+    /**
+     * このバッファのレンダーテクスチャの枚数を取得する。
+     *
+     * @return このバッファのレンダーテクスチャの枚数
+     */
+    csmInt32 GetRenderTextureCount() const;
+
+    CubismOffscreenFrame_Cocos2dx* _currentOffscreenFrameBuffer;   ///< レンダーターゲットとなるオフスクリーンフレームバッファを保持する
+    csmVector<csmBool> _clearedFrameBufferFlags; /// マスクのクリアフラグの配列
 
     csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
     csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
     csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
     CubismVector2                                   _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
+    csmInt32                                        _renderTextureCount;           ///< 生成するレンダーテクスチャの枚数
 
     CubismMatrix44  _tmpMatrix;              ///< マスク計算用の行列
     CubismMatrix44  _tmpMatrixForMask;       ///< マスク計算用の行列
@@ -207,6 +217,7 @@ private:
     CubismMatrix44 _matrixForDraw;                   ///< 描画オブジェクトの位置計算結果を保持する行列
     csmVector<csmInt32>* _clippedDrawableIndexList;  ///< このマスクにクリップされる描画オブジェクトのリスト
     csmVector<CubismCommandBuffer_Cocos2dx::DrawCommandBuffer*>* _clippingCommandBufferList;
+    csmInt32 _bufferIndex;                           ///< このマスクが割り当てられるレンダーテクスチャ（フレームバッファ）やカラーバッファのインデックス
 
     CubismClippingManager_Cocos2dx* _owner;        ///< このマスクを管理しているマネージャのインスタンス
 };
@@ -388,6 +399,8 @@ public:
      */
     void Initialize(Framework::CubismModel* model);
 
+    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount);
+
     /**
      * @brief   OpenGLテクスチャのバインド処理<br>
      *           CubismRendererにテクスチャを設定し、CubismRenderer中でその画像を参照するためのIndex値を戻り値とする
@@ -416,6 +429,14 @@ public:
     void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
+     * @brief  レンダーテクスチャの枚数を取得する。
+     *
+     * @return  レンダーテクスチャの枚数
+     *
+     */
+    csmInt32 GetRenderTextureCount() const;
+
+    /**
      * @brief  クリッピングマスクバッファのサイズを取得する
      *
      * @return クリッピングマスクバッファのサイズ
@@ -423,6 +444,13 @@ public:
      */
     CubismVector2 GetClippingMaskBufferSize() const;
 
+    /**
+     * @brief  オフスクリーンフレームバッファを取得する
+     *
+     * @return オフスクリーンフレームバッファへの参照
+     *
+     */
+    CubismOffscreenFrame_Cocos2dx* GetOffScreenFrameBuffer(csmInt32 index);
 
     static CubismCommandBuffer_Cocos2dx* GetCommandBuffer();
 
@@ -554,7 +582,7 @@ private:
     CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト
     CubismClippingContext*              _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
 
-    CubismOffscreenFrame_Cocos2dx      _offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ
+    csmVector<CubismOffscreenFrame_Cocos2dx>   _offscreenFrameBuffers;          ///< マスク描画用のフレームバッファ
     csmVector<CubismCommandBuffer_Cocos2dx::DrawCommandBuffer*>  _drawableDrawCommandBuffer;
 };
 

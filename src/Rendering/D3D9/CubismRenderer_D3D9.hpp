@@ -76,8 +76,9 @@ private:
      * @param[in]   drawableCount   ->  描画オブジェクトの数
      * @param[in]   drawableMasks   ->  描画オブジェクトをマスクする描画オブジェクトのインデックスのリスト
      * @param[in]   drawableMaskCounts   ->  描画オブジェクトをマスクする描画オブジェクトの数
+     * @param[in]   maskBufferCount ->  バッファの生成数
      */
-    void Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts);
+    void Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts, const csmInt32 maskBufferCount);
 
     /**
      * @brief   クリッピングコンテキストを作成する。モデル描画時に実行する。
@@ -85,7 +86,7 @@ private:
      * @param[in]   model       ->  モデルのインスタンス
      * @param[in]   renderer    ->  レンダラのインスタンス
      */
-    void SetupClippingContext(LPDIRECT3DDEVICE9 device, CubismModel& model, CubismRenderer_D3D9* renderer, CubismOffscreenFrame_D3D9& useTarget);
+    void SetupClippingContext(LPDIRECT3DDEVICE9 device, CubismModel& model, CubismRenderer_D3D9* renderer);
 
     /**
      * @brief   既にマスクを作っているかを確認。<br>
@@ -108,13 +109,6 @@ private:
     void SetupLayoutBounds(csmInt32 usingClipCount) const;
 
     /**
-     * @breif   カラーバッファのアドレスを取得する
-     *
-     * @return  カラーバッファのアドレス
-     */
-    CubismOffscreenFrame_D3D9* GetColorBuffer() const;
-
-    /**
      * @brief   画面描画に使用するクリッピングマスクのリストを取得する
      *
      * @return  画面描画に使用するクリッピングマスクのリスト
@@ -130,6 +124,13 @@ private:
     void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
+     * このバッファのレンダーテクスチャの枚数を取得する。
+     *
+     * @return このバッファのレンダーテクスチャの枚数
+     */
+    csmInt32 GetColorBufferCount() const;
+
+    /**
      *@brief  クリッピングマスクバッファのサイズを取得する
      *
      *@return クリッピングマスクバッファのサイズ
@@ -137,13 +138,14 @@ private:
      */
     CubismVector2 GetClippingMaskBufferSize() const;
 
-    CubismOffscreenFrame_D3D9*  _colorBuffer;   ///< マスク用カラーバッファーのアドレス
-    csmInt32    _currentFrameNo;         ///< マスクテクスチャに与えるフレーム番号
+    CubismOffscreenFrame_D3D9* _currentOffscreenFrameBuffer;         /// レンダーターゲットとなるオフスクリーンフレームバッファを保持する
+    csmVector<csmBool> _clearedFrameBufferFlags; /// マスクのクリアフラグの配列
 
     csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
-    csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
-    csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
-    CubismVector2                                   _clippingMaskBufferSize; ///< クリッピングマスクのバッファサイズ（初期値:256）
+    csmVector<CubismClippingContext*>               _clippingContextListForMask;    ///< マスク用クリッピングコンテキストのリスト
+    csmVector<CubismClippingContext*>               _clippingContextListForDraw;    ///< 描画用クリッピングコンテキストのリスト
+    CubismVector2                                   _clippingMaskBufferSize;        ///< クリッピングマスクのバッファサイズ（初期値:256）
+    csmInt32                                        _renderTextureCount;            ///< 生成するレンダーテクスチャの枚数
 
     CubismMatrix44  _tmpMatrix;              ///< マスク計算用の行列
     CubismMatrix44  _tmpMatrixForMask;       ///< マスク計算用の行列
@@ -196,6 +198,7 @@ private:
     CubismMatrix44 _matrixForMask;                   ///< マスクの位置計算結果を保持する行列
     CubismMatrix44 _matrixForDraw;                   ///< 描画オブジェクトの位置計算結果を保持する行列
     csmVector<csmInt32>* _clippedDrawableIndexList;  ///< このマスクにクリップされる描画オブジェクトのリスト
+    csmInt32 _bufferIndex;                           ///< このマスクが割り当てられるレンダーテクスチャ（フレームバッファ）やカラーバッファのインデックス
 
     CubismClippingManager_DX9* _owner;        ///< このマスクを管理しているマネージャのインスタンス
 };
@@ -273,6 +276,7 @@ public:
      */
     static void GenerateShader(LPDIRECT3DDEVICE9 device);
 
+    virtual void CubismRenderer_D3D9::Initialize(CubismModel* model);
 
     /**
      * @brief   レンダラの初期化処理を実行する<br>
@@ -280,7 +284,7 @@ public:
      *
      * @param[in]  model -> モデルのインスタンス
      */
-    virtual void Initialize(Framework::CubismModel* model) override;
+    virtual void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount) override;
 
     /**
      * @brief   レンダリング前のフレーム先頭で呼ばれる
@@ -314,6 +318,14 @@ public:
     void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
+     * @brief  レンダーテクスチャの枚数を取得する。
+     *
+     * @return  レンダーテクスチャの枚数
+     *
+     */
+    csmInt32 GetRenderTextureCount() const;
+
+    /**
      * @brief  クリッピングマスクバッファのサイズを取得する
      *
      * @return クリッピングマスクバッファのサイズ
@@ -327,7 +339,7 @@ public:
      * @return クリッピングマスクのバッファへの参照
      *
      */
-    const csmVector<CubismOffscreenFrame_D3D9>& GetMaskBuffer() const;
+    CubismOffscreenFrame_D3D9* GetMaskBuffer(csmInt32 index);
 
     /**
      * @brief  使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行
@@ -407,12 +419,6 @@ private:
     void PreDraw();
 
     /**
-     * @brief   描画完了後の追加処理。
-     *
-     */
-    void PostDraw();
-
-    /**
      * @brief   モデル描画直前のステートを保持する
      */
     virtual void SaveProfile() override;
@@ -456,14 +462,11 @@ private:
     CubismVertexD3D9**                  _vertexStore;           ///< 頂点をストアしておく領域
     csmUint16**                         _indexStore;            ///< インデックスをストアしておく領域
 
-    csmInt32                            _commandBufferNum;      ///< 描画バッファを複数作成する場合の数
-    csmInt32                            _commandBufferCurrent;  ///< 現在使用中のバッファ番号
-
     csmVector<csmInt32>                 _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
 
-    csmMap<csmInt32, LPDIRECT3DTEXTURE9>_textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
+    csmMap<csmInt32, LPDIRECT3DTEXTURE9> _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
 
-    csmVector<CubismOffscreenFrame_D3D9>_offscreenFrameBuffer;          ///< マスク描画用のフレームバッファ
+    csmVector<CubismOffscreenFrame_D3D9> _offscreenFrameBuffers;          ///< マスク描画用のフレームバッファ
 
     CubismClippingManager_DX9*          _clippingManager;               ///< クリッピングマスク管理オブジェクト
     CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト

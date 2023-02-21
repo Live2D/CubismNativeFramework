@@ -57,6 +57,35 @@ public:
     };  // DrawableColorData
 
     /**
+     * @brief テクスチャのカリング設定を管理するための構造体
+    */
+    struct DrawableCullingData
+    {
+        /**
+         * @brief   コンストラクタ
+         */
+        DrawableCullingData()
+            : IsOverwritten(false)
+            , IsCulling(0) {};
+
+        /**
+         * @brief   コンストラクタ
+         */
+        DrawableCullingData(csmBool isOverwritten, csmInt32 isCulling)
+            : IsOverwritten(isOverwritten)
+            , IsCulling(isCulling) {};
+
+        /**
+         * @brief   デストラクタ
+         */
+        virtual ~DrawableCullingData() {};
+
+        csmBool IsOverwritten;
+        csmInt32 IsCulling;
+
+    };  // DrawableCullingData
+
+    /**
      * @brief モデルのパラメータの更新
      *
      * モデルのパラメータを更新する。
@@ -474,16 +503,6 @@ public:
     csmInt32 GetDrawableParentPartIndex(csmUint32 drawableIndex) const;
 
     /**
-     * @brief Drawableのカリング情報の取得
-     *
-     * Drawableのカリング情報を取得する。
-     *
-     * @param[in]   drawableIndex   Drawableのインデックス
-     * @return  Drawableのカリング情報
-     */
-    csmInt32                    GetDrawableCulling(csmInt32 drawableIndex) const;
-
-    /**
      * @brief Drawableのブレンドモードの取得
      *
      * Drawableのブレンドモードを取得する。
@@ -710,6 +729,49 @@ public:
      */
     void SetOverwriteFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value);
 
+    /**
+     * @brief Drawableのカリング情報の取得
+     *
+     * Drawableのカリング情報を取得する。
+     *
+     * @param[in]   drawableIndex   Drawableのインデックス
+     * @return  Drawableのカリング情報
+     */
+    csmInt32 GetDrawableCulling(csmInt32 drawableIndex) const;
+
+    /**
+     * @brief   Drawableのカリング情報を設定する
+     */
+    void SetDrawableCulling(csmInt32 drawableIndex, csmInt32 isCulling);
+
+    /**
+     * @brief SDKからモデル全体のカリング設定を上書きするか。
+     *
+     * @retval  true    ->  SDK上のカリング設定を使用
+     * @retval  false   ->  モデルのカリング設定を使用
+     */
+    csmBool GetOverwriteFlagForModelCullings() const;
+
+    /**
+     * @brief SDKからモデル全体のカリング設定を上書きするかをセットする
+     *        SDK上のカリング設定を使うならtrue、モデルのカリング設定を使うならfalse
+     */
+    void SetOverwriteFlagForModelCullings(csmBool value);
+
+    /**
+     * @brief SDKからdrawableのカリング設定を上書きするか。
+     *
+     * @retval  true    ->  SDK上のカリング設定を使用
+     * @retval  false   ->  モデルのカリング設定を使用
+     */
+    csmBool GetOverwriteFlagForDrawableCullings(csmInt32 drawableIndex) const;
+
+    /**
+     * @brief SDKからdrawableのカリング設定を上書きするかをセットする
+     *        SDK上のカリング設定を使うならtrue、モデルのカリング設定を使うならfalse
+     */
+    void SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value);
+
     Core::csmModel*     GetModel() const;
 
 private:
@@ -761,8 +823,10 @@ private:
     csmVector<CubismIdHandle> _drawableIds;
     csmVector<DrawableColorData> _userScreenColors; ///< 乗算色の配列
     csmVector<DrawableColorData> _userMultiplyColors; ///< スクリーン色の配列
+    csmVector<DrawableCullingData> _userCullings; ///< カリング設定の配列
     csmBool _isOverwrittenModelMultiplyColors; ///< 乗算色を全て上書きするか？
     csmBool _isOverwrittenModelScreenColors; ///< スクリーン色を全て上書きするか？
+    csmBool _isOverwrittenCullings; ///< モデルのカリング設定をすべて上書きするか？
 };
 
 }}}

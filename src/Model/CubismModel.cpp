@@ -25,6 +25,7 @@ CubismModel::CubismModel(Core::csmModel* model)
     , _partOpacities(NULL)
     , _isOverwrittenModelMultiplyColors(false)
     , _isOverwrittenModelScreenColors(false)
+    , _isOverwrittenCullings(false)
 { }
 
 CubismModel::~CubismModel()
@@ -395,6 +396,7 @@ void CubismModel::Initialize()
         _drawableIds.PrepareCapacity(drawableCount);
         _userMultiplyColors.PrepareCapacity(drawableCount);
         _userScreenColors.PrepareCapacity(drawableCount);
+        _userCullings.PrepareCapacity(drawableCount);
 
         // 乗算色
         Rendering::CubismRenderer::CubismTextureColor multiplyColor;
@@ -416,11 +418,18 @@ void CubismModel::Initialize()
         userScreenColor.IsOverwritten = false;
         userScreenColor.Color = screenColor;
 
+        // カリング設定
+        DrawableCullingData userCulling;
+        userCulling.IsOverwritten = false;
+        userCulling.IsCulling = 0;
+
+
         for (csmInt32 i = 0; i < drawableCount; ++i)
         {
             _drawableIds.PushBack(CubismFramework::GetIdManager()->GetId(drawableIds[i]));
             _userMultiplyColors.PushBack(userMultiplyColor);
             _userScreenColors.PushBack(userScreenColor);
+            _userCullings.PushBack(userCulling);
         }
     }
 }
@@ -511,12 +520,6 @@ Core::csmVector4 CubismModel::GetDrawableScreenColor(csmInt32 drawableIndex) con
 csmInt32 CubismModel::GetDrawableParentPartIndex(csmUint32 drawableIndex) const
 {
     return Core::csmGetDrawableParentPartIndices(_model)[drawableIndex];
-}
-
-csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
-{
-    const Core::csmFlags* constantFlags = Core::csmGetDrawableConstantFlags(_model);
-    return !IsBitSet(constantFlags[drawableIndex], Core::csmIsDoubleSided);
 }
 
 csmBool CubismModel::GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const
@@ -710,6 +713,42 @@ void CubismModel::SetOverwriteFlagForDrawableMultiplyColors(csmUint32 drawableIn
 void CubismModel::SetOverwriteFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value)
 {
     _userScreenColors[drawableIndex].IsOverwritten = value;
+}
+
+csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
+{
+    if (GetOverwriteFlagForModelCullings() || GetOverwriteFlagForDrawableCullings(drawableIndex))
+    {
+        return _userCullings[drawableIndex].IsCulling;
+    }
+
+    const Core::csmFlags* constantFlags = Core::csmGetDrawableConstantFlags(_model);
+    return !IsBitSet(constantFlags[drawableIndex], Core::csmIsDoubleSided);
+}
+
+void CubismModel::SetDrawableCulling(csmInt32 drawableIndex, csmInt32 isCulling)
+{
+    _userCullings[drawableIndex].IsCulling = isCulling;
+}
+
+csmBool CubismModel::GetOverwriteFlagForModelCullings() const
+{
+    return _isOverwrittenCullings;
+}
+
+void CubismModel::SetOverwriteFlagForModelCullings(csmBool value)
+{
+    _isOverwrittenCullings = value;
+}
+
+csmBool CubismModel::GetOverwriteFlagForDrawableCullings(csmInt32 drawableIndex) const
+{
+    return _userCullings[drawableIndex].IsOverwritten;
+}
+
+void CubismModel::SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)
+{
+    _userCullings[drawableIndex].IsOverwritten = value;
 }
 
 Core::csmModel* CubismModel::GetModel() const
