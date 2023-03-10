@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.6.1] - 2023-03-10
+
+### Added
+
+* Add function to validate MOC3 files.
+
+
 ## [4-r.6] - 2023-02-21
 
 ### Added
@@ -244,6 +251,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.6.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6...4-r.6.1
 [4-r.6]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5.1...4-r.6
 [4-r.5.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5...4-r.5.1
 [4-r.5]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5-beta.5...4-r.5
