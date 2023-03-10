@@ -75,6 +75,16 @@ public:
      */
     Core::csmMocVersion GetMocVersion();
 
+    /**
+     * @brief Checks consistency of a moc.
+     *
+     * @param  address  Address of unrevived moc. The address must be aligned to 'csmAlignofMoc'.
+     * @param  size     Size of moc (in bytes).
+     *
+     * @return  '1' if Moc is valid; '0' otherwise.
+     */
+    static csmBool HasMocConsistency(void* address, const csmUint32 size);
+
 private:
     /**
      * @brief コンストラクタ

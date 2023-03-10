@@ -82,4 +82,10 @@ Core::csmMocVersion CubismMoc::GetMocVersion()
     return _mocVersion;
 }
 
+csmBool CubismMoc::HasMocConsistency(void* address, const csmUint32 size)
+{
+    csmInt32 consistencyFlags = Core::csmHasMocConsistency(address, size);
+    return consistencyFlags != 0 ? true : false;
+}
+
 }}}
