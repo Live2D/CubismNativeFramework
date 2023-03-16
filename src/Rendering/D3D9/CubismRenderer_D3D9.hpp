@@ -86,7 +86,7 @@ private:
      * @param[in]   model       ->  モデルのインスタンス
      * @param[in]   renderer    ->  レンダラのインスタンス
      */
-    void SetupClippingContext(LPDIRECT3DDEVICE9 device, CubismModel& model, CubismRenderer_D3D9* renderer);
+    void SetupClippingContext(LPDIRECT3DDEVICE9 device, CubismModel& model, CubismRenderer_D3D9* renderer, csmInt32 offscreenCurrent);
 
     /**
      * @brief   既にマスクを作っているかを確認。<br>
@@ -151,7 +151,6 @@ private:
     CubismMatrix44  _tmpMatrixForMask;       ///< マスク計算用の行列
     CubismMatrix44  _tmpMatrixForDraw;       ///< マスク計算用の行列
     csmRectF        _tmpBoundsOnModel;       ///< マスク配置計算用の矩形
-
 };
 
 /**
@@ -339,7 +338,7 @@ public:
      * @return クリッピングマスクのバッファへの参照
      *
      */
-    CubismOffscreenFrame_D3D9* GetMaskBuffer(csmInt32 index);
+    CubismOffscreenFrame_D3D9* GetMaskBuffer(csmUint32 backbufferNum, csmInt32 offscreenIndex);
 
     /**
      * @brief  使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行
@@ -419,6 +418,12 @@ private:
     void PreDraw();
 
     /**
+     * @brief   描画完了後の追加処理。<br>
+     *           ダブル・トリプルバッファリングに必要な処理を実装している。
+     */
+    void PostDraw();
+
+    /**
      * @brief   モデル描画直前のステートを保持する
      */
     virtual void SaveProfile() override;
@@ -459,14 +464,21 @@ private:
 
     csmUint32                           _drawableNum;           ///< _vertexBuffers, _indexBuffersの確保数
 
+    /**
+     * @note D3D9ではDrawPrimitiveUPで描画コマンドを積んでおり、
+     * この場合は頂点メモリをユーザー側で保存し続ける必要がないため、一本の配列のみ持つ実装となっている。
+     */
     CubismVertexD3D9**                  _vertexStore;           ///< 頂点をストアしておく領域
     csmUint16**                         _indexStore;            ///< インデックスをストアしておく領域
+
+    csmInt32                            _commandBufferNum;      ///< 描画バッファを複数作成する場合の数
+    csmInt32                            _commandBufferCurrent;  ///< 現在使用中のバッファ番号
 
     csmVector<csmInt32>                 _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
 
     csmMap<csmInt32, LPDIRECT3DTEXTURE9> _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
 
-    csmVector<CubismOffscreenFrame_D3D9> _offscreenFrameBuffers;          ///< マスク描画用のフレームバッファ
+    csmVector<csmVector<CubismOffscreenFrame_D3D9>> _offscreenFrameBuffers;          ///< マスク描画用のフレームバッファ
 
     CubismClippingManager_DX9*          _clippingManager;               ///< クリッピングマスク管理オブジェクト
     CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト

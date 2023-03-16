@@ -452,8 +452,8 @@ void CubismClippingManager_OpenGLES2::SetupLayoutBounds(csmInt32 usingClipCount)
         {
             // マスクの制限数の警告を出す
             csmInt32 count = usingClipCount - useClippingMaskMaxCount;
-            CubismLogError("not supported mask count : %d\n[Details] render texture count: %d\n, mask count : "
-                , usingClipCount - useClippingMaskMaxCount, _renderTextureCount, usingClipCount);
+            CubismLogError("not supported mask count : %d\n[Details] render texture count : %d\n, mask count : %d"
+                , count, _renderTextureCount, usingClipCount);
         }
 
         // この場合は一つのマスクターゲットを毎回クリアして使用する
@@ -550,7 +550,7 @@ void CubismClippingManager_OpenGLES2::SetupLayoutBounds(csmInt32 usingClipCount)
                     cc->_bufferIndex = renderTextureNo;
                 }
             }
-            else if (layoutCount <= 9)
+            else if (layoutCount <= layoutCountMaxValue)
             {
                 //9分割して使う
                 for (csmInt32 i = 0; i < layoutCount; i++)

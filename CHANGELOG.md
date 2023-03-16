@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.6.2] - 2023-03-16
+
+### Fixed
+
+* Fix a bug that caused double and triple buffering to be disabled on DirectX systems due to multiple render textures in 4-r.6.
+* Fix the condition of splitting the mask buffer according to the number of masks used to be in accordance with the specification.
+* Fix some problems related to Cubism Core.
+  * See `CHANGELOG.md` in Core.
+
+
 ## [4-r.6.1] - 2023-03-10
 
 ### Added
@@ -251,6 +261,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.6.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6.1...4-r.6.2
 [4-r.6.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6...4-r.6.1
 [4-r.6]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5.1...4-r.6
 [4-r.5.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5...4-r.5.1
