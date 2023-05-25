@@ -143,22 +143,22 @@ ACubismMotion::FinishedMotionCallback ACubismMotion::GetFinishedMotionHandler()
     return this->_onFinishedMotion;
 }
 
-csmBool ACubismMotion::IsExistOpacity() const
+csmBool ACubismMotion::IsExistModelOpacity() const
 {
     return false;
 }
 
-csmInt32 ACubismMotion::GetOpacityIndex() const
+csmInt32 ACubismMotion::GetModelOpacityIndex() const
 {
     return -1;
 }
 
-CubismIdHandle ACubismMotion::GetOpacityId(csmInt32 index)
+CubismIdHandle ACubismMotion::GetModelOpacityId(csmInt32 index)
 {
     return NULL;
 }
 
-csmFloat32 ACubismMotion::GetOpacityValue(csmFloat32 motionTimeSeconds) const
+csmFloat32 ACubismMotion::GetModelOpacityValue() const
 {
     return 1.0f;
 }

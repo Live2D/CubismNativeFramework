@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [4-r.7] - 2023-05-25
+
+### Added
+
+* Add some function for checking consistency of MOC3.
+  * Add the function of checking consistency on reviving a MOC3. (`CubismMoc::Create`)
+  * Add the function of checking consistency from unrevived MOC3. (`CubismMoc::HasMocConsistencyFromUnrevivedMoc`)
+* Add some functions to change Multiply and Screen colors on a per part basis.
+
+### Changed
+
+* Change access specifier for `CubismExpressionMotion`.
+* Change to get opacity according to the current time of the motion.
+
+
 ## [4-r.6.2] - 2023-03-16
 
 ### Fixed
@@ -261,6 +276,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[4-r.7]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6.2...4-r.7
 [4-r.6.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6.1...4-r.6.2
 [4-r.6.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6...4-r.6.1
 [4-r.6]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.5.1...4-r.6

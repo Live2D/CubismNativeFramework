@@ -20,7 +20,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
  */
 class CubismExpressionMotion : public ACubismMotion
 {
-private:
+public:
     /**
      * @brief 表情パラメータ値の計算方式
      *
@@ -32,7 +32,6 @@ private:
         ExpressionBlendType_Overwrite = 2   ///< 上書き
     };
 
-public:
     /**
      * @brief 表情のパラメータ情報
      *
@@ -68,9 +67,19 @@ public:
     */
     virtual void DoUpdateParameters(CubismModel* model, csmFloat32 userTimeSeconds, csmFloat32 weight, CubismMotionQueueEntry* motionQueueEntry);
 
-private:
+protected:
     CubismExpressionMotion();
     virtual ~CubismExpressionMotion();
+
+    /**
+     * @brief exp3.jsonのパース
+     *
+     * exp3.jsonをパースする。
+     *
+     * @param[in]   exp3Json    exp3.jsonが読み込まれているバッファ
+     * @param[in]   size        バッファのサイズ
+     */
+    void Parse(const csmByte* exp3Json, csmSizeInt size);
 
     csmVector<ExpressionParameter> _parameters;         ///< 表情のパラメータ情報リスト
 };
