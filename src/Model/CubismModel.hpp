@@ -86,6 +86,35 @@ public:
     };  // DrawableCullingData
 
     /**
+     * @brief テクスチャの色をRGBAで扱うための構造体
+    */
+    struct PartColorData
+    {
+        /**
+         * @brief   コンストラクタ
+         */
+        PartColorData()
+            : IsOverwritten(false)
+            , Color() {};
+
+        /**
+         * @brief   コンストラクタ
+         */
+        PartColorData(csmBool isOverwritten, Rendering::CubismRenderer::CubismTextureColor color)
+            : IsOverwritten(isOverwritten)
+            , Color(color) {};
+
+        /**
+         * @brief   デストラクタ
+         */
+        virtual ~PartColorData() {};
+
+        csmBool IsOverwritten;
+        Rendering::CubismRenderer::CubismTextureColor Color;
+
+    };  // PartColorData
+
+    /**
      * @brief モデルのパラメータの更新
      *
      * モデルのパラメータを更新する。
@@ -146,6 +175,16 @@ public:
      * @return  パーツのインデックス
      */
     csmInt32    GetPartIndex(CubismIdHandle partId);
+
+    /**
+     * @brief パーツのIDの取得
+     *
+     * パーツのIDを取得する。
+     *
+     * @param[in]   partIndex  パーツのIndex
+     * @return  パーツのID
+     */
+    CubismIdHandle    GetPartId(csmUint32 partIndex);
 
     /**
      * @brief パーツの個数の取得
@@ -644,34 +683,64 @@ public:
     void    SaveParameters();
 
     /**
-     * @brief   リストから乗算色を取得する
+     * @brief   drawableの乗算色を取得する
      */
     Rendering::CubismRenderer::CubismTextureColor GetMultiplyColor(csmInt32 drawableIndex) const;
 
     /**
-     * @brief   リストからスクリーン色を取得する
+     * @brief   drawableのスクリーン色を取得する
      */
     Rendering::CubismRenderer::CubismTextureColor GetScreenColor(csmInt32 drawableIndex) const;
 
     /**
-     * @brief   乗算色を設定する
+     * @brief   drawableの乗算色を設定する
      */
     void SetMultiplyColor(csmInt32 drawableIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
 
     /**
-     * @brief   乗算色を設定する
+     * @brief   drawableの乗算色を設定する
      */
     void SetMultiplyColor(csmInt32 drawableIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
 
     /**
-     * @brief   スクリーン色を設定する
+     * @brief   drawableのスクリーン色を設定する
      */
     void SetScreenColor(csmInt32 drawableIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
 
     /**
-     * @brief   スクリーン色を設定する
+     * @brief   drawableのスクリーン色を設定する
      */
     void SetScreenColor(csmInt32 drawableIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
+
+    /**
+     * @brief   partの乗算色を取得する
+     */
+    Rendering::CubismRenderer::CubismTextureColor GetPartMultiplyColor(csmInt32 partIndex) const;
+
+    /**
+     * @brief   partの乗算色を取得する
+     */
+    Rendering::CubismRenderer::CubismTextureColor GetPartScreenColor(csmInt32 partIndex) const;
+
+    /**
+     * @brief   partのスクリーン色を設定する
+     */
+    void SetPartMultiplyColor(csmInt32 partIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
+
+    /**
+     * @brief   partの乗算色を設定する
+     */
+    void SetPartMultiplyColor(csmInt32 partIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
+
+    /**
+     * @brief   partのスクリーン色を設定する
+     */
+    void SetPartScreenColor(csmInt32 partIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
+
+    /**
+     * @brief   partのスクリーン色を設定する
+     */
+    void SetPartScreenColor(csmInt32 partIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
 
     /**
      * @brief SDKからモデル全体の乗算色を上書きするか。
@@ -730,6 +799,34 @@ public:
     void SetOverwriteFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value);
 
     /**
+     * @brief SDKからpartの乗算色を上書きするか。
+     *
+     * @retval  true    ->  SDK上の色情報を使用
+     * @retval  false   ->  モデルの色情報を使用
+     */
+    csmBool GetOverwriteColorForPartMultiplyColors(csmInt32 partIndex) const;
+
+    /**
+     * @brief SDKからpartのスクリーン色を上書きするか。
+     *
+     * @retval  true    ->  SDK上の色情報を使用
+     * @retval  false   ->  モデルの色情報を使用
+     */
+    csmBool GetOverwriteColorForPartScreenColors(csmInt32 partIndex) const;
+
+    /**
+     * @brief SDKからpartの乗算色を上書きするかをセットする
+     *        SDK上の色情報を使うならtrue、モデルの色情報を使うならfalse
+     */
+    void SetOverwriteColorForPartMultiplyColors(csmUint32 partIndex, csmBool value);
+
+    /**
+     * @brief SDKからpartのスクリーン色を上書きするかをセットする
+     *        SDK上の色情報を使うならtrue、モデルの色情報を使うならfalse
+     */
+    void SetOverwriteColorForPartScreenColors(csmUint32 partIndex, csmBool value);
+
+    /**
      * @brief Drawableのカリング情報の取得
      *
      * Drawableのカリング情報を取得する。
@@ -772,6 +869,20 @@ public:
      */
     void SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value);
 
+    /**
+     * @brief モデルの不透明度を取得する
+     *
+     * @return 不透明度の値
+     */
+    csmFloat32 GetModelOpacity();
+
+    /**
+     * @brief モデルの不透明度を設定する
+     *
+     * @param[in] value 不透明度の値
+     */
+    void SetModelOpacity(csmFloat32 value);
+
     Core::csmModel*     GetModel() const;
 
 private:
@@ -802,6 +913,24 @@ private:
      */
     void Initialize();
 
+    /**
+     * @brief partのOverwriteColor Set関数
+     */
+    void SetPartColor(
+        csmUint32 partIndex,
+        csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a,
+        csmVector<PartColorData>& partColors,
+        csmVector <DrawableColorData>& drawableColors);
+
+    /**
+     * @brief partのOverwriteFlag Set関数
+     */
+    void SetOverwriteColorForPartColors(
+        csmUint32 partIndex,
+        csmBool value,
+        csmVector<CubismModel::PartColorData>& partColors,
+        csmVector <CubismModel::DrawableColorData>& drawableColors);
+
     csmMap<csmInt32, csmFloat32>        _notExistPartOpacities;             ///< 存在していないパーツの不透明度のリスト
     csmMap<CubismIdHandle, csmInt32>   _notExistPartId;                    ///< 存在していないパーツIDのリスト
 
@@ -818,12 +947,17 @@ private:
 
     csmFloat32*         _partOpacities;                         ///< パーツの不透明度のリスト
 
+    csmFloat32 _modelOpacity;                         ///< モデルの不透明度
+
     csmVector<CubismIdHandle> _parameterIds;
     csmVector<CubismIdHandle> _partIds;
     csmVector<CubismIdHandle> _drawableIds;
-    csmVector<DrawableColorData> _userScreenColors; ///< 乗算色の配列
-    csmVector<DrawableColorData> _userMultiplyColors; ///< スクリーン色の配列
+    csmVector<DrawableColorData> _userScreenColors; ///< Drawable 乗算色の配列
+    csmVector<DrawableColorData> _userMultiplyColors; ///< Drawable スクリーン色の配列
     csmVector<DrawableCullingData> _userCullings; ///< カリング設定の配列
+    csmVector<PartColorData> _userPartScreenColors; ///< Part 乗算色の配列
+    csmVector<PartColorData> _userPartMultiplyColors; ///< Part スクリーン色の配列
+    csmVector<csmVector<csmUint32> > _partChildDrawables; ///< Partの子DrawableIndexの配列
     csmBool _isOverwrittenModelMultiplyColors; ///< 乗算色を全て上書きするか？
     csmBool _isOverwrittenModelScreenColors; ///< スクリーン色を全て上書きするか？
     csmBool _isOverwrittenCullings; ///< モデルのカリング設定をすべて上書きするか？

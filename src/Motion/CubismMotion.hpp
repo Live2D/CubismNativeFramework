@@ -172,7 +172,7 @@ public:
     * @retval       true  -> キーが存在する
     * @retval       false -> キーが存在しない
     */
-    csmBool IsExistOpacity() const;
+    csmBool IsExistModelOpacity() const;
 
     /**
     * @brief 透明度のカーブのインデックスを返す
@@ -180,7 +180,7 @@ public:
     *
     * @return  success：透明度のカーブのインデックス
     */
-    csmInt32 GetOpacityIndex() const;
+    csmInt32 GetModelOpacityIndex() const;
 
     /**
     * @brief 透明度のIdを返す
@@ -188,16 +188,20 @@ public:
     *
     * @return  success：透明度のId
     */
-    CubismIdHandle GetOpacityId(csmInt32 index);
+    CubismIdHandle GetModelOpacityId(csmInt32 index);
 
+protected:
     /**
-    * @brief 指定時間の透明度の値を返す
-    *
-    * @param[in]   motionTimeSeconds        現在の再生時間[秒]
-    *
-    * @return  success：モーションの当該時間におけるOpacityの値
-    */
-    csmFloat32 GetOpacityValue(csmFloat32 motionTimeSeconds) const;
+     *
+     * @brief 透明度の値を返す
+     *
+     * @param[in]   motionTimeSeconds        現在の再生時間[秒]（未利用）
+     *
+     * @return  success：モーションの現在時間のOpacityの値
+     *
+     * @note  更新後の値を取るにはUpdateParameters() の後に呼び出す。
+     */
+    csmFloat32 GetModelOpacityValue() const;
 
 private:
     /**
@@ -241,6 +245,9 @@ private:
 
     CubismIdHandle _modelCurveIdEyeBlink;               ///< モデルが持つ自動まばたき用パラメータIDのハンドル。  モデルとモーションを対応付ける。
     CubismIdHandle _modelCurveIdLipSync;                ///< モデルが持つリップシンク用パラメータIDのハンドル。  モデルとモーションを対応付ける。
+    CubismIdHandle _modelCurveIdOpacity;                ///< モデルが持つ不透明度用パラメータIDのハンドル。  モデルとモーションを対応付ける。
+
+    csmFloat32 _modelOpacity; ///< モーションから取得した不透明度
 };
 
 }}}

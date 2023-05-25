@@ -180,12 +180,12 @@ public:
     FinishedMotionCallback GetFinishedMotionHandler();
 
     /**
-    * @brief        透明度のカーブが存在するかどうかを確認する
-    *
-    * @retval       true  -> キーが存在する
-    * @retval       false -> キーが存在しない
-    */
-    virtual csmBool IsExistOpacity() const;
+     * @brief        透明度のカーブが存在するかどうかを確認する
+     *
+     * @retval       true  -> キーが存在する
+     * @retval       false -> キーが存在しない
+     */
+    virtual csmBool IsExistModelOpacity() const;
 
     /**
     * @brief 透明度のカーブのインデックスを返す
@@ -193,24 +193,28 @@ public:
     *
     * @return  success：透明度のカーブのインデックス
     */
-    virtual csmInt32 GetOpacityIndex() const;
+    virtual csmInt32 GetModelOpacityIndex() const;
 
     /**
-    * @brief 透明度のIdを返す
-    *
-    *
-    * @return  success：透明度のId
-    */
-    virtual CubismIdHandle GetOpacityId(csmInt32 index);
+     * @brief 透明度のIdを返す
+     *
+     *
+     * @return  success：透明度のId
+     */
+    virtual CubismIdHandle GetModelOpacityId(csmInt32 index);
 
+protected:
     /**
-    * @brief 指定時間の透明度の値を返す
-    *
-    * @param[in]   motionTimeSeconds        現在の再生時間[秒]
-    *
-    * @return  success：モーションの当該時間におけるOpacityの値
-    */
-    virtual csmFloat32 GetOpacityValue(csmFloat32 motionTimeSeconds) const;
+     *
+     * @brief 指定時間の透明度の値を返す
+     *
+     * @param[in]   motionTimeSeconds        現在の再生時間[秒]
+     *
+     * @return  success：モーションの当該時間におけるOpacityの値
+     *
+     * @note  更新後の値を取るにはUpdateParameters() の後に呼び出す。
+     */
+    virtual csmFloat32 GetModelOpacityValue() const;
 
 private:
     // Prevention of copy Constructor

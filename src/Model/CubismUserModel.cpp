@@ -33,6 +33,7 @@ CubismUserModel::CubismUserModel()
     , _accelerationX(0.0f)
     , _accelerationY(0.0f)
     , _accelerationZ(0.0f)
+    , _mocConsistency(false)
     , _debugMode(false)
     , _renderer(NULL)
 {
@@ -76,9 +77,9 @@ void CubismUserModel::SetAcceleration(csmFloat32 x, csmFloat32 y, csmFloat32 z)
     _accelerationZ = z;
 }
 
-void CubismUserModel::LoadModel(const csmByte* buffer, csmSizeInt size)
+void CubismUserModel::LoadModel(const csmByte* buffer, csmSizeInt size, csmBool shouldCheckMocConsistency)
 {
-    _moc = CubismMoc::Create(buffer, size);
+    _moc = CubismMoc::Create(buffer, size, shouldCheckMocConsistency);
 
     if (_moc == NULL)
     {
