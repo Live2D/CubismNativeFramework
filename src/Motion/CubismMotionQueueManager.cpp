@@ -125,6 +125,11 @@ csmBool CubismMotionQueueManager::DoUpdateMotion(CubismModel* model, csmFloat32 
     return updated;
 }
 
+csmVector<CubismMotionQueueEntry*>* CubismMotionQueueManager::GetCubismMotionQueueEntries()
+{
+    return &_motions;
+}
+
 CubismMotionQueueEntry* CubismMotionQueueManager::GetCubismMotionQueueEntry(CubismMotionQueueEntryHandle motionQueueEntryNumber)
 {
     //------- 処理を行う --------

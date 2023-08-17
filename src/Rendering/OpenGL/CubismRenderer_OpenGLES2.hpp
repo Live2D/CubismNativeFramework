@@ -8,8 +8,10 @@
 #pragma once
 
 #include "../CubismRenderer.hpp"
+#include "../CubismClippingManager.hpp"
 #include "CubismFramework.hpp"
 #include "CubismOffscreenSurface_OpenGLES2.hpp"
+#include "CubismShader_OpenGLES2.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
 #include "Math/CubismVector2.hpp"
@@ -44,55 +46,16 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 //  前方宣言
 class CubismRenderer_OpenGLES2;
-class CubismClippingContext;
+class CubismClippingContext_OpenGLES2;
+class CubismShader_OpenGLES2;
 
 /**
  * @brief  クリッピングマスクの処理を実行するクラス
  *
  */
-class CubismClippingManager_OpenGLES2
+class CubismClippingManager_OpenGLES2 : public CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_OpenGLES2>
 {
-    friend class CubismShader_OpenGLES2;
-    friend class CubismRenderer_OpenGLES2;
-
-private:
-
-    /**
-     * @brief   カラーチャンネル(RGBA)のフラグを取得する
-     *
-     * @param[in]   channelNo   ->   カラーチャンネル(RGBA)の番号(0:R , 1:G , 2:B, 3:A)
-     */
-    CubismRenderer::CubismTextureColor* GetChannelFlagAsColor(csmInt32 channelNo);
-
-    /**
-     * @brief   マスクされる描画オブジェクト群全体を囲む矩形(モデル座標系)を計算する
-     *
-     * @param[in]   model            ->  モデルのインスタンス
-     * @param[in]   clippingContext  ->  クリッピングマスクのコンテキスト
-     */
-    void CalcClippedDrawTotalBounds(CubismModel& model, CubismClippingContext* clippingContext);
-
-    /**
-     * @brief    コンストラクタ
-     */
-    CubismClippingManager_OpenGLES2();
-
-    /**
-     * @brief    デストラクタ
-     */
-    virtual ~CubismClippingManager_OpenGLES2();
-
-    /**
-     * @brief    マネージャの初期化処理<br>
-     *           クリッピングマスクを使う描画オブジェクトの登録を行う
-     *
-     * @param[in]   model           ->  モデルのインスタンス
-     * @param[in]   drawableCount   ->  描画オブジェクトの数
-     * @param[in]   drawableMasks   ->  描画オブジェクトをマスクする描画オブジェクトのインデックスのリスト
-     * @param[in]   drawableMaskCounts   ->  描画オブジェクトをマスクする描画オブジェクトの数
-     * @param[in]   maskBufferCount ->  バッファの生成数
-     */
-    void Initialize(CubismModel& model, csmInt32 drawableCount, const csmInt32** drawableMasks, const csmInt32* drawableMaskCounts, const csmInt32 maskBufferCount);
+public:
 
     /**
      * @brief   クリッピングコンテキストを作成する。モデル描画時に実行する。
@@ -103,267 +66,36 @@ private:
      * @param[in]   lastViewport ->  ビューポート
      */
     void SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer, GLint lastFBO, GLint lastViewport[4]);
-
-    /**
-     * @brief   既にマスクを作っているかを確認。<br>
-     *          作っているようであれば該当するクリッピングマスクのインスタンスを返す。<br>
-     *          作っていなければNULLを返す
-     *
-     * @param[in]   drawableMasks    ->  描画オブジェクトをマスクする描画オブジェクトのリスト
-     * @param[in]   drawableMaskCounts ->  描画オブジェクトをマスクする描画オブジェクトの数
-     * @return          該当するクリッピングマスクが存在すればインスタンスを返し、なければNULLを返す。
-     */
-    CubismClippingContext* FindSameClip(const csmInt32* drawableMasks, csmInt32 drawableMaskCounts) const;
-
-    /**
-     * @brief   クリッピングコンテキストを配置するレイアウト。<br>
-     *           ひとつのレンダーテクスチャを極力いっぱいに使ってマスクをレイアウトする。<br>
-     *           マスクグループの数が4以下ならRGBA各チャンネルに１つずつマスクを配置し、5以上6以下ならRGBAを2,2,1,1と配置する。
-     *
-     * @param[in]   usingClipCount  ->  配置するクリッピングコンテキストの数
-     */
-    void SetupLayoutBounds(csmInt32 usingClipCount) const;
-
-    /**
-     * @brief   画面描画に使用するクリッピングマスクのリストを取得する
-     *
-     * @return  画面描画に使用するクリッピングマスクのリスト
-     */
-    csmVector<CubismClippingContext*>* GetClippingContextListForDraw();
-
-    /**
-     *@brief  クリッピングマスクバッファのサイズを設定する
-     *
-     *@param  size -> クリッピングマスクバッファのサイズ
-     *
-     */
-    void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
-
-    /**
-     *@brief  クリッピングマスクバッファのサイズを取得する
-     *
-     *@return クリッピングマスクバッファのサイズ
-     *
-     */
-    CubismVector2 GetClippingMaskBufferSize() const;
-
-    /**
-     * このバッファのレンダーテクスチャの枚数を取得する。
-     *
-     * @return このバッファのレンダーテクスチャの枚数
-     */
-    csmInt32 GetRenderTextureCount();
-
-    CubismOffscreenFrame_OpenGLES2* _currentOffscreenFrame; /// オフスクリーンフレームのアドレス
-    csmVector<csmBool> _clearedFrameBufferFlags; /// マスクのクリアフラグの配列
-
-    csmVector<CubismRenderer::CubismTextureColor*>  _channelColors;
-    csmVector<CubismClippingContext*>               _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
-    csmVector<CubismClippingContext*>               _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
-    CubismVector2                                   _clippingMaskBufferSize;       ///< クリッピングマスクのバッファサイズ（初期値:256）
-    csmInt32                                        _renderTextureCount;           ///< 生成するレンダーテクスチャの枚数
-
-    CubismMatrix44  _tmpMatrix;              ///< マスク計算用の行列
-    CubismMatrix44  _tmpMatrixForMask;       ///< マスク計算用の行列
-    CubismMatrix44  _tmpMatrixForDraw;       ///< マスク計算用の行列
-    csmRectF        _tmpBoundsOnModel;       ///< マスク配置計算用の矩形
 };
 
 /**
  * @brief   クリッピングマスクのコンテキスト
  */
-class CubismClippingContext
+class CubismClippingContext_OpenGLES2 : public CubismClippingContext
 {
     friend class CubismClippingManager_OpenGLES2;
-    friend class CubismShader_OpenGLES2;
     friend class CubismRenderer_OpenGLES2;
 
-private:
+public:
     /**
      * @brief   引数付きコンストラクタ
      *
      */
-    CubismClippingContext(CubismClippingManager_OpenGLES2* manager, const csmInt32* clippingDrawableIndices, csmInt32 clipCount);
+    CubismClippingContext_OpenGLES2(CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_OpenGLES2>* manager, CubismModel& model, const csmInt32* clippingDrawableIndices, csmInt32 clipCount);
 
     /**
      * @brief   デストラクタ
      */
-    virtual ~CubismClippingContext();
-
-    /**
-     * @brief   このマスクにクリップされる描画オブジェクトを追加する
-     *
-     * @param[in]   drawableIndex   ->  クリッピング対象に追加する描画オブジェクトのインデックス
-     */
-    void AddClippedDrawable(csmInt32 drawableIndex);
+    virtual ~CubismClippingContext_OpenGLES2();
 
     /**
      * @brief   このマスクを管理するマネージャのインスタンスを取得する。
      *
      * @return  クリッピングマネージャのインスタンス
      */
-    CubismClippingManager_OpenGLES2* GetClippingManager();
+    CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_OpenGLES2>* GetClippingManager();
 
-    CubismClippingManager_OpenGLES2* _owner;        ///< このマスクを管理しているマネージャのインスタンス
-
-public:
-    csmBool _isUsing;                                ///< 現在の描画状態でマスクの準備が必要ならtrue
-    const csmInt32* _clippingIdList;                 ///< クリッピングマスクのIDリスト
-    csmInt32 _clippingIdCount;                       ///< クリッピングマスクの数
-    csmInt32 _layoutChannelNo;                       ///< RGBAのいずれのチャンネルにこのクリップを配置するか(0:R , 1:G , 2:B , 3:A)
-    csmRectF* _layoutBounds;                         ///< マスク用チャンネルのどの領域にマスクを入れるか(View座標-1..1, UVは0..1に直す)
-    csmRectF* _allClippedDrawRect;                   ///< このクリッピングで、クリッピングされる全ての描画オブジェクトの囲み矩形（毎回更新）
-    CubismMatrix44 _matrixForMask;                   ///< マスクの位置計算結果を保持する行列
-    CubismMatrix44 _matrixForDraw;                   ///< 描画オブジェクトの位置計算結果を保持する行列
-    csmVector<csmInt32>* _clippedDrawableIndexList;  ///< このマスクにクリップされる描画オブジェクトのリスト
-    csmInt32 _bufferIndex;                           ///< このマスクが割り当てられるレンダーテクスチャ（フレームバッファ）やカラーバッファのインデックス
-};
-
-/**
- * @brief   OpenGLES2用のシェーダプログラムを生成・破棄するクラス<br>
- *           シングルトンなクラスであり、CubismShader_OpenGLES2::GetInstance()からアクセスする。
- *
- */
-class CubismShader_OpenGLES2
-{
-    friend class CubismRenderer_OpenGLES2;
-
-private:
-    /**
-     * @brief   インスタンスを取得する（シングルトン）。
-     *
-     * @return  インスタンスのポインタ
-     */
-    static CubismShader_OpenGLES2* GetInstance();
-
-    /**
-     * @brief   インスタンスを解放する（シングルトン）。
-     */
-    static void DeleteInstance();
-
-    /**
-    * @bref    シェーダープログラムとシェーダ変数のアドレスを保持する構造体
-    *
-    */
-    struct CubismShaderSet
-    {
-        GLuint ShaderProgram;               ///< シェーダプログラムのアドレス
-        GLuint AttributePositionLocation;   ///< シェーダプログラムに渡す変数のアドレス(Position)
-        GLuint AttributeTexCoordLocation;   ///< シェーダプログラムに渡す変数のアドレス(TexCoord)
-        GLint UniformMatrixLocation;        ///< シェーダプログラムに渡す変数のアドレス(Matrix)
-        GLint UniformClipMatrixLocation;    ///< シェーダプログラムに渡す変数のアドレス(ClipMatrix)
-        GLint SamplerTexture0Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture0)
-        GLint SamplerTexture1Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture1)
-        GLint UniformBaseColorLocation;     ///< シェーダプログラムに渡す変数のアドレス(BaseColor)
-        GLint UniformMultiplyColorLocation; ///< シェーダプログラムに渡す変数のアドレス(MultiplyColor)
-        GLint UniformScreenColorLocation;   ///< シェーダプログラムに渡す変数のアドレス(ScreenColor)
-        GLint UnifromChannelFlagLocation;   ///< シェーダプログラムに渡す変数のアドレス(ChannelFlag)
-    };
-
-    /**
-     * @brief   privateなコンストラクタ
-     */
-    CubismShader_OpenGLES2();
-
-    /**
-     * @brief   privateなデストラクタ
-     */
-    virtual ~CubismShader_OpenGLES2();
-
-    /**
-     * @brief   シェーダプログラムの一連のセットアップを実行する
-     *
-     * @param[in]   renderer              ->  レンダラのインスタンス
-     * @param[in]   textureId             ->  GPUのテクスチャID
-     * @param[in]   vertexCount           ->  ポリゴンメッシュの頂点数
-     * @param[in]   vertexArray           ->  ポリゴンメッシュの頂点配列
-     * @param[in]   uvArray               ->  uv配列
-     * @param[in]   opacity               ->  不透明度
-     * @param[in]   colorBlendMode        ->  カラーブレンディングのタイプ
-     * @param[in]   baseColor             ->  ベースカラー
-     * @param[in]   isPremultipliedAlpha  ->  乗算済みアルファかどうか
-     * @param[in]   matrix4x4             ->  Model-View-Projection行列
-     * @param[in]   invertedMask           ->  マスクを反転して使用するフラグ
-     */
-    void SetupShaderProgram(CubismRenderer_OpenGLES2* renderer, GLuint textureId
-                            , csmInt32 vertexCount, csmFloat32* vertexArray
-                            , csmFloat32* uvArray, csmFloat32 opacity
-                            , CubismRenderer::CubismBlendMode colorBlendMode
-                            , CubismRenderer::CubismTextureColor baseColor
-                            , CubismRenderer::CubismTextureColor multiplyColor
-                            , CubismRenderer::CubismTextureColor screenColor
-                            , csmBool isPremultipliedAlpha, CubismMatrix44 matrix4x4
-                            , csmBool invertedMask);
-
-    /**
-     * @brief   シェーダプログラムを解放する
-     */
-    void ReleaseShaderProgram();
-
-    /**
-     * @brief   シェーダプログラムを初期化する
-     */
-    void GenerateShaders();
-
-    /**
-     * @brief   シェーダプログラムをロードしてアドレス返す。
-     *
-     * @param[in]   vertShaderSrc   ->  頂点シェーダのソース
-     * @param[in]   fragShaderSrc   ->  フラグメントシェーダのソース
-     *
-     * @return  シェーダプログラムのアドレス
-     */
-    GLuint LoadShaderProgram(const csmChar* vertShaderSrc, const csmChar* fragShaderSrc);
-
-    /**
-     * @brief   シェーダプログラムをコンパイルする
-     *
-     * @param[out]  outShader       ->  コンパイルされたシェーダプログラムのアドレス
-     * @param[in]   shaderType      ->  シェーダタイプ(Vertex/Fragment)
-     * @param[in]   shaderSource    ->  シェーダソースコード
-     *
-     * @retval      true         ->      コンパイル成功
-     * @retval      false        ->      コンパイル失敗
-     */
-    csmBool CompileShaderSource(GLuint* outShader, GLenum shaderType, const csmChar* shaderSource);
-
-    /**
-     * @brief   シェーダプログラムをリンクする
-     *
-     * @param[in]   shaderProgram   ->  リンクするシェーダプログラムのアドレス
-     *
-     * @retval      true            ->  リンク成功
-     * @retval      false           ->  リンク失敗
-     */
-    csmBool LinkProgram(GLuint shaderProgram);
-
-    /**
-     * @brief   シェーダプログラムを検証する
-     *
-     * @param[in]   shaderProgram   ->  検証するシェーダプログラムのアドレス
-     *
-     * @retval      true            ->  正常
-     * @retval      false           ->  異常
-     */
-    csmBool ValidateProgram(GLuint shaderProgram);
-
-#ifdef CSM_TARGET_ANDROID_ES2
-public:
-    /**
-     * @brief   Tegraプロセッサ対応。拡張方式による描画の有効・無効
-     *
-     * @param[in]   extMode     ->  trueなら拡張方式で描画する
-     * @param[in]   extPAMode   ->  trueなら拡張方式のPA設定を有効にする
-     */
-    static void SetExtShaderMode(csmBool extMode, csmBool extPAMode);
-
-private:
-    static csmBool  s_extMode;      ///< Tegra対応.拡張方式で描画
-    static csmBool  s_extPAMode;    ///< 拡張方式のPA設定用の変数
-#endif
-
-    csmVector<CubismShaderSet*> _shaderSets;   ///< ロードしたシェーダプログラムを保持する変数
-
+    CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_OpenGLES2>* _owner;        ///< このマスクを管理しているマネージャのインスタンス
 };
 
 /**
@@ -471,7 +203,7 @@ public:
 
     /**
      * @brief  クリッピングマスクバッファのサイズを設定する<br>
-     *         マスク用のFrameBufferを破棄・再作成するため処理コストは高い。
+     *         マスク用のOffscreenSurfaceを破棄・再作成するため処理コストは高い。
      *
      * @param[in]  size -> クリッピングマスクバッファのサイズ
      *
@@ -500,7 +232,7 @@ public:
      * @return クリッピングマスクのバッファへのポインタ
      *
      */
-    CubismOffscreenFrame_OpenGLES2* GetMaskBuffer(csmInt32 index);
+    CubismOffscreenSurface_OpenGLES2* GetMaskBuffer(csmInt32 index);
 
 protected:
     /**
@@ -519,33 +251,14 @@ protected:
      */
     virtual void DoDrawModel() override;
 
-    void DrawMesh(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
-            , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
-            , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask) override;
-
     /**
-     * @brief   [オーバーライド]<br>
-     *           描画オブジェクト（アートメッシュ）を描画する。<br>
-     *           ポリゴンメッシュとテクスチャ番号をセットで渡す。
+     * @brief    描画オブジェクト（アートメッシュ）を描画する。
      *
-     * @param[in]   textureNo       ->  描画するテクスチャ番号
-     * @param[in]   indexCount      ->  描画オブジェクトのインデックス値
-     * @param[in]   vertexCount     ->  ポリゴンメッシュの頂点数
-     * @param[in]   indexArray      ->  ポリゴンメッシュのインデックス配列
-     * @param[in]   vertexArray     ->  ポリゴンメッシュの頂点配列
-     * @param[in]   uvArray         ->  uv配列
-     * @param[in]   multiplyColor    ->  乗算色
-     * @param[in]   screenColor         ->  スクリーン色
-     * @param[in]   opacity         ->  不透明度
-     * @param[in]   colorBlendMode  ->  カラー合成タイプ
-     * @param[in]   invertedMask     ->  マスク使用時のマスクの反転使用
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   index       ->  描画対象のメッシュのインデックス
      *
      */
-    void DrawMeshOpenGL(csmInt32 textureNo, csmInt32 indexCount, csmInt32 vertexCount
-                  , csmUint16* indexArray, csmFloat32* vertexArray, csmFloat32* uvArray
-                  , const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor
-                  , csmFloat32 opacity, CubismBlendMode colorBlendMode, csmBool invertedMask);
-
+    void DrawMeshOpenGL(const CubismModel& model, const csmInt32 index);
 
 #ifdef CSM_TARGET_ANDROID_ES2
 public:
@@ -599,26 +312,41 @@ private:
     /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストをセットする。
      */
-    void SetClippingContextBufferForMask(CubismClippingContext* clip);
+    void SetClippingContextBufferForMask(CubismClippingContext_OpenGLES2* clip);
 
     /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストを取得する。
      *
      * @return  マスクテクスチャに描画するクリッピングコンテキスト
      */
-    CubismClippingContext* GetClippingContextBufferForMask() const;
+    CubismClippingContext_OpenGLES2* GetClippingContextBufferForMask() const;
 
     /**
      * @brief   画面上に描画するクリッピングコンテキストをセットする。
      */
-    void SetClippingContextBufferForDraw(CubismClippingContext* clip);
+    void SetClippingContextBufferForDraw(CubismClippingContext_OpenGLES2* clip);
 
     /**
      * @brief   画面上に描画するクリッピングコンテキストを取得する。
      *
      * @return  画面上に描画するクリッピングコンテキスト
      */
-    CubismClippingContext* GetClippingContextBufferForDraw() const;
+    CubismClippingContext_OpenGLES2* GetClippingContextBufferForDraw() const;
+
+    /**
+     * @brief   マスク生成時かを判定する
+     *
+     * @return  判定値
+     */
+    const csmBool inline IsGeneratingMask() const;
+
+    /**
+     * @brief   テクスチャマップにバインドされたテクスチャIDを取得する。<br>
+     *          バインドされていなければダミーとして-1が返される。
+     *
+     * @return  バインドされたテクスチャID
+     */
+    GLuint GetBindedTextureId(csmInt32 textureId);
 
 #ifdef CSM_TARGET_WIN_GL
     /**
@@ -637,14 +365,14 @@ private:
     void  CheckGlError(const csmChar* message);
 #endif
 
-    csmMap<csmInt32, GLuint>            _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
-    csmVector<csmInt32>                 _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
-    CubismRendererProfile_OpenGLES2     _rendererProfile;               ///< OpenGLのステートを保持するオブジェクト
-    CubismClippingManager_OpenGLES2*    _clippingManager;               ///< クリッピングマスク管理オブジェクト
-    CubismClippingContext*              _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト
-    CubismClippingContext*              _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
+    csmMap<csmInt32, GLuint> _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
+    csmVector<csmInt32> _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
+    CubismRendererProfile_OpenGLES2 _rendererProfile;               ///< OpenGLのステートを保持するオブジェクト
+    CubismClippingManager_OpenGLES2* _clippingManager;               ///< クリッピングマスク管理オブジェクト
+    CubismClippingContext_OpenGLES2* _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト
+    CubismClippingContext_OpenGLES2* _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
 
-    csmVector<CubismOffscreenFrame_OpenGLES2>   _offscreenFrameBuffers;          ///< マスク描画用のフレームバッファ
+    csmVector<CubismOffscreenSurface_OpenGLES2>   _offscreenSurfaces;          ///< マスク描画用のフレームバッファ
 };
 
 }}}}

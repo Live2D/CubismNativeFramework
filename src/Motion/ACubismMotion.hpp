@@ -216,6 +216,16 @@ protected:
      */
     virtual csmFloat32 GetModelOpacityValue() const;
 
+    /**
+     * @brief モデルのウェイト更新
+     *
+     * モーションのウェイトを更新する。
+     *
+     * @param[in]   motionQueueEntry    CubismMotionQueueManagerで管理されているモーション
+     * @param[in]   userTimeSeconds     デルタ時間の積算値[秒]
+     */
+    csmFloat32 UpdateFadeWeight(CubismMotionQueueEntry* motionQueueEntry, csmFloat32 userTimeSeconds);
+
 private:
     // Prevention of copy Constructor
     ACubismMotion(const ACubismMotion&);

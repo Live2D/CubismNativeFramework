@@ -11,7 +11,7 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-CubismOffscreenFrame_Metal::CubismOffscreenFrame_Metal()
+CubismOffscreenSurface_Metal::CubismOffscreenSurface_Metal()
     : _colorBuffer(NULL)
     , _renderPassDescriptor(NULL)
     , _bufferWidth(0)
@@ -24,10 +24,10 @@ CubismOffscreenFrame_Metal::CubismOffscreenFrame_Metal()
 {
 }
 
-csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer)
+csmBool CubismOffscreenSurface_Metal::CreateOffscreenSurface(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer)
 {
     // 一旦削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     do
     {
@@ -84,12 +84,12 @@ csmBool CubismOffscreenFrame_Metal::CreateOffscreenFrame(csmUint32 displayBuffer
     } while (0);
 
     // 失敗したので削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     return false;
 }
 
-void CubismOffscreenFrame_Metal::DestroyOffscreenFrame()
+void CubismOffscreenSurface_Metal::DestroyOffscreenSurface()
 {
     if (_colorBuffer != NULL)
     {
@@ -104,12 +104,12 @@ void CubismOffscreenFrame_Metal::DestroyOffscreenFrame()
     }
 }
 
-id <MTLTexture> CubismOffscreenFrame_Metal::GetColorBuffer() const
+id <MTLTexture> CubismOffscreenSurface_Metal::GetColorBuffer() const
 {
     return _colorBuffer;
 }
 
-void CubismOffscreenFrame_Metal::SetClearColor(float r, float g, float b, float a)
+void CubismOffscreenSurface_Metal::SetClearColor(float r, float g, float b, float a)
 {
     _clearColorR = r;
     _clearColorG = g;
@@ -117,32 +117,32 @@ void CubismOffscreenFrame_Metal::SetClearColor(float r, float g, float b, float 
     _clearColorA = a;
 }
 
-csmUint32 CubismOffscreenFrame_Metal::GetBufferWidth() const
+csmUint32 CubismOffscreenSurface_Metal::GetBufferWidth() const
 {
     return _bufferWidth;
 }
 
-csmUint32 CubismOffscreenFrame_Metal::GetBufferHeight() const
+csmUint32 CubismOffscreenSurface_Metal::GetBufferHeight() const
 {
     return _bufferHeight;
 }
 
-csmBool CubismOffscreenFrame_Metal::IsValid() const
+csmBool CubismOffscreenSurface_Metal::IsValid() const
 {
     return _renderPassDescriptor != NULL;
 }
 
-const MTLViewport* CubismOffscreenFrame_Metal::GetViewport() const
+const MTLViewport* CubismOffscreenSurface_Metal::GetViewport() const
 {
     return &_viewPort;
 }
 
-MTLRenderPassDescriptor* CubismOffscreenFrame_Metal::GetRenderPassDescriptor() const
+MTLRenderPassDescriptor* CubismOffscreenSurface_Metal::GetRenderPassDescriptor() const
 {
     return _renderPassDescriptor;
 }
 
-void CubismOffscreenFrame_Metal::SetMTLPixelFormat(MTLPixelFormat pixelFormat)
+void CubismOffscreenSurface_Metal::SetMTLPixelFormat(MTLPixelFormat pixelFormat)
 {
     _pixelFormat = pixelFormat;
 }

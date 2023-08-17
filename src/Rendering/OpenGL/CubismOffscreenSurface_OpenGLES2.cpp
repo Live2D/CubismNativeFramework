@@ -10,7 +10,7 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-CubismOffscreenFrame_OpenGLES2::CubismOffscreenFrame_OpenGLES2()
+CubismOffscreenSurface_OpenGLES2::CubismOffscreenSurface_OpenGLES2()
     : _renderTexture(0)
     , _colorBuffer(0)
     , _oldFBO(0)
@@ -21,7 +21,7 @@ CubismOffscreenFrame_OpenGLES2::CubismOffscreenFrame_OpenGLES2()
 }
 
 
-void CubismOffscreenFrame_OpenGLES2::BeginDraw(GLint restoreFBO)
+void CubismOffscreenSurface_OpenGLES2::BeginDraw(GLint restoreFBO)
 {
     if (_renderTexture == 0)
     {
@@ -42,7 +42,7 @@ void CubismOffscreenFrame_OpenGLES2::BeginDraw(GLint restoreFBO)
     glBindFramebuffer(GL_FRAMEBUFFER, _renderTexture);
 }
 
-void CubismOffscreenFrame_OpenGLES2::EndDraw()
+void CubismOffscreenSurface_OpenGLES2::EndDraw()
 {
     if (_renderTexture == 0)
     {
@@ -53,17 +53,17 @@ void CubismOffscreenFrame_OpenGLES2::EndDraw()
     glBindFramebuffer(GL_FRAMEBUFFER, _oldFBO);
 }
 
-void CubismOffscreenFrame_OpenGLES2::Clear(float r, float g, float b, float a)
+void CubismOffscreenSurface_OpenGLES2::Clear(float r, float g, float b, float a)
 {
     // マスクをクリアする
     glClearColor(r,g,b,a);
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, GLuint colorBuffer)
+csmBool CubismOffscreenSurface_OpenGLES2::CreateOffscreenSurface(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, GLuint colorBuffer)
 {
     // 一旦削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     do
     {
@@ -110,12 +110,12 @@ csmBool CubismOffscreenFrame_OpenGLES2::CreateOffscreenFrame(csmUint32 displayBu
     } while (0);
 
     // 失敗したので削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     return false;
 }
 
-void CubismOffscreenFrame_OpenGLES2::DestroyOffscreenFrame()
+void CubismOffscreenSurface_OpenGLES2::DestroyOffscreenSurface()
 {
     if (!_isColorBufferInherited && (_colorBuffer != 0))
     {
@@ -130,27 +130,27 @@ void CubismOffscreenFrame_OpenGLES2::DestroyOffscreenFrame()
     }
 }
 
-GLuint CubismOffscreenFrame_OpenGLES2::GetRenderTexture() const
+GLuint CubismOffscreenSurface_OpenGLES2::GetRenderTexture() const
 {
     return _renderTexture;
 }
 
-GLuint CubismOffscreenFrame_OpenGLES2::GetColorBuffer() const
+GLuint CubismOffscreenSurface_OpenGLES2::GetColorBuffer() const
 {
     return _colorBuffer;
 }
 
-csmUint32 CubismOffscreenFrame_OpenGLES2::GetBufferWidth() const
+csmUint32 CubismOffscreenSurface_OpenGLES2::GetBufferWidth() const
 {
     return _bufferWidth;
 }
 
-csmUint32 CubismOffscreenFrame_OpenGLES2::GetBufferHeight() const
+csmUint32 CubismOffscreenSurface_OpenGLES2::GetBufferHeight() const
 {
     return _bufferHeight;
 }
 
-csmBool CubismOffscreenFrame_OpenGLES2::IsValid() const
+csmBool CubismOffscreenSurface_OpenGLES2::IsValid() const
 {
     return _renderTexture != 0;
 }

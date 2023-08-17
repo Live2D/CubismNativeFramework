@@ -120,8 +120,8 @@ public:
 
     enum CullType
     {
-        CullType_Front,
         CullType_Back,
+        CullType_Front,
     };
 
     enum WindingType

@@ -6,6 +6,8 @@ target_sources(${LIB_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer_Metal.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismCommandBuffer_Metal.mm
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismCommandBuffer_Metal.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismShader_Metal.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismShader_Metal.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderingInstanceSingleton_Metal.m
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderingInstanceSingleton_Metal.h
     ${CMAKE_CURRENT_SOURCE_DIR}/MetalShaderTypes.h

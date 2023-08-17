@@ -13,7 +13,7 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-class CubismOffscreenFrame_Metal;
+class CubismOffscreenSurface_Metal;
 
 class CubismCommandBuffer_Metal
 {

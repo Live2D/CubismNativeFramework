@@ -10,7 +10,7 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-CubismOffscreenFrame_Cocos2dx::CubismOffscreenFrame_Cocos2dx()
+CubismOffscreenSurface_Cocos2dx::CubismOffscreenSurface_Cocos2dx()
     : _renderTexture(NULL)
     , _colorBuffer(NULL)
     , _isInheritedRenderTexture(false)
@@ -21,7 +21,7 @@ CubismOffscreenFrame_Cocos2dx::CubismOffscreenFrame_Cocos2dx()
 }
 
 
-void CubismOffscreenFrame_Cocos2dx::BeginDraw(CubismCommandBuffer_Cocos2dx* commandBuffer, cocos2d::Texture2D* colorBufferOnFinishDrawing)
+void CubismOffscreenSurface_Cocos2dx::BeginDraw(CubismCommandBuffer_Cocos2dx* commandBuffer, cocos2d::Texture2D* colorBufferOnFinishDrawing)
 {
     if (!IsValid())
     {
@@ -46,7 +46,7 @@ void CubismOffscreenFrame_Cocos2dx::BeginDraw(CubismCommandBuffer_Cocos2dx* comm
     commandBuffer->SetColorBuffer(_renderTexture->getSprite()->getTexture());
 }
 
-void CubismOffscreenFrame_Cocos2dx::EndDraw(CubismCommandBuffer_Cocos2dx* commandBuffer)
+void CubismOffscreenSurface_Cocos2dx::EndDraw(CubismCommandBuffer_Cocos2dx* commandBuffer)
 {
     if (!IsValid())
     {
@@ -57,16 +57,16 @@ void CubismOffscreenFrame_Cocos2dx::EndDraw(CubismCommandBuffer_Cocos2dx* comman
     commandBuffer->SetColorBuffer(_previousColorBuffer);
 }
 
-void CubismOffscreenFrame_Cocos2dx::Clear(CubismCommandBuffer_Cocos2dx* commandBuffer, float r, float g, float b, float a)
+void CubismOffscreenSurface_Cocos2dx::Clear(CubismCommandBuffer_Cocos2dx* commandBuffer, float r, float g, float b, float a)
 {
     // マスクをクリアする
     commandBuffer->Clear(r, g, b, a);
 }
 
-csmBool CubismOffscreenFrame_Cocos2dx::CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, cocos2d::RenderTexture* renderTexture)
+csmBool CubismOffscreenSurface_Cocos2dx::CreateOffscreenSurface(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, cocos2d::RenderTexture* renderTexture)
 {
     // 一旦削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     do
     {
@@ -130,12 +130,12 @@ csmBool CubismOffscreenFrame_Cocos2dx::CreateOffscreenFrame(csmUint32 displayBuf
     } while (0);
 
     // 失敗したので削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     return false;
 }
 
-void CubismOffscreenFrame_Cocos2dx::DestroyOffscreenFrame()
+void CubismOffscreenSurface_Cocos2dx::DestroyOffscreenSurface()
 {
     if ((_renderTexture != NULL) && !_isInheritedRenderTexture)
     {
@@ -144,27 +144,27 @@ void CubismOffscreenFrame_Cocos2dx::DestroyOffscreenFrame()
     }
 }
 
-cocos2d::Texture2D* CubismOffscreenFrame_Cocos2dx::GetColorBuffer() const
+cocos2d::Texture2D* CubismOffscreenSurface_Cocos2dx::GetColorBuffer() const
 {
     return _renderTexture->getSprite()->getTexture();
 }
 
-csmUint32 CubismOffscreenFrame_Cocos2dx::GetBufferWidth() const
+csmUint32 CubismOffscreenSurface_Cocos2dx::GetBufferWidth() const
 {
     return _bufferWidth;
 }
 
-csmUint32 CubismOffscreenFrame_Cocos2dx::GetBufferHeight() const
+csmUint32 CubismOffscreenSurface_Cocos2dx::GetBufferHeight() const
 {
     return _bufferHeight;
 }
 
-csmRectF CubismOffscreenFrame_Cocos2dx::GetViewPortSize() const
+csmRectF CubismOffscreenSurface_Cocos2dx::GetViewPortSize() const
 {
     return _viewPortSize;
 }
 
-csmBool CubismOffscreenFrame_Cocos2dx::IsValid() const
+csmBool CubismOffscreenSurface_Cocos2dx::IsValid() const
 {
     return _renderTexture != NULL;
 }

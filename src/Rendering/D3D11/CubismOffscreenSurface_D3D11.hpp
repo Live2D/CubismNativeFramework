@@ -18,11 +18,11 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismOffscreenFrame_D3D11
+class CubismOffscreenSurface_D3D11
 {
 public:
 
-    CubismOffscreenFrame_D3D11();
+    CubismOffscreenSurface_D3D11();
 
     /**
      * @brief   指定の描画ターゲットに向けて描画開始
@@ -49,17 +49,17 @@ public:
     void Clear(ID3D11DeviceContext* renderContext, float r, float g, float b, float a);
 
     /**
-     *  @brief  CubismOffscreenFrame作成
+     *  @brief  CubismOffscreenSurface作成
      *  @param  device[in]                 D3dデバイス
      *  @param  displayBufferWidth[in]     作成するバッファ幅
      *  @param  displayBufferHeight[in]    作成するバッファ高さ
      */
-    csmBool CreateOffscreenFrame(ID3D11Device* device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight);
+    csmBool CreateOffscreenSurface(ID3D11Device* device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight);
 
     /**
-     * @brief   CubismOffscreenFrameの削除
+     * @brief   CubismOffscreenSurfaceの削除
      */
-    void DestroyOffscreenFrame();
+    void DestroyOffscreenSurface();
 
     /**
      * @brief   クリアカラーの上書き
