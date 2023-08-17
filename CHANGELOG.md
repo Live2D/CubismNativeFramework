@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [5-r.1-beta.1] - 2023-08-17
+
+### Added
+
+* Add the function to get the ID of a given parameter.(`CubismModel::GetParameterId`)
+* Add the `CubismExpressionMotionManager` class.
+* Add a Renderer for Vulkan API in Windows.
+
+### Changed
+
+* Unify Offscreen drawing-related terminology with `OffscreenSurface`.
+* Change comment guidelines for headers in the `Framework` directory.
+
+### Fixed
+
+* Fix a bug that caused cocos2d-x culling to not be performed correctly.
+* Fix the structure of the class in renderer.
+* Separate the high precision mask process from the clipping mask setup process.
+* Separate shader class from CubismRenderer files for Cocos2d-x, Metal, OpenGL.
+* Fix Metal rendering results on macOS to be similar to OpenGL.
+  * If you want to apply the previous Metal rendering results, change `mipFilter` in `MTLSamplerDescriptor` from `MTLSamplerMipFilterLinear` to `MTLSamplerMipFilterNotMipmapped`.
+* Fix a bug that the value applied by multiply was not appropriate during expression transitions.
+
+### Removed
+
+* Remove several arguments of `DrawMesh` function.
+
+
 ## [4-r.7] - 2023-05-25
 
 ### Added
@@ -18,7 +46,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 * Change access specifier for `CubismExpressionMotion`.
 * Change to get opacity according to the current time of the motion.
-
 
 ## [4-r.6.2] - 2023-03-16
 
@@ -276,6 +303,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.1-beta.1]: https://github.com/Live2D/CubismNativeSamples/compare/4-r.7...5-r.1-beta.1
 [4-r.7]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6.2...4-r.7
 [4-r.6.2]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6.1...4-r.6.2
 [4-r.6.1]: https://github.com/Live2D/CubismNativeFramework/compare/4-r.6...4-r.6.1

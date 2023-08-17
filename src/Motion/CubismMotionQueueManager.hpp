@@ -114,6 +114,16 @@ public:
     CubismMotionQueueEntry* GetCubismMotionQueueEntry(CubismMotionQueueEntryHandle motionQueueEntryNumber);
 
     /**
+     * @brief CubismMotionQueueEntryの配列の取得
+     *
+     * CubismMotionQueueEntryの配列を取得する。
+     *
+     * @return  CubismMotionQueueEntryの配列へのポインタ
+     * @retval  NULL   見つからなかった
+     */
+    csmVector<CubismMotionQueueEntry*>* GetCubismMotionQueueEntries();
+
+    /**
     * @brief イベントを受け取るCallbackの登録
     *
     * イベントを受け取るCallbackの登録をする。

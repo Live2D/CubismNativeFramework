@@ -16,24 +16,24 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismOffscreenFrame_Metal
+class CubismOffscreenSurface_Metal
 {
 public:
 
-    CubismOffscreenFrame_Metal();
+    CubismOffscreenSurface_Metal();
 
     /**
-     * @brief  CubismOffscreenFrame作成
+     * @brief  CubismOffscreenSurface作成
      * @param  displayBufferWidth     作成するバッファ幅
      * @param  displayBufferHeight    作成するバッファ高さ
      * @param  colorBuffer            0以外の場合、ピクセル格納領域としてcolorBufferを使用する
      */
-    csmBool CreateOffscreenFrame(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer = NULL);
+    csmBool CreateOffscreenSurface(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer = NULL);
 
     /**
-     * @brief   CubismOffscreenFrameの削除
+     * @brief   CubismOffscreenSurfaceの削除
      */
-    void DestroyOffscreenFrame();
+    void DestroyOffscreenSurface();
 
     /**
      * @brief   カラーバッファメンバーへのアクセッサ

@@ -19,6 +19,7 @@
 #include "Physics/CubismPhysics.hpp"
 #include "Rendering/CubismRenderer.hpp"
 #include "Model/CubismModelUserData.hpp"
+#include "Motion/CubismExpressionMotionManager.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
@@ -269,7 +270,7 @@ protected:
     CubismModel*            _model;                     ///< Modelインスタンス
 
     CubismMotionManager*    _motionManager;             ///< モーション管理
-    CubismMotionManager*    _expressionManager;         ///< 表情管理
+    CubismExpressionMotionManager*    _expressionManager;         ///< 表情管理
     CubismEyeBlink*         _eyeBlink;                  ///< 自動まばたき
     CubismBreath*           _breath;                    ///< 呼吸
     CubismModelMatrix*      _modelMatrix;               ///< モデル行列

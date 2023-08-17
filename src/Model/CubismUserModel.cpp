@@ -43,7 +43,7 @@ CubismUserModel::CubismUserModel()
     _motionManager->SetEventCallback(CubismDefaultMotionEventCallback, this);
 
     // 表情モーションマネージャを作成
-    _expressionManager = CSM_NEW CubismMotionManager();
+    _expressionManager = CSM_NEW CubismExpressionMotionManager();
 
     // ドラッグによるアニメーション
     _dragManager = CSM_NEW CubismTargetPoint();

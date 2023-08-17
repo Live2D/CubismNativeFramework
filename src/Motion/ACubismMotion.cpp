@@ -54,17 +54,32 @@ void ACubismMotion::UpdateParameters(CubismModel* model, CubismMotionQueueEntry*
         }
     }
 
+    csmFloat32 fadeWeight = UpdateFadeWeight(motionQueueEntry, userTimeSeconds);
+
+    //---- 全てのパラメータIDをループする ----
+    DoUpdateParameters(model, userTimeSeconds, fadeWeight, motionQueueEntry);
+
+    //後処理
+    //終了時刻を過ぎたら終了フラグを立てる（CubismMotionQueueManager）
+    if ((motionQueueEntry->GetEndTime() > 0.0f) && (motionQueueEntry->GetEndTime() < userTimeSeconds))
+    {
+        motionQueueEntry->IsFinished(true);      //終了
+    }
+}
+
+csmFloat32 ACubismMotion::UpdateFadeWeight(CubismMotionQueueEntry* motionQueueEntry, csmFloat32 userTimeSeconds)
+{
     csmFloat32 fadeWeight = _weight; //現在の値と掛け合わせる割合
 
     //---- フェードイン・アウトの処理 ----
     //単純なサイン関数でイージングする
     const csmFloat32 fadeIn = _fadeInSeconds == 0.0f
-                       ? 1.0f
-                       : CubismMath::GetEasingSine( (userTimeSeconds - motionQueueEntry->GetFadeInStartTime()) / _fadeInSeconds );
+        ? 1.0f
+        : CubismMath::GetEasingSine((userTimeSeconds - motionQueueEntry->GetFadeInStartTime()) / _fadeInSeconds);
 
     const csmFloat32 fadeOut = (_fadeOutSeconds == 0.0f || motionQueueEntry->GetEndTime() < 0.0f)
-                        ? 1.0f
-                        : CubismMath::GetEasingSine( (motionQueueEntry->GetEndTime() - userTimeSeconds) / _fadeOutSeconds );
+        ? 1.0f
+        : CubismMath::GetEasingSine((motionQueueEntry->GetEndTime() - userTimeSeconds) / _fadeOutSeconds);
 
     fadeWeight = fadeWeight * fadeIn * fadeOut;
 
@@ -72,16 +87,9 @@ void ACubismMotion::UpdateParameters(CubismModel* model, CubismMotionQueueEntry*
 
     CSM_ASSERT(0.0f <= fadeWeight && fadeWeight <= 1.0f);
 
-    //---- 全てのパラメータIDをループする ----
-    DoUpdateParameters(model, userTimeSeconds, fadeWeight, motionQueueEntry);
-
-    //後処理
-    //終了時刻を過ぎたら終了フラグを立てる（CubismMotionQueueManager）
-    if ((motionQueueEntry->GetEndTime() > 0) && (motionQueueEntry->GetEndTime() < userTimeSeconds))
-    {
-        motionQueueEntry->IsFinished(true);      //終了
-    }
+    return fadeWeight;
 }
+
 
 void ACubismMotion::SetFadeInTime(csmFloat32 fadeInSeconds)
 {

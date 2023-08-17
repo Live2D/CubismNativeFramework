@@ -188,6 +188,12 @@ csmInt32 CubismModel::GetParameterIndex(CubismIdHandle parameterId)
     return parameterIndex;
 }
 
+CubismIdHandle CubismModel::GetParameterId(csmUint32 parameterIndex)
+{
+    const csmChar** parameterIds = Core::csmGetParameterIds(_model);
+    return CubismFramework::GetIdManager()->GetId(parameterIds[parameterIndex]);
+}
+
 csmFloat32 CubismModel::GetParameterValue(csmInt32 parameterIndex)
 {
     if (_notExistParameterValues.IsExist(parameterIndex))

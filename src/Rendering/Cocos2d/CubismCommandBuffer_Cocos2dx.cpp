@@ -161,11 +161,11 @@ void CubismCommandBuffer_Cocos2dx::SetOperationEnable(OperationType operationTyp
             {
                 switch (_operationStateArray[operationType].Arg0.i32)
                 {
-                case CullType_Front:
-                    GetCocos2dRenderer()->setCullMode(cocos2d::CullMode::FRONT);
-                    break;
                 case CullType_Back:
                     GetCocos2dRenderer()->setCullMode(cocos2d::CullMode::BACK);
+                    break;
+                case CullType_Front:
+                    GetCocos2dRenderer()->setCullMode(cocos2d::CullMode::FRONT);
                     break;
                 }
             }

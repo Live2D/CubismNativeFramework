@@ -246,6 +246,16 @@ public:
     csmInt32    GetParameterIndex(CubismIdHandle parameterId);
 
     /**
+     * @brief パラメータのIDの取得
+     *
+     * パラメータのIDを取得する。
+     *
+     * @param[in]   parameterIndex  パラメータのIndex
+     * @return  パラメータのID
+     */
+    CubismIdHandle    GetParameterId(csmUint32 parameterIndex);
+
+    /**
      * @brief パラメータの個数の取得
      *
      * パラメータの個数を取得する。

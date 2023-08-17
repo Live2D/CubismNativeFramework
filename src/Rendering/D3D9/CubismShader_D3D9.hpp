@@ -18,7 +18,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 //  前方宣言
 class CubismRenderer_D3D9;
-class CubismClippingContext;
+class CubismClippingContext_D3D9;
 
 /**
  * @bref    DX9シェーダエフェクト

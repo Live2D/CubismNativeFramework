@@ -13,7 +13,7 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-CubismOffscreenFrame_D3D9::CubismOffscreenFrame_D3D9()
+CubismOffscreenSurface_D3D9::CubismOffscreenSurface_D3D9()
     : _texture(NULL)
     , _textureSurface(NULL)
     , _depthSurface(NULL)
@@ -25,7 +25,7 @@ CubismOffscreenFrame_D3D9::CubismOffscreenFrame_D3D9()
 }
 
 
-void CubismOffscreenFrame_D3D9::BeginDraw(LPDIRECT3DDEVICE9 device)
+void CubismOffscreenSurface_D3D9::BeginDraw(LPDIRECT3DDEVICE9 device)
 {
     if(_depthSurface==NULL || _texture==NULL)
     {
@@ -59,7 +59,7 @@ void CubismOffscreenFrame_D3D9::BeginDraw(LPDIRECT3DDEVICE9 device)
     }
 }
 
-void CubismOffscreenFrame_D3D9::EndDraw(LPDIRECT3DDEVICE9 device)
+void CubismOffscreenSurface_D3D9::EndDraw(LPDIRECT3DDEVICE9 device)
 {
     if (_depthSurface == NULL || _texture == NULL)
     {
@@ -95,17 +95,17 @@ void CubismOffscreenFrame_D3D9::EndDraw(LPDIRECT3DDEVICE9 device)
     device->BeginScene();
 }
 
-void CubismOffscreenFrame_D3D9::Clear(LPDIRECT3DDEVICE9 device,  float r, float g, float b, float a)
+void CubismOffscreenSurface_D3D9::Clear(LPDIRECT3DDEVICE9 device,  float r, float g, float b, float a)
 {
     // マスクをクリアする
     device->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
         D3DCOLOR_COLORVALUE(r, g, b, a), 1.0f, 0);
 }
 
-csmBool CubismOffscreenFrame_D3D9::CreateOffscreenFrame(LPDIRECT3DDEVICE9 device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight)
+csmBool CubismOffscreenSurface_D3D9::CreateOffscreenSurface(LPDIRECT3DDEVICE9 device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight)
 {
     // 一旦削除
-    DestroyOffscreenFrame();
+    DestroyOffscreenSurface();
 
     if (FAILED(D3DXCreateTexture(
         device,
@@ -144,7 +144,7 @@ csmBool CubismOffscreenFrame_D3D9::CreateOffscreenFrame(LPDIRECT3DDEVICE9 device
     return true;
 }
 
-void CubismOffscreenFrame_D3D9::DestroyOffscreenFrame()
+void CubismOffscreenSurface_D3D9::DestroyOffscreenSurface()
 {
     // これらがあるのはEndDrawが来なかった場合
     if(_backupDepth)
@@ -176,22 +176,22 @@ void CubismOffscreenFrame_D3D9::DestroyOffscreenFrame()
     }
 }
 
-LPDIRECT3DTEXTURE9 CubismOffscreenFrame_D3D9::GetTexture() const
+LPDIRECT3DTEXTURE9 CubismOffscreenSurface_D3D9::GetTexture() const
 {
     return _texture;
 }
 
-csmUint32 CubismOffscreenFrame_D3D9::GetBufferWidth() const
+csmUint32 CubismOffscreenSurface_D3D9::GetBufferWidth() const
 {
     return _bufferWidth;
 }
 
-csmUint32 CubismOffscreenFrame_D3D9::GetBufferHeight() const
+csmUint32 CubismOffscreenSurface_D3D9::GetBufferHeight() const
 {
     return _bufferHeight;
 }
 
-csmBool CubismOffscreenFrame_D3D9::IsValid() const
+csmBool CubismOffscreenSurface_D3D9::IsValid() const
 {
     if (_depthSurface == NULL || _texture == NULL)
     {

@@ -4,6 +4,8 @@ target_sources(${LIB_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/ACubismMotion.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismExpressionMotion.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismExpressionMotion.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismExpressionMotionManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismExpressionMotionManager.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismMotion.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismMotion.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismMotionInternal.hpp

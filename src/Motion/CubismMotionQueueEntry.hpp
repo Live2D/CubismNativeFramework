@@ -235,6 +235,8 @@ public:
     */
     csmFloat32     GetFadeOutSeconds();
 
+    ACubismMotion* GetCubismMotion();
+
 private:
     csmBool         _autoDelete;                    ///< 自動削除
     ACubismMotion*  _motion;                        ///< モーション
