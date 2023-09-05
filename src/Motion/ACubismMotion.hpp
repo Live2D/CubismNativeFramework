@@ -180,6 +180,24 @@ public:
     FinishedMotionCallback GetFinishedMotionHandler();
 
     /**
+     * @brief モーション再生終了コールバックと共に渡されるデータの登録
+     *
+     * モーション再生終了コールバックと共に渡されるデータを登録する。
+     *
+     * @param[in]   onFinishedMotionCustomData  モーション再生終了コールバック関数に渡されるデータ
+     */
+    void SetFinishedMotionCustomData(void* onFinishedMotionCustomData);
+
+    /**
+     * @brief モーション再生終了コールバックと共に渡されるデータの取得
+     *
+     * モーション再生終了コールバックと元に渡されるデータを取得する。
+     *
+     * @return  登録されているモーション再生終了コールバック関数に渡されるデータ。NULLのとき、データは何も登録されていないかNULLが設定されている。
+     */
+    void* GetFinishedMotionCustomData();
+
+    /**
      * @brief        透明度のカーブが存在するかどうかを確認する
      *
      * @retval       true  -> キーが存在する
@@ -258,8 +276,8 @@ protected:
 
     csmVector<const csmString*>    _firedEventValues;
 
-    // モーション再生終了コールバック関数
-    FinishedMotionCallback _onFinishedMotion;
+    FinishedMotionCallback _onFinishedMotion;           ///< モーション再生終了コールバック関数ポインタ
+    void*                  _onFinishedMotionCustomData; ///< モーション再生終了コールバックに戻されるデータ
 };
 
 }}}
