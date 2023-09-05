@@ -180,20 +180,20 @@ public:
     FinishedMotionCallback GetFinishedMotionHandler();
 
     /**
-     * @brief モーション再生終了コールバックと共に渡されるデータの登録
+     * @brief ユーザー任意データの登録
      *
-     * モーション再生終了コールバックと共に渡されるデータを登録する。
+     * ユーザー任意データを登録します。
      *
-     * @param[in]   onFinishedMotionCustomData  モーション再生終了コールバック関数に渡されるデータ
+     * @param[in]   onFinishedMotionCustomData  ユーザー任意データ
      */
     void SetFinishedMotionCustomData(void* onFinishedMotionCustomData);
 
     /**
-     * @brief モーション再生終了コールバックと共に渡されるデータの取得
+     * @brief ユーザー任意データの取得
      *
-     * モーション再生終了コールバックと元に渡されるデータを取得する。
+     * ユーザー任意データを取得します。
      *
-     * @return  登録されているモーション再生終了コールバック関数に渡されるデータ。NULLのとき、データは何も登録されていないかNULLが設定されている。
+     * @return  登録されているユーザー任意データ。
      */
     void* GetFinishedMotionCustomData();
 
