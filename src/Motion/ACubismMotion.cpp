@@ -24,6 +24,7 @@ ACubismMotion::ACubismMotion()
     , _weight(1.0f)
     , _offsetSeconds(0.0f) //再生の開始時刻
     , _onFinishedMotion(NULL)
+    , _onFinishedMotionCustomData(NULL)
 { }
 
 ACubismMotion::~ACubismMotion()
@@ -149,6 +150,22 @@ void ACubismMotion::SetFinishedMotionHandler(FinishedMotionCallback onFinishedMo
 ACubismMotion::FinishedMotionCallback ACubismMotion::GetFinishedMotionHandler()
 {
     return this->_onFinishedMotion;
+}
+
+void ACubismMotion::SetFinishedMotionCustomData(void* onFinishedMotionCustomData)
+{
+    this->_onFinishedMotionCustomData = onFinishedMotionCustomData;
+}
+
+void* ACubismMotion::GetFinishedMotionCustomData()
+{
+    return this->_onFinishedMotionCustomData;
+}
+
+void ACubismMotion::SetFinishedMotionHandlerAndMotionCustomData(FinishedMotionCallback onFinishedMotionHandler, void* onFinishedMotionCustomData)
+{
+    this->_onFinishedMotion = onFinishedMotionHandler;
+    this->_onFinishedMotionCustomData = onFinishedMotionCustomData;
 }
 
 csmBool ACubismMotion::IsExistModelOpacity() const
