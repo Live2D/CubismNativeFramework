@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [Unreleased]
+
+### added
+
+* Add a function to the `ACubismMotion` class that sets arbitrary data in the callback. by [@MizunagiKB](https://github.com/MizunagiKB)
+
+
 ## [5-r.1-beta.1] - 2023-08-17
 
 ### Added
