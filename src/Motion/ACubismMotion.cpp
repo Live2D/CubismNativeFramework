@@ -162,6 +162,12 @@ void* ACubismMotion::GetFinishedMotionCustomData()
     return this->_onFinishedMotionCustomData;
 }
 
+void ACubismMotion::SetFinishedMotionHandlerAndMotionCustomData(FinishedMotionCallback onFinishedMotionHandler, void* onFinishedMotionCustomData)
+{
+    this->_onFinishedMotion = onFinishedMotionHandler;
+    this->_onFinishedMotionCustomData = onFinishedMotionCustomData;
+}
+
 csmBool ACubismMotion::IsExistModelOpacity() const
 {
     return false;

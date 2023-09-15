@@ -198,6 +198,20 @@ public:
     void* GetFinishedMotionCustomData();
 
     /**
+     * @brief モーション再生終了コールバックとユーザー任意データの登録
+     *
+     * モーション再生終了コールバックを登録する。
+     * IsFinishedフラグを設定するタイミングで呼び出される。
+     * 以下の状態の際には呼び出されない:
+     *   1. 再生中のモーションが「ループ」として設定されているとき
+     *   2. コールバックにNULLが登録されているとき
+     *
+     * @param[in]   onFinishedMotionHandler     モーション再生終了コールバック関数
+     * @param[in]   onFinishedMotionCustomData  ユーザー任意データ
+     */
+    void SetFinishedMotionHandlerAndMotionCustomData(FinishedMotionCallback onFinishedMotionHandler, void* onFinishedMotionCustomData);
+
+    /**
      * @brief        透明度のカーブが存在するかどうかを確認する
      *
      * @retval       true  -> キーが存在する
@@ -276,8 +290,8 @@ protected:
 
     csmVector<const csmString*>    _firedEventValues;
 
-    FinishedMotionCallback _onFinishedMotion;           ///< モーション再生終了コールバック関数ポインタ
-    void*                  _onFinishedMotionCustomData; ///< モーション再生終了コールバックに戻されるデータ
+    FinishedMotionCallback _onFinishedMotion; ///< モーション再生終了コールバック関数ポインタ
+    void* _onFinishedMotionCustomData;        ///< モーション再生終了コールバックに戻されるデータ
 };
 
 }}}
