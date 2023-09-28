@@ -56,7 +56,7 @@ csmBool CubismMotionJson::IsMotionLoop() const
 
 csmBool CubismMotionJson::GetEvaluationOptionFlag(const csmInt32 flagType) const
 {
-    if (EvaluationOptionFlag_AreBeziersRistricted == flagType)
+    if (EvaluationOptionFlag_AreBeziersRestricted == flagType)
     {
         return _json->GetRoot()[Meta][AreBeziersRestricted].ToBoolean();
     }

@@ -190,8 +190,8 @@ csmInt32 CubismModel::GetParameterIndex(CubismIdHandle parameterId)
 
 CubismIdHandle CubismModel::GetParameterId(csmUint32 parameterIndex)
 {
-    const csmChar** parameterIds = Core::csmGetParameterIds(_model);
-    return CubismFramework::GetIdManager()->GetId(parameterIds[parameterIndex]);
+    CSM_ASSERT(0 <= parameterIndex && parameterIndex < _parameterIds.GetSize());
+    return _parameterIds[parameterIndex];
 }
 
 csmFloat32 CubismModel::GetParameterValue(csmInt32 parameterIndex)
@@ -478,14 +478,14 @@ void CubismModel::Initialize()
 
 CubismIdHandle CubismModel::GetDrawableId(csmInt32 drawableIndex) const
 {
-    const csmChar** parameterIds = Core::csmGetDrawableIds(_model);
-    return CubismFramework::GetIdManager()->GetId(parameterIds[drawableIndex]);
+    CSM_ASSERT(0 <= drawableIndex && drawableIndex < _drawableIds.GetSize());
+    return _drawableIds[drawableIndex];
 }
 
 CubismIdHandle CubismModel::GetPartId(csmUint32 partIndex)
 {
-    const csmChar** partIds = Core::csmGetPartIds(_model);
-    return CubismFramework::GetIdManager()->GetId(partIds[partIndex]);
+    CSM_ASSERT(0 <= partIndex && partIndex < _partIds.GetSize());
+    return _partIds[partIndex];
 }
 
 csmInt32 CubismModel::GetPartCount() const

@@ -19,7 +19,7 @@ namespace Live2D { namespace Cubism { namespace Framework {
 */
 enum EvaluationOptionFlag
 {
-    EvaluationOptionFlag_AreBeziersRistricted = 0,  ///< ベジェハンドルの規制状態
+    EvaluationOptionFlag_AreBeziersRestricted = 0,  ///< ベジェハンドルの規制状態
 };
 
 /**

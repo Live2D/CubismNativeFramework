@@ -205,10 +205,12 @@ public:
     void            Scale(csmFloat32 x, csmFloat32 y);
 
     /**
-     * @brief 現在の行列に行列を乗算
+     * @brief 引数で与えられた行列にこの行列を乗算
      *
-     * 現在の行列に行列を乗算する。
+     * 引数で与えられた行列にこの行列を乗算する。
+     * （引数で与えられた行列）* (この行列)
      *
+     * @note 関数名と実際の計算内容に乖離があるため、今後計算順が修正される可能性があります。
      * @param[in]   m   行列
      */
     void            MultiplyByMatrix(CubismMatrix44* m);
