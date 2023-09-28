@@ -124,6 +124,8 @@ protected:
      */
     void Parse(const csmByte* exp3Json, csmSizeInt size);
 
+    csmVector<ExpressionParameter> _parameters;     ///< 表情が参照しているパラメータ一覧
+
 private:
 
     /**
@@ -136,7 +138,6 @@ private:
      */
     csmFloat32 CalculateValue(csmFloat32 source, csmFloat32 destination);
 
-    csmVector<ExpressionParameter> _parameters;     ///< 表情が参照しているパラメータ一覧
     csmFloat32 _fadeWeight;                         ///< 表情の現在のウェイト
 };
 

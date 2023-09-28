@@ -17,10 +17,10 @@ CubismOffscreenSurface_Metal::CubismOffscreenSurface_Metal()
     , _bufferWidth(0)
     , _bufferHeight(0)
     , _pixelFormat(MTLPixelFormatRGBA8Unorm)
-    , _clearColorR(1.0)
-    , _clearColorG(1.0)
-    , _clearColorB(1.0)
-    , _clearColorA(1.0)
+    , _clearColorR(1.0f)
+    , _clearColorG(1.0f)
+    , _clearColorB(1.0f)
+    , _clearColorA(1.0f)
 {
 }
 
