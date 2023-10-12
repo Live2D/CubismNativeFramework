@@ -12,6 +12,34 @@ namespace Live2D {namespace Cubism {namespace Framework {
 const csmFloat32 CubismMath::Pi = 3.1415926535897932384626433832795f;
 const csmFloat32 CubismMath::Epsilon = 0.00001f;
 
+csmInt32 CubismMath::Clamp(csmInt32 val, csmInt32 min, csmInt32 max)
+{
+    if (val < min)
+    {
+        return min;
+    }
+    else if (max < val)
+    {
+        return max;
+    }
+
+    return val;
+}
+
+csmFloat32 CubismMath::ClampF(csmFloat32 val, csmFloat32 min, csmFloat32 max)
+{
+    if (val < min)
+    {
+        return min;
+    }
+    else if (max < val)
+    {
+        return max;
+    }
+
+    return val;
+}
+
 csmFloat32 CubismMath::DegreesToRadian(csmFloat32 degrees)
 {
     return (degrees / 180.0f) * Pi;

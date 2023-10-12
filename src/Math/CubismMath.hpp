@@ -123,6 +123,26 @@ public:
     }
 
     /**
+     * @brief  値を範囲内に納めて返す
+     *
+     * @param  val  ->  範囲内か確認する値
+     * @param  min  ->  最小値
+     * @param  max  ->  最大値
+     * @return 範囲内に収まった値
+     */
+    static csmInt32 Clamp(csmInt32 val, csmInt32 min, csmInt32 max);
+
+    /**
+     * @brief  値を範囲内に納めて返す
+     *
+     * @param  val  ->  範囲内か確認する値
+     * @param  min  ->  最小値
+     * @param  max  ->  最大値
+     * @return 範囲内に収まった値
+     */
+    static csmFloat32 ClampF(csmFloat32 val, csmFloat32 min, csmFloat32 max);
+
+    /**
      * @brief   角度値をラジアン値に変換します。
      *
      * @param   degrees  ->  角度値
