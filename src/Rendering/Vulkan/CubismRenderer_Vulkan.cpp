@@ -205,7 +205,7 @@ CubismClippingContext_Vulkan::CubismClippingContext_Vulkan(
     // マスクの数
     _clippingIdCount = clipCount;
 
-    _layoutChannelNo = 0;
+    _layoutChannelIndex = 0;
 
     _allClippedDrawRect = CSM_NEW csmRectF();
     _layoutBounds = CSM_NEW csmRectF();
@@ -624,20 +624,22 @@ void CubismRenderer_Vulkan::SubmitCommand(VkCommandBuffer commandBuffer, VkSemap
     submitInfo.pCommandBuffers = &commandBuffer;
     if(waitUpdateFinishedSemaphore != VK_NULL_HANDLE)
     {
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = &waitUpdateFinishedSemaphore;
-        vkQueueSubmit(s_queue, 1, &submitInfo, nullptr);
+        submitInfo.pWaitDstStageMask = waitStages;
+        vkQueueSubmit(s_queue, 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(s_queue);
     }
     else if (signalUpdateFinishedSemaphore != VK_NULL_HANDLE)
     {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &signalUpdateFinishedSemaphore;
-        vkQueueSubmit(s_queue, 1, &submitInfo, nullptr);
+        vkQueueSubmit(s_queue, 1, &submitInfo, VK_NULL_HANDLE);
     }
     else
     {
-        vkQueueSubmit(s_queue, 1, &submitInfo, nullptr);
+        vkQueueSubmit(s_queue, 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(s_queue);
         vkFreeCommandBuffers(s_device, s_commandPool, 1, &commandBuffer);
     }
@@ -772,18 +774,20 @@ void CubismRenderer_Vulkan::CreateDescriptorSets()
 {
     // ディスクリプタプールの作成
     const csmInt32 drawableCount = GetModel()->GetDrawableCount();
-
+    csmInt32 textureCount = 2;
+    csmInt32 drawModeCount = 2; // マスクされる描画と通常の描画
+    csmInt32 descriptorSetCount = drawableCount * drawModeCount;
     VkDescriptorPoolSize poolSizes[2]{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = drawableCount;
+    poolSizes[0].descriptorCount = descriptorSetCount;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = drawableCount * 2; // drawableCount*マスクを用いるか*テクスチャの数
+    poolSizes[1].descriptorCount = descriptorSetCount * textureCount; // drawableCount * 描画方法の数 * テクスチャの数
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]);
     poolInfo.pPoolSizes = poolSizes;
-    poolInfo.maxSets = drawableCount * 2;
+    poolInfo.maxSets = descriptorSetCount;
 
     if (vkCreateDescriptorPool(s_device, &poolInfo, nullptr, &_descriptorPool) != VK_SUCCESS)
     {
@@ -825,24 +829,25 @@ void CubismRenderer_Vulkan::CreateDescriptorSets()
     for (csmInt32 drawAssign = 0; drawAssign < drawableCount; drawAssign++)
     {
         _descriptorSets[drawAssign].uniformBuffer.CreateBuffer(s_device, s_physicalDevice, sizeof(ModelUBO),
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                                                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                               VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         _descriptorSets[drawAssign].uniformBuffer.Map(s_device, VK_WHOLE_SIZE);
     }
 
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = _descriptorPool;
-    allocInfo.descriptorSetCount = drawableCount * 2;
+    allocInfo.descriptorSetCount = descriptorSetCount;
     csmVector<VkDescriptorSetLayout> layouts;
-    csmVector<VkDescriptorSet> descriptorSets;
-    descriptorSets.Resize(drawableCount * 2);
-    for (csmInt32 i = 0; i < drawableCount * 2; i++)
+    for (csmInt32 i = 0; i < descriptorSetCount; i++)
     {
         layouts.PushBack(_descriptorSetLayout);
     }
     allocInfo.pSetLayouts = layouts.GetPtr();
+
+    csmVector<VkDescriptorSet> descriptorSets;
+    descriptorSets.Resize(descriptorSetCount);
     if (vkAllocateDescriptorSets(s_device, &allocInfo, descriptorSets.GetPtr()) != VK_SUCCESS)
     {
         CubismLogError("failed to allocate descriptor sets!");
@@ -1074,8 +1079,8 @@ void CubismRenderer_Vulkan::ExecuteDrawForDraw(const CubismModel& model, const c
     {
         CubismMatrix44 mvp = GetClippingContextBufferForDraw()->_matrixForDraw;
         UpdateMatrix(_ubo.clipMatrix, mvp); // テクスチャ座標の変換に使用するのでy軸の向きは反転しない
-        const csmInt32 channelNo = GetClippingContextBufferForDraw()->_layoutChannelNo;
-        CubismTextureColor *colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+        const csmInt32 channelIndex = GetClippingContextBufferForDraw()->_layoutChannelIndex;
+        CubismTextureColor *colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
         UpdateColor(_ubo.channelFlag, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
     }
 
@@ -1104,10 +1109,10 @@ void CubismRenderer_Vulkan::ExecuteDrawForDraw(const CubismModel& model, const c
     vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmdBuffer, _indexBuffers[index].GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
-    csmInt32 textureNo = model.GetDrawableTextureIndex(index);
+    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
     if (masked)
     {
-        UpdateDescriptorSet(descriptor, textureNo, true);
+        UpdateDescriptorSet(descriptor, textureIndex, true);
         vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex), 0,
                                 1,
@@ -1116,7 +1121,7 @@ void CubismRenderer_Vulkan::ExecuteDrawForDraw(const CubismModel& model, const c
     }
     else
     {
-        UpdateDescriptorSet(descriptor, textureNo, false);
+        UpdateDescriptorSet(descriptor, textureIndex, false);
         vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex), 0,
                                 1,
@@ -1129,8 +1134,8 @@ void CubismRenderer_Vulkan::ExecuteDrawForDraw(const CubismModel& model, const c
 
 void CubismRenderer_Vulkan::ExecuteDrawForMask(const CubismModel& model, const csmInt32 index, VkCommandBuffer& cmdBuffer)
 {
-    const csmInt32 channelNo = GetClippingContextBufferForMask()->_layoutChannelNo;
-    CubismTextureColor *colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+    const csmInt32 channelIndex = GetClippingContextBufferForMask()->_layoutChannelIndex;
+    CubismTextureColor *colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
     csmRectF *rect = GetClippingContextBufferForMask()->_layoutBounds;
     UpdateMatrix(_ubo.clipMatrix, GetClippingContextBufferForMask()->_matrixForMask);
     UpdateColor(_ubo.baseColor, rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f,
@@ -1143,8 +1148,8 @@ void CubismRenderer_Vulkan::ExecuteDrawForMask(const CubismModel& model, const c
     UpdateColor(_ubo.channelFlag, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
     Descriptor &descriptor = _descriptorSets[index];
     descriptor.uniformBuffer.MemCpy(&_ubo, sizeof(ModelUBO));
-    csmInt32 textureNo = model.GetDrawableTextureIndex(index);
-    UpdateDescriptorSet(descriptor, textureNo, false);
+    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    UpdateDescriptorSet(descriptor, textureIndex, false);
 
     csmUint32 shaderIndex = ShaderNames_SetupMask;
     csmUint32 blendIndex = Blend_Mask;
@@ -1179,8 +1184,8 @@ void CubismRenderer_Vulkan::DrawMeshVulkan(const CubismModel& model, const csmIn
         return;
     }
 
-    csmInt32 textureNo = model.GetDrawableTextureIndices(index);
-    if (_textures[textureNo].GetSampler() == VK_NULL_HANDLE || _textures[textureNo].GetView() == VK_NULL_HANDLE)
+    csmInt32 textureIndex = model.GetDrawableTextureIndices(index);
+    if (_textures[textureIndex].GetSampler() == VK_NULL_HANDLE || _textures[textureIndex].GetView() == VK_NULL_HANDLE)
     {
         return;
     }

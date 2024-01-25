@@ -272,8 +272,8 @@ void CubismShader_Metal::SetupShaderProgramForDraw(CubismCommandBuffer_Metal::Dr
         [renderEncoder setFragmentTexture:tex atIndex:1];
 
         // 使用するカラーチャンネルを設定
-        const csmInt32 channelNo = renderer->GetClippingContextBufferForDraw()->_layoutChannelNo;
-        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+        const csmInt32 channelIndex = renderer->GetClippingContextBufferForDraw()->_layoutChannelIndex;
+        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
 
         fragMaskedShaderUniforms.channelFlag = (vector_float4){ colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
         {
@@ -366,8 +366,8 @@ void CubismShader_Metal::SetupShaderProgramForMask(CubismCommandBuffer_Metal::Dr
     [renderEncoder setVertexBuffer:(drawCommandBuffer->GetUvBuffer()) offset:0 atIndex:MetalVertexInputUVs];
 
     CubismSetupMaskedShaderUniforms maskedShaderUniforms;
-    const csmInt32 channelNo = renderer->GetClippingContextBufferForMask()->_layoutChannelNo;
-    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+    const csmInt32 channelIndex = renderer->GetClippingContextBufferForMask()->_layoutChannelIndex;
+    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
     maskedShaderUniforms.channelFlag = (vector_float4){ colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
 
     csmFloat32* srcArray = renderer->GetClippingContextBufferForMask()->_matrixForMask.GetArray();

@@ -170,11 +170,11 @@ public:
      * @brief   OpenGLテクスチャのバインド処理<br>
      *           CubismRendererにテクスチャを設定し、CubismRenderer中でその画像を参照するためのIndex値を戻り値とする
      *
-     * @param[in]   modelTextureNo  ->  セットするモデルテクスチャの番号
+     * @param[in]   modelTextureIndex  ->  セットするモデルテクスチャの番号
      * @param[in]   texture     ->  バックエンドテクスチャ
      *
      */
-    void BindTexture(csmUint32 modelTextureNo, cocos2d::Texture2D* texture);
+    void BindTexture(csmUint32 modelTextureIndex, cocos2d::Texture2D* texture);
 
     /**
      * @brief   OpenGLにバインドされたテクスチャのリストを取得する
@@ -340,7 +340,7 @@ private:
      *
      * @return  バインドされたテクスチャ
      */
-    cocos2d::Texture2D* GetBindedTexture(csmInt32 textureNo);
+    cocos2d::Texture2D* GetBindedTexture(csmInt32 textureIndex);
 
 
     csmMap<csmInt32, cocos2d::Texture2D*> _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ

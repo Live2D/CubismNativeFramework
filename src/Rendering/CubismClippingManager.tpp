@@ -277,7 +277,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
         for (csmUint32 index = 0; index < _clippingContextListForMask.GetSize(); index++)
         {
             T_ClippingContext* cc = _clippingContextListForMask[index];
-            cc->_layoutChannelNo = 0; // どうせ毎回消すので固定で良い
+            cc->_layoutChannelIndex = 0; // どうせ毎回消すので固定で良い
             cc->_layoutBounds->X = 0.0f;
             cc->_layoutBounds->Y = 0.0f;
             cc->_layoutBounds->Width = 1.0f;
@@ -292,28 +292,33 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
 
     // ひとつのRenderTextureを極力いっぱいに使ってマスクをレイアウトする
     // マスクグループの数が4以下ならRGBA各チャンネルに１つずつマスクを配置し、5以上6以下ならRGBAを2,2,1,1と配置する
-    const csmInt32 countPerSheetDiv = usingClipCount / _renderTextureCount; // レンダーテクスチャ1枚あたり何枚割り当てるか
-    const csmInt32 countPerSheetMod = usingClipCount % _renderTextureCount; // この番号のレンダーテクスチャまでに一つずつ配分する
+    const csmInt32 countPerSheetDiv = (usingClipCount + _renderTextureCount - 1) / _renderTextureCount; // レンダーテクスチャ1枚あたり何枚割り当てるか（切り上げ）
+    const csmInt32 reduceLayoutTextureCount = usingClipCount % _renderTextureCount; // レイアウトの数を1枚減らすレンダーテクスチャの数（この数だけのレンダーテクスチャが対象）
 
-    // RGBAを順番に使っていく。
-    const csmInt32 div = countPerSheetDiv / ColorChannelCount; //１チャンネルに配置する基本のマスク個数
-    const csmInt32 mod = countPerSheetDiv % ColorChannelCount; //余り、この番号のチャンネルまでに１つずつ配分する
+    // RGBAを順番に使っていく
+    const csmInt32 divCount = countPerSheetDiv / ColorChannelCount; //１チャンネルに配置する基本のマスク個数
+    const csmInt32 modCount = countPerSheetDiv % ColorChannelCount; //余り、この番号のチャンネルまでに１つずつ配分する
 
     // RGBAそれぞれのチャンネルを用意していく(0:R , 1:G , 2:B, 3:A, )
     csmInt32 curClipIndex = 0; //順番に設定していく
 
-    for (csmInt32 renderTextureNo = 0; renderTextureNo < _renderTextureCount; renderTextureNo++)
+    for (csmInt32 renderTextureIndex = 0; renderTextureIndex < _renderTextureCount; renderTextureIndex++)
     {
-        for (csmInt32 channelNo = 0; channelNo < ColorChannelCount; channelNo++)
+        for (csmInt32 channelIndex = 0; channelIndex < ColorChannelCount; channelIndex++)
         {
             // このチャンネルにレイアウトする数
-            csmInt32 layoutCount = div + (channelNo < mod ? 1 : 0);
+            // NOTE: レイアウト数 = 1チャンネルに配置する基本のマスク + 余りのマスクを置くチャンネルなら1つ追加
+            csmInt32 layoutCount = divCount + (channelIndex < modCount ? 1 : 0);
 
-            // このレンダーテクスチャにまだ割り当てられていなければ追加する
-            const csmInt32 checkChannelNo = mod + 1 >= ColorChannelCount ? 0 : mod + 1;
-            if (layoutCount < layoutCountMaxValue && channelNo == checkChannelNo)
+            // レイアウトの数を1枚減らす場合にそれを行うチャンネルを決定
+            // divが0の時は正常なインデックスの範囲内になるように調整
+            const csmInt32 checkChannelIndex = modCount + (divCount < 1 ? -1 : 0);
+
+            // 今回が対象のチャンネルかつ、レイアウトの数を1枚減らすレンダーテクスチャが存在する場合
+            if (channelIndex == checkChannelIndex && reduceLayoutTextureCount > 0)
             {
-                layoutCount += renderTextureNo < countPerSheetMod ? 1 : 0;
+                // 現在のレンダーテクスチャが、対象のレンダーテクスチャであればレイアウトの数を1枚減らす
+                layoutCount -= !(renderTextureIndex < reduceLayoutTextureCount) ? 1 : 0;
             }
 
             // 分割方法を決定する
@@ -325,12 +330,12 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
             {
                 //全てをそのまま使う
                 T_ClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                cc->_layoutChannelNo = channelNo;
+                cc->_layoutChannelIndex = channelIndex;
                 cc->_layoutBounds->X = 0.0f;
                 cc->_layoutBounds->Y = 0.0f;
                 cc->_layoutBounds->Width = 1.0f;
                 cc->_layoutBounds->Height = 1.0f;
-                cc->_bufferIndex = renderTextureNo;
+                cc->_bufferIndex = renderTextureIndex;
             }
             else if (layoutCount == 2)
             {
@@ -339,13 +344,13 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
                     const csmInt32 xpos = i % 2;
 
                     T_ClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                    cc->_layoutChannelNo = channelNo;
+                    cc->_layoutChannelIndex = channelIndex;
 
                     cc->_layoutBounds->X = xpos * 0.5f;
                     cc->_layoutBounds->Y = 0.0f;
                     cc->_layoutBounds->Width = 0.5f;
                     cc->_layoutBounds->Height = 1.0f;
-                    cc->_bufferIndex = renderTextureNo;
+                    cc->_bufferIndex = renderTextureIndex;
                     //UVを2つに分解して使う
                 }
             }
@@ -358,13 +363,13 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
                     const csmInt32 ypos = i / 2;
 
                     T_ClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                    cc->_layoutChannelNo = channelNo;
+                    cc->_layoutChannelIndex = channelIndex;
 
                     cc->_layoutBounds->X = xpos * 0.5f;
                     cc->_layoutBounds->Y = ypos * 0.5f;
                     cc->_layoutBounds->Width = 0.5f;
                     cc->_layoutBounds->Height = 0.5f;
-                    cc->_bufferIndex = renderTextureNo;
+                    cc->_bufferIndex = renderTextureIndex;
                 }
             }
             else if (layoutCount <= layoutCountMaxValue)
@@ -376,13 +381,13 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
                     const csmInt32 ypos = i / 3;
 
                     T_ClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                    cc->_layoutChannelNo = channelNo;
+                    cc->_layoutChannelIndex = channelIndex;
 
                     cc->_layoutBounds->X = xpos / 3.0f;
                     cc->_layoutBounds->Y = ypos / 3.0f;
                     cc->_layoutBounds->Width = 1.0f / 3.0f;
                     cc->_layoutBounds->Height = 1.0f / 3.0f;
-                    cc->_bufferIndex = renderTextureNo;
+                    cc->_bufferIndex = renderTextureIndex;
                 }
             }
             // マスクの制限枚数を超えた場合の処理
@@ -402,7 +407,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
                 for (csmInt32 i = 0; i < layoutCount; i++)
                 {
                     T_ClippingContext* cc = _clippingContextListForMask[curClipIndex++];
-                    cc->_layoutChannelNo = 0;
+                    cc->_layoutChannelIndex = 0;
                     cc->_layoutBounds->X = 0.0f;
                     cc->_layoutBounds->Y = 0.0f;
                     cc->_layoutBounds->Width = 1.0f;
@@ -495,9 +500,9 @@ csmInt32 CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetRender
 }
 
 template <class T_ClippingContext, class T_OffscreenSurface>
-CubismRenderer::CubismTextureColor* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetChannelFlagAsColor(csmInt32 channelNo)
+CubismRenderer::CubismTextureColor* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetChannelFlagAsColor(csmInt32 channelIndex)
 {
-    return _channelColors[channelNo];
+    return _channelColors[channelIndex];
 }
 
 template <class T_ClippingContext, class T_OffscreenSurface>

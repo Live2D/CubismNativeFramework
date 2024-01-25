@@ -135,11 +135,11 @@ public:
      * @brief   テクスチャのバインド処理<br>
      *           CubismRendererにテクスチャを設定し、CubismRenderer中でその画像を参照するためのIndex値を戻り値とする
      *
-     * @param[in]   modelTextureNo  ->  セットするモデルテクスチャの番号
+     * @param[in]   modelTextureIndex  ->  セットするモデルテクスチャの番号
      * @param[in]   texture     ->  バックエンドテクスチャ
      *
      */
-    void BindTexture(csmUint32 modelTextureNo, id <MTLTexture> texture);
+    void BindTexture(csmUint32 modelTextureIndex, id <MTLTexture> texture);
 
     /**
      * @brief   バインドされたテクスチャのリストを取得する
@@ -214,7 +214,7 @@ protected:
      * @brief    描画オブジェクト（アートメッシュ）を描画する。<br>
      *           ポリゴンメッシュとテクスチャ番号をセットで渡す。
      *
-     * @param[in]   textureNo         ->  描画するテクスチャ番号
+     * @param[in]   textureIndex         ->  描画するテクスチャ番号
      * @param[in]   renderEncoder     ->  MTLRenderCommandEncoder
      * @param[in]   model             ->  描画対象モデル
      * @param[in]   index             ->  描画オブジェクトのインデックス

@@ -164,7 +164,7 @@ CubismClippingContext::CubismClippingContext(const csmInt32* clippingDrawableInd
     // マスクの数
     _clippingIdCount = clipCount;
 
-    _layoutChannelNo = 0;
+    _layoutChannelIndex = 0;
 
     _allClippedDrawRect = CSM_NEW csmRectF();
     _layoutBounds = CSM_NEW csmRectF();

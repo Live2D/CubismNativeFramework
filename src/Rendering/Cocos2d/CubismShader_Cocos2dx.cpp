@@ -784,8 +784,8 @@ void CubismShader_Cocos2dx::SetupShaderProgramForMask(CubismCommandBuffer_Cocos2
 
 
     //テクスチャ設定
-    const csmInt32 textureNo = model.GetDrawableTextureIndex(index);
-    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureNo);
+    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureIndex);
     programState->setTexture(shaderSet->SamplerTexture0Location, 0, texture->getBackendTexture());
 
     // 頂点配列の設定
@@ -794,8 +794,8 @@ void CubismShader_Cocos2dx::SetupShaderProgramForMask(CubismCommandBuffer_Cocos2
     programState->getVertexLayout()->setAttribute("a_texCoord", shaderSet->AttributeTexCoordLocation, cocos2d::backend::VertexFormat::FLOAT2, sizeof(csmFloat32) * 2, false);
 
     // チャンネル
-    const csmInt32 channelNo = renderer->GetClippingContextBufferForMask()->_layoutChannelNo;
-    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+    const csmInt32 channelIndex = renderer->GetClippingContextBufferForMask()->_layoutChannelIndex;
+    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
     csmFloat32 colorFlag[4] = { colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
     programState->setUniform(shaderSet->UnifromChannelFlagLocation, colorFlag, sizeof(float) * 4);
 
@@ -901,15 +901,15 @@ void CubismShader_Cocos2dx::SetupShaderProgramForDraw(CubismCommandBuffer_Cocos2
                                  sizeof(float) * 16);
 
         // 使用するカラーチャンネルを設定
-        const csmInt32 channelNo = renderer->GetClippingContextBufferForDraw()->_layoutChannelNo;
-        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+        const csmInt32 channelIndex = renderer->GetClippingContextBufferForDraw()->_layoutChannelIndex;
+        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
         csmFloat32 colorFlag[4] = { colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
         programState->setUniform(shaderSet->UnifromChannelFlagLocation, colorFlag, sizeof(float) * 4);
     }
 
     //テクスチャ設定
-    const csmInt32 textureNo = model.GetDrawableTextureIndex(index);
-    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureNo);
+    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureIndex);
     programState->setTexture(shaderSet->SamplerTexture0Location, 0, texture->getBackendTexture());
 
     //座標変換

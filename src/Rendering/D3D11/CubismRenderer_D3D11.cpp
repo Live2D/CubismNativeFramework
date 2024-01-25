@@ -192,40 +192,10 @@ CubismClippingContext_D3D11::CubismClippingContext_D3D11(CubismClippingManager<C
     _isUsing = false;
 
     _owner = manager;
-
-    // クリップしている（＝マスク用の）Drawableのインデックスリスト
-    _clippingIdList = clippingDrawableIndices;
-
-    // マスクの数
-    _clippingIdCount = clipCount;
-
-    _layoutChannelNo = 0;
-
-    _allClippedDrawRect = CSM_NEW csmRectF();
-    _layoutBounds = CSM_NEW csmRectF();
-
-    _clippedDrawableIndexList = CSM_NEW csmVector<csmInt32>();
 }
 
 CubismClippingContext_D3D11::~CubismClippingContext_D3D11()
 {
-    if (_layoutBounds != NULL)
-    {
-        CSM_DELETE(_layoutBounds);
-        _layoutBounds = NULL;
-    }
-
-    if (_allClippedDrawRect != NULL)
-    {
-        CSM_DELETE(_allClippedDrawRect);
-        _allClippedDrawRect = NULL;
-    }
-
-    if (_clippedDrawableIndexList != NULL)
-    {
-        CSM_DELETE(_clippedDrawableIndexList);
-        _clippedDrawableIndexList = NULL;
-    }
 }
 
 CubismClippingManager<CubismClippingContext_D3D11, CubismOffscreenSurface_D3D11>* CubismClippingContext_D3D11::GetClippingManager()
@@ -728,8 +698,8 @@ void CubismRenderer_D3D11::ExecuteDrawForMask(const CubismModel& model, const cs
 
         DirectX::XMMATRIX proj = ConvertToD3DX(GetClippingContextBufferForMask()->_matrixForMask);
         csmRectF* rect = GetClippingContextBufferForMask()->_layoutBounds;
-        const csmInt32 channelNo = GetClippingContextBufferForMask()->_layoutChannelNo;
-        CubismTextureColor* colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+        const csmInt32 channelIndex = GetClippingContextBufferForMask()->_layoutChannelIndex;
+        CubismTextureColor* colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
         const CubismTextureColor& multiplyColor = model.GetMultiplyColor(index);
         const CubismTextureColor& screenColor = model.GetScreenColor(index);
 
@@ -815,8 +785,8 @@ void CubismRenderer_D3D11::ExecuteDrawForDraw(const CubismModel& model, const cs
                 XMStoreFloat4x4(&cb.clipMatrix, DirectX::XMMatrixTranspose(clip));
 
                 // 使用するカラーチャンネルを設定
-                const csmInt32 channelNo = GetClippingContextBufferForDraw()->_layoutChannelNo;
-                CubismRenderer::CubismTextureColor* colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+                const csmInt32 channelIndex = GetClippingContextBufferForDraw()->_layoutChannelIndex;
+                CubismRenderer::CubismTextureColor* colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
                 XMStoreFloat4(&cb.channelFlag, DirectX::XMVectorSet(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A));
             }
 
@@ -1067,10 +1037,10 @@ void CubismRenderer_D3D11::CopyToBuffer(ID3D11DeviceContext* renderContext, csmI
 ID3D11ShaderResourceView* CubismRenderer_D3D11::GetTextureViewWithIndex(const CubismModel& model, const csmInt32 index)
 {
     ID3D11ShaderResourceView* result = NULL;
-    const csmInt32 textureNo = model.GetDrawableTextureIndex(index);
-    if (textureNo >= 0)
+    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    if (textureIndex >= 0)
     {
-        result = _textures[textureNo];
+        result = _textures[textureIndex];
     }
     return result;
 }

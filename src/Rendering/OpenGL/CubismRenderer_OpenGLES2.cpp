@@ -704,9 +704,9 @@ void CubismRenderer_OpenGLES2::RestoreProfile()
     _rendererProfile.Restore();
 }
 
-void CubismRenderer_OpenGLES2::BindTexture(csmUint32 modelTextureNo, GLuint glTextureNo)
+void CubismRenderer_OpenGLES2::BindTexture(csmUint32 modelTextureIndex, GLuint glTextureIndex)
 {
-    _textures[modelTextureNo] = glTextureNo;
+    _textures[modelTextureIndex] = glTextureIndex;
 }
 
 const csmMap<csmInt32, GLuint>& CubismRenderer_OpenGLES2::GetBindedTextures() const

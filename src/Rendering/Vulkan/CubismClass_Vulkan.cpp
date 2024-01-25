@@ -203,14 +203,14 @@ void CubismImageVulkan::CreateSampler(VkDevice device, float maxAnistropy,
     }
 }
 
-void CubismImageVulkan::SetImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout, csmUint32 mipLevels)
+void CubismImageVulkan::SetImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout, csmUint32 mipLevels, VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = currentLayout;
     barrier.newLayout = newLayout;
     barrier.image = image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.aspectMask = aspectMask;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = mipLevels;
     barrier.subresourceRange.baseArrayLayer = 0;
@@ -285,6 +285,11 @@ void CubismImageVulkan::SetImageLayout(VkCommandBuffer commandBuffer, VkImageLay
         &barrier
     );
 
+    currentLayout = newLayout;
+}
+
+void CubismImageVulkan::SetCurrentLayout(VkImageLayout newLayout)
+{
     currentLayout = newLayout;
 }
 

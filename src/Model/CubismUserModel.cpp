@@ -102,21 +102,41 @@ void CubismUserModel::LoadModel(const csmByte* buffer, csmSizeInt size, csmBool 
 
 ACubismMotion* CubismUserModel::LoadExpression(const csmByte* buffer, csmSizeInt size, const csmChar* name)
 {
+    if (!buffer)
+    {
+        CubismLogError("Failed to LoadExpression().");
+        return NULL;
+    }
+
     return CubismExpressionMotion::Create(buffer, size);
 }
 
 void CubismUserModel::LoadPose(const csmByte* buffer, csmSizeInt size)
 {
     _pose = CubismPose::Create(buffer, size);
+    if (!_pose)
+    {
+        CubismLogError("Failed to LoadPose().");
+    }
 }
 
 void CubismUserModel::LoadPhysics(const csmByte* buffer, csmSizeInt size)
 {
     _physics = CubismPhysics::Create(buffer, size);
+    if (!_physics)
+    {
+        CubismLogError("Failed to LoadPhysics().");
+    }
 }
 
 void CubismUserModel::LoadUserData(const csmByte* buffer, csmSizeInt size)
 {
+    if (!buffer)
+    {
+        CubismLogError("Failed to LoadUserData().");
+        return;
+    }
+
     _modelUserData = CubismModelUserData::Create(buffer, size);
 }
 csmBool CubismUserModel::IsHit(CubismIdHandle drawableId, csmFloat32 pointX, csmFloat32 pointY)
@@ -170,6 +190,11 @@ csmBool CubismUserModel::IsHit(CubismIdHandle drawableId, csmFloat32 pointX, csm
 
 ACubismMotion* CubismUserModel::LoadMotion(const csmByte* buffer, csmSizeInt size, const csmChar* name, ACubismMotion::FinishedMotionCallback onFinishedMotionHandler)
 {
+    if (!buffer)
+    {
+        CubismLogError("Failed to LoadMotion().");
+        return NULL;
+    }
     return CubismMotion::Create(buffer, size, onFinishedMotionHandler);
 }
 

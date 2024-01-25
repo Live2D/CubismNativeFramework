@@ -288,14 +288,18 @@ class CubismRenderer_Vulkan : public CubismRenderer
 
     /**
      * @brief   ディスクリプタセットとUBOを保持する構造体
+     *          コマンドバッファでまとめて描画する場合、ディスクリプタセットをバインド後に
+     *          更新してはならない。<br>
+     *          マスクされる描画対象のみ、フレームバッファをディスクリプタセットに設定する必要があるが、
+     *          その際バインド済みのディスクリプタセットを更新しないよう、別でマスクされる用のディスクリプタセットを用意する。
      */
     struct Descriptor
     {
         CubismBufferVulkan uniformBuffer; ///< ユニフォームバッファ
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE; ///< ディスクリプタセット
         bool isDescriptorSetUpdated = false; ///< ディスクリプタセットが更新されたか
-        VkDescriptorSet descriptorSetMasked = VK_NULL_HANDLE; ///< マスク用ディスクリプタセット
-        bool isDescriptorSetMaskedUpdated = false; ///< マスク用ディスクリプタセットが更新されたか
+        VkDescriptorSet descriptorSetMasked = VK_NULL_HANDLE; ///< マスクされる描画対象用のディスクリプタセット
+        bool isDescriptorSetMaskedUpdated = false; ///< マスクされる描画対象用のディスクリプタセットが更新されたか
     };
 
 protected:

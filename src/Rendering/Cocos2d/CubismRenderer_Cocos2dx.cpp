@@ -639,9 +639,9 @@ void CubismRenderer_Cocos2dx::RestoreProfile()
     _rendererProfile.Restore();
 }
 
-void CubismRenderer_Cocos2dx::BindTexture(csmUint32 modelTextureNo, cocos2d::Texture2D* texture)
+void CubismRenderer_Cocos2dx::BindTexture(csmUint32 modelTextureIndex, cocos2d::Texture2D* texture)
 {
-    _textures[modelTextureNo] = texture;
+    _textures[modelTextureIndex] = texture;
 }
 
 const csmMap<csmInt32, cocos2d::Texture2D*>& CubismRenderer_Cocos2dx::GetBindedTextures() const
@@ -712,9 +712,9 @@ const csmBool CubismRenderer_Cocos2dx::IsGeneratingMask() const
     return GetClippingContextBufferForMask() != NULL;
 }
 
-cocos2d::Texture2D* CubismRenderer_Cocos2dx::GetBindedTexture(csmInt32 textureNo)
+cocos2d::Texture2D* CubismRenderer_Cocos2dx::GetBindedTexture(csmInt32 textureIndex)
 {
-    return _textures[textureNo];
+    return _textures[textureIndex];
 }
 
 }}}}
