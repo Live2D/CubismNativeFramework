@@ -121,9 +121,9 @@ public:
     /**
      * @brief   カラーチャンネル(RGBA)のフラグを取得する
      *
-     * @param[in]   channelNo   ->   カラーチャンネル(RGBA)の番号(0:R , 1:G , 2:B, 3:A)
+     * @param[in]   channelIndex   ->   カラーチャンネル(RGBA)の番号(0:R , 1:G , 2:B, 3:A)
      */
-    CubismRenderer::CubismTextureColor* GetChannelFlagAsColor(csmInt32 channelNo);
+    CubismRenderer::CubismTextureColor* GetChannelFlagAsColor(csmInt32 channelIndex);
 
     /**
      *@brief  クリッピングマスクバッファのサイズを設定する

@@ -527,6 +527,12 @@ void CubismMotion::Parse(const csmByte* motionJson, const csmSizeInt size)
 
     CubismMotionJson* json = CSM_NEW CubismMotionJson(motionJson, size);
 
+    if (!json->IsValid())
+    {
+        CSM_DELETE(json);
+        return;
+    }
+
     _motionData->Duration = json->GetMotionDuration();
     _motionData->Loop = json->IsMotionLoop();
     _motionData->CurveCount = json->GetMotionCurveCount();

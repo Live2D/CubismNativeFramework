@@ -198,6 +198,11 @@ csmFloat32 CubismExpressionMotion::GetFadeWeight()
 void CubismExpressionMotion::Parse(const csmByte* buffer, csmSizeInt size)
 {
     Utils::CubismJson* json = Utils::CubismJson::Create(buffer, size);
+    if (!json)
+    {
+        return;
+    }
+
     Utils::Value& root = json->GetRoot();
 
     SetFadeInTime(root[ExpressionKeyFadeIn].ToFloat(DefaultFadeTime));   // フェードイン

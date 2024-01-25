@@ -188,11 +188,11 @@ public:
      * @brief   OpenGLテクスチャのバインド処理<br>
      *           CubismRendererにテクスチャを設定し、CubismRenderer中でその画像を参照するためのIndex値を戻り値とする
      *
-     * @param[in]   modelTextureNo  ->  セットするモデルテクスチャの番号
-     * @param[in]   glTextureNo     ->  OpenGLテクスチャの番号
+     * @param[in]   modelTextureIndex  ->  セットするモデルテクスチャの番号
+     * @param[in]   glTextureIndex     ->  OpenGLテクスチャの番号
      *
      */
-    void BindTexture(csmUint32 modelTextureNo, GLuint glTextureNo);
+    void BindTexture(csmUint32 modelTextureIndex, GLuint glTextureIndex);
 
     /**
      * @brief   OpenGLにバインドされたテクスチャのリストを取得する

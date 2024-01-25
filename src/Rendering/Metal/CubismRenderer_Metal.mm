@@ -591,9 +591,9 @@ void CubismRenderer_Metal::RestoreProfile()
 {
 }
 
-void CubismRenderer_Metal::BindTexture(csmUint32 modelTextureNo, id <MTLTexture> texture)
+void CubismRenderer_Metal::BindTexture(csmUint32 modelTextureIndex, id <MTLTexture> texture)
 {
-    _textures[modelTextureNo] = texture;
+    _textures[modelTextureIndex] = texture;
 }
 
 const csmMap< csmInt32, id <MTLTexture> >& CubismRenderer_Metal::GetBindedTextures() const

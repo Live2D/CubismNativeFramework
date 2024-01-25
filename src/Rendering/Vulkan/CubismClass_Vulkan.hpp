@@ -149,7 +149,14 @@ public:
      * @param[in]  newLayout      -> 新しいレイアウト
      * @param[in]  mipLevels      -> ミップマップのレベル
      */
-    void SetImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout, csmUint32 mipLevels);
+    void SetImageLayout(VkCommandBuffer commandBuffer, VkImageLayout newLayout, csmUint32 mipLevels, VkImageAspectFlags aspectMask);
+
+    /**
+     * @brief   vkCmdEndRendering後のパイプラインバリアで変わってしまうイメージレイアウトを保存する
+     *
+     * @param[in]  newLayout  -> 新しいレイアウト
+     */
+    void SetCurrentLayout(VkImageLayout newLayout);
 
     /**
      * @brief   リソースを破棄する

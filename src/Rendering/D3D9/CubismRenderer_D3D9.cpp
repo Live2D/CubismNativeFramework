@@ -641,8 +641,8 @@ void CubismRenderer_D3D9::ExecuteDrawForDraw(const CubismModel& model, const csm
             shaderEffect->SetMatrix("clipMatrix", &clipM);
 
             // 使用するカラーチャンネルを設定
-            const csmInt32 channelNo = GetClippingContextBufferForDraw()->_layoutChannelNo;
-            CubismRenderer::CubismTextureColor* colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+            const csmInt32 channelIndex = GetClippingContextBufferForDraw()->_layoutChannelIndex;
+            CubismRenderer::CubismTextureColor* colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
             D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
             shaderEffect->SetVector("channelFlag", &channel);
         }
@@ -727,9 +727,9 @@ void CubismRenderer_D3D9::ExecuteDrawForMask(const CubismModel& model, const csm
         shaderEffect->SetVector("screenColor", &shaderScreenColor);
 
         // チャンネル
-        const csmInt32 channelNo = GetClippingContextBufferForMask()->_layoutChannelNo;
+        const csmInt32 channelIndex = GetClippingContextBufferForMask()->_layoutChannelIndex;
         // チャンネルをRGBAに変換
-        CubismTextureColor* colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelNo);
+        CubismTextureColor* colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
         D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
         shaderEffect->SetVector("channelFlag", &channel);
 
@@ -976,10 +976,10 @@ void CubismRenderer_D3D9::CopyToBuffer(csmInt32 drawAssign, const csmInt32 vcoun
 LPDIRECT3DTEXTURE9 CubismRenderer_D3D9::GetTextureWithIndex(const CubismModel& model, const csmInt32 index)
 {
     LPDIRECT3DTEXTURE9 result = NULL;
-    const csmInt32 textureNo = model.GetDrawableTextureIndex(index);
-    if (textureNo >= 0)
+    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    if (textureIndex >= 0)
     {
-        result = _textures[textureNo];
+        result = _textures[textureIndex];
     }
 
     return result;
