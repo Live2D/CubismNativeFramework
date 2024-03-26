@@ -12,6 +12,7 @@
 #include "../CubismRenderer.hpp"
 #include "../CubismClippingManager.hpp"
 #include "CubismFramework.hpp"
+#include "CubismType_D3D11.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
 #include "Math/CubismVector2.hpp"
@@ -269,6 +270,14 @@ private:
     void ExecuteDrawForDraw(const CubismModel& model, const csmInt32 index);
 
     /**
+     * @brief  指定されたメッシュインデックスに対して描画命令を実行する
+     *
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   index       ->  描画対象のインデックス
+     */
+    void DrawDrawableIndexed(const CubismModel& model, const csmInt32 index);
+
+    /**
      * @brief   レンダラが保持する静的なリソースを解放する
      */
     static void DoStaticRelease();
@@ -353,6 +362,51 @@ private:
      * @param[in]   index       ->  描画対象のインデックス
      */
     void SetShader(const CubismModel& model, const csmInt32 index);
+
+    /**
+     * @brief  描画に使用するテクスチャを設定する。
+     *
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   index       ->  描画対象のインデックス
+     */
+    void SetTextureView(const CubismModel& model, const csmInt32 index);
+
+    /**
+     * @brief  色関連の定数バッファを設定する
+     *
+     * @param[in]   cb             ->  設定する定数バッファ
+     * @param[in]   model          ->  描画対象のモデル
+     * @param[in]   index          ->  描画対象のインデックス
+     * @param[in]   baseColor      ->  ベースカラー
+     * @param[in]   multiplyColor  ->  乗算カラー
+     * @param[in]   screenColor    ->  スクリーンカラー
+     */
+    void SetColorConstantBuffer(CubismConstantBufferD3D11& cb, const CubismModel& model, const csmInt32 index,
+                                CubismTextureColor& baseColor, CubismTextureColor& multiplyColor, CubismTextureColor& screenColor);
+
+    /**
+     * @brief  描画に使用するカラーチャンネルを設定
+     *
+     * @param[in]   cb            ->  設定する定数バッファ
+     * @param[in]   contextBuffer ->  描画コンテキスト
+     */
+    void SetColorChannel(CubismConstantBufferD3D11& cb, CubismClippingContext_D3D11* contextBuffer);
+
+    /**
+     * @brief  描画に使用するプロジェクション行列を更新する
+     *
+     * @param[in]   cb          ->  設定する定数バッファ
+     * @param[in]   matrix      ->  設定するプロジェクション行列
+     */
+    void SetProjectionMatrix(CubismConstantBufferD3D11& cb, CubismMatrix44 matrix);
+
+    /**
+     * @brief  定数バッファを更新する
+     *
+     * @param[in]   cb          ->  書き込む定数バッファ情報
+     * @param[in]   index       ->  描画対象のインデックス
+     */
+    void UpdateConstantBuffer(CubismConstantBufferD3D11& cb, csmInt32 index);
 
     /**
      * @brief   異方向フィルタリングの値によってサンプラーを設定する。

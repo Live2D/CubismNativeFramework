@@ -80,7 +80,7 @@ public:
     * @param[in]   expressionIndex              表情のインデックス
     */
     void CalculateExpressionParameters(CubismModel* model, csmFloat32 userTimeSeconds, CubismMotionQueueEntry* motionQueueEntry,
-        csmVector<CubismExpressionMotionManager::ExpressionParameterValue>* expressionParameterValues, csmInt32 expressionIndex);
+        csmVector<CubismExpressionMotionManager::ExpressionParameterValue>* expressionParameterValues, csmInt32 expressionIndex, csmFloat32 fadeWeight);
 
     /**
      * @brief 表情が参照しているパラメータを取得
@@ -93,6 +93,13 @@ public:
      * @brief 表情のフェードの値を取得
      *
      * 現在の表情のフェードのウェイト値を取得する。
+     *
+     * @return 表情のフェードのウェイト値
+     *
+     * @deprecated CubismExpressionMotion._fadeWeightが削除予定のため非推奨
+     * CubismExpressionMotionManager.getFadeWeight(int index) を使用してください。
+     *
+     * @see CubismExpressionMotionManager#GetFadeWeight(int index)
      */
     csmFloat32 GetFadeWeight();
 
@@ -136,9 +143,15 @@ private:
      * @param[in]   source          現在の値
      * @param[in]   destination     適用する値
      */
-    csmFloat32 CalculateValue(csmFloat32 source, csmFloat32 destination);
+    csmFloat32 CalculateValue(csmFloat32 source, csmFloat32 destination, csmFloat32 fadeWeight);
 
-    csmFloat32 _fadeWeight;                         ///< 表情の現在のウェイト
+
+    /**
+     * 表情の現在のウェイト
+     *
+     * @deprecated 不具合を引き起こす要因となるため非推奨。
+     */
+    csmFloat32 _fadeWeight;
 };
 
 }}}

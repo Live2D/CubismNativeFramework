@@ -99,6 +99,17 @@ public:
      */
     void                UpdateParameters(CubismModel* model, csmFloat32 deltaTimeSeconds);
 
+    /**
+     * @brief 表示を初期化
+     *
+     * 表示を初期化する。
+     *
+     * @param[in]   model   対象のモデル
+     *
+     * @note 不透明度の初期値が0でないパラメータは、不透明度を1に設定する。
+     */
+    void                Reset(CubismModel* model);
+
 private:
     /**
     * @brief コンストラクタ
@@ -113,17 +124,6 @@ private:
     * デストラクタ。
     */
     virtual ~CubismPose();
-
-    /**
-     * @brief 表示を初期化
-     *
-     * 表示を初期化する。
-     *
-     * @param[in]   model   対象のモデル
-     *
-     * @note 不透明度の初期値が0でないパラメータは、不透明度を1に設定する。
-     */
-    void                Reset(CubismModel* model);
 
     /**
      * @brief パーツの不透明度をコピー

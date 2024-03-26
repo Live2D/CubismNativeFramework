@@ -770,62 +770,42 @@ void CubismShader_Cocos2dx::SetupShaderProgramForMask(CubismCommandBuffer_Cocos2
         GenerateShaders();
     }
 
-    cocos2d::backend::BlendDescriptor* blendDescriptor = drawCommand->GetBlendDescriptor();
-    cocos2d::PipelineDescriptor* pipelineDescriptor = drawCommand->GetPipelineDescriptor();
-
-    cocos2d::backend::ProgramState* programState = pipelineDescriptor->programState;
-
     CubismShaderSet* shaderSet = _shaderSets[ShaderNames_SetupMask];
 
+    cocos2d::backend::BlendDescriptor* blendDescriptor = drawCommand->GetBlendDescriptor();
+    blendDescriptor->sourceRGBBlendFactor = cocos2d::backend::BlendFactor::ZERO;
+    blendDescriptor->destinationRGBBlendFactor = cocos2d::backend::BlendFactor::ONE_MINUS_SRC_COLOR;
+    blendDescriptor->sourceAlphaBlendFactor = cocos2d::backend::BlendFactor::ZERO;
+    blendDescriptor->destinationAlphaBlendFactor = cocos2d::backend::BlendFactor::ONE_MINUS_SRC_ALPHA;
+
+    cocos2d::PipelineDescriptor* pipelineDescriptor = drawCommand->GetPipelineDescriptor();
+    cocos2d::backend::ProgramState* programState = pipelineDescriptor->programState;
     if (!programState)
     {
         programState = new cocos2d::backend::ProgramState(shaderSet->ShaderProgram);
     }
 
-
     //テクスチャ設定
-    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
-    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureIndex);
-    programState->setTexture(shaderSet->SamplerTexture0Location, 0, texture->getBackendTexture());
+    SetupTexture(renderer, programState, model, index, shaderSet);
 
-    // 頂点配列の設定
-    programState->getVertexLayout()->setAttribute("a_position", shaderSet->AttributePositionLocation, cocos2d::backend::VertexFormat::FLOAT2, 0, false);
-    // テクスチャ頂点の設定
-    programState->getVertexLayout()->setAttribute("a_texCoord", shaderSet->AttributeTexCoordLocation, cocos2d::backend::VertexFormat::FLOAT2, sizeof(csmFloat32) * 2, false);
+    // 頂点属性の設定
+    SetVertexAttributes(programState, shaderSet);
 
-    // チャンネル
-    const csmInt32 channelIndex = renderer->GetClippingContextBufferForMask()->_layoutChannelIndex;
-    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-    csmFloat32 colorFlag[4] = { colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
-    programState->setUniform(shaderSet->UnifromChannelFlagLocation, colorFlag, sizeof(float) * 4);
+    // カラーチャンネル
+    CubismClippingContext_Cocos2dx* contextBuffer = renderer->GetClippingContextBufferForMask();
+    SetColorChannel(renderer, programState, shaderSet, contextBuffer);
 
     //マスク用行列
     programState->setUniform(shaderSet->UniformClipMatrixLocation,
                              renderer->GetClippingContextBufferForMask()->_matrixForMask.GetArray(),
                              sizeof(float) * 16);
 
-    //マスク描画範囲
+    // ユニフォーム変数設定
     csmRectF* rect = renderer->GetClippingContextBufferForMask()->_layoutBounds;
-    csmFloat32 base[4] = { rect->X * 2.0f - 1.0f,
-                            rect->Y * 2.0f - 1.0f,
-                            rect->GetRight() * 2.0f - 1.0f,
-                            rect->GetBottom() * 2.0f - 1.0f };
-    programState->setUniform(shaderSet->UniformBaseColorLocation, base, sizeof(float) * 4);
-
-    //乗算色
-    const CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    csmFloat32 multiply[4] = { multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
-    programState->setUniform(shaderSet->UniformMultiplyColorLocation, multiply, sizeof(float) * 4);
-
-    //スクリーン色
-    const CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-    csmFloat32 screen[4] = { screenColor.R, screenColor.G, screenColor.B, screenColor.A };
-    programState->setUniform(shaderSet->UniformScreenColorLocation, screen, sizeof(float) * 4);
-
-    blendDescriptor->sourceRGBBlendFactor = cocos2d::backend::BlendFactor::ZERO;
-    blendDescriptor->destinationRGBBlendFactor = cocos2d::backend::BlendFactor::ONE_MINUS_SRC_COLOR;
-    blendDescriptor->sourceAlphaBlendFactor = cocos2d::backend::BlendFactor::ZERO;
-    blendDescriptor->destinationAlphaBlendFactor = cocos2d::backend::BlendFactor::ONE_MINUS_SRC_ALPHA;
+    CubismRenderer::CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
+    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+    SetColorUniformVariables(programState, shaderSet, baseColor, multiplyColor, screenColor);
 
     programState->getVertexLayout()->setLayout(sizeof(csmFloat32) * 4);
     blendDescriptor->blendEnabled = true;
@@ -883,10 +863,11 @@ void CubismShader_Cocos2dx::SetupShaderProgramForDraw(CubismCommandBuffer_Cocos2
         programState = new cocos2d::backend::ProgramState(shaderSet->ShaderProgram);
     }
 
-    // 頂点配列の設定
-    programState->getVertexLayout()->setAttribute("a_position", shaderSet->AttributePositionLocation, cocos2d::backend::VertexFormat::FLOAT2, 0, false);
-    // テクスチャ頂点の設定
-    programState->getVertexLayout()->setAttribute("a_texCoord", shaderSet->AttributeTexCoordLocation, cocos2d::backend::VertexFormat::FLOAT2, sizeof(csmFloat32) * 2, false);
+    //テクスチャ設定
+    SetupTexture(renderer, programState, model, index, shaderSet);
+
+    // 頂点属性の設定
+    SetVertexAttributes(programState, shaderSet);
 
     if (masked)
     {
@@ -900,36 +881,20 @@ void CubismShader_Cocos2dx::SetupShaderProgramForDraw(CubismCommandBuffer_Cocos2
                                  renderer->GetClippingContextBufferForDraw()->_matrixForDraw.GetArray(),
                                  sizeof(float) * 16);
 
-        // 使用するカラーチャンネルを設定
-        const csmInt32 channelIndex = renderer->GetClippingContextBufferForDraw()->_layoutChannelIndex;
-        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-        csmFloat32 colorFlag[4] = { colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
-        programState->setUniform(shaderSet->UnifromChannelFlagLocation, colorFlag, sizeof(float) * 4);
+        // カラーチャンネル
+        CubismClippingContext_Cocos2dx* contextBuffer = renderer->GetClippingContextBufferForDraw();
+        SetColorChannel(renderer, programState, shaderSet, contextBuffer);
     }
-
-    //テクスチャ設定
-    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
-    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureIndex);
-    programState->setTexture(shaderSet->SamplerTexture0Location, 0, texture->getBackendTexture());
 
     //座標変換
     CubismMatrix44 matrix4x4 = renderer->GetMvpMatrix();
     programState->setUniform(shaderSet->UniformMatrixLocation, matrix4x4.GetArray(), sizeof(float) * 16);
 
-    //ベース色
+    // ユニフォーム変数設定
     CubismRenderer::CubismTextureColor baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
-    csmFloat32 base[4] = { baseColor.R, baseColor.G, baseColor.B, baseColor.A };
-    programState->setUniform(shaderSet->UniformBaseColorLocation, base, sizeof(float) * 4);
-
-    //乗算色
-    const CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    csmFloat32 multiply[4] = { multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
-    programState->setUniform(shaderSet->UniformMultiplyColorLocation, multiply, sizeof(float) * 4);
-
-    //スクリーン色
-    const CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-    csmFloat32 screen[4] = { screenColor.R, screenColor.G, screenColor.B, screenColor.A };
-    programState->setUniform(shaderSet->UniformScreenColorLocation, screen, sizeof(float) * 4);
+    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+    SetColorUniformVariables(programState, shaderSet, baseColor, multiplyColor, screenColor);
 
     programState->getVertexLayout()->setLayout(sizeof(csmFloat32) * 4);
     blendDescriptor->blendEnabled = true;
@@ -941,6 +906,43 @@ cocos2d::backend::Program* CubismShader_Cocos2dx::LoadShaderProgram(const csmCha
     // cocos2dx対応
     // Create shader program.
     return cocos2d::backend::Device::getInstance()->newProgram(vertShaderSrc, fragShaderSrc);
+}
+
+void CubismShader_Cocos2dx::SetVertexAttributes(cocos2d::backend::ProgramState* programState, CubismShaderSet* shaderSet)
+{
+    // 頂点配列の設定
+    programState->getVertexLayout()->setAttribute("a_position", shaderSet->AttributePositionLocation, cocos2d::backend::VertexFormat::FLOAT2, 0, false);
+    // テクスチャ頂点の設定
+    programState->getVertexLayout()->setAttribute("a_texCoord", shaderSet->AttributeTexCoordLocation, cocos2d::backend::VertexFormat::FLOAT2, sizeof(csmFloat32) * 2, false);
+}
+
+void CubismShader_Cocos2dx::SetupTexture(CubismRenderer_Cocos2dx* renderer, cocos2d::backend::ProgramState* programState
+                                        , const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet)
+{
+    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    cocos2d::Texture2D* texture = renderer->GetBindedTexture(textureIndex);
+    programState->setTexture(shaderSet->SamplerTexture0Location, 0, texture->getBackendTexture());
+}
+
+void CubismShader_Cocos2dx::SetColorUniformVariables(cocos2d::backend::ProgramState* programState, CubismShaderSet* shaderSet, CubismRenderer::CubismTextureColor& baseColor,
+                                                     CubismRenderer::CubismTextureColor& multiplyColor, CubismRenderer::CubismTextureColor& screenColor)
+{
+    csmFloat32 base[4] = { baseColor.R, baseColor.G, baseColor.B, baseColor.A };
+    csmFloat32 multiply[4] = { multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
+    csmFloat32 screen[4] = { screenColor.R, screenColor.G, screenColor.B, screenColor.A };
+
+    programState->setUniform(shaderSet->UniformBaseColorLocation, base, sizeof(float) * 4);
+    programState->setUniform(shaderSet->UniformMultiplyColorLocation, multiply, sizeof(float) * 4);
+    programState->setUniform(shaderSet->UniformScreenColorLocation, screen, sizeof(float) * 4);
+}
+
+void CubismShader_Cocos2dx::SetColorChannel(CubismRenderer_Cocos2dx* renderer, cocos2d::backend::ProgramState* programState,
+                                            CubismShaderSet* shaderSet, CubismClippingContext_Cocos2dx* contextBuffer)
+{
+    const csmInt32 channelIndex = contextBuffer->_layoutChannelIndex;
+    CubismRenderer::CubismTextureColor* colorChannel = contextBuffer->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
+    csmFloat32 colorFlag[4] = { colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
+    programState->setUniform(shaderSet->UnifromChannelFlagLocation, colorFlag, sizeof(float) * 4);
 }
 
 }}}}

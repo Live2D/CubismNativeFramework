@@ -623,16 +623,12 @@ void CubismRenderer_D3D9::ExecuteDrawForDraw(const CubismModel& model, const csm
     shaderEffect->Begin(&numPass, 0);
     shaderEffect->BeginPass(0);
 
-    // テクスチャセット メイン
-    LPDIRECT3DTEXTURE9 texture = GetTextureWithIndex(model, index);
-    shaderEffect->SetTexture("mainTexture", texture);
-
-    // テクスチャセット マスク
-    const csmBool masked = GetClippingContextBufferForDraw() != NULL;
-    shaderEffect->SetTexture("maskTexture", (masked ? _offscreenSurfaces[_commandBufferCurrent][GetClippingContextBufferForDraw()->_bufferIndex].GetTexture() : NULL));
+    // テスクチャ
+    SetExecutionTextures(model, index, shaderEffect);
 
     // 定数バッファ
     {
+        const csmBool masked = GetClippingContextBufferForDraw() != NULL;
         if (masked)
         {
             // View座標をClippingContextの座標に変換するための行列を設定
@@ -641,41 +637,25 @@ void CubismRenderer_D3D9::ExecuteDrawForDraw(const CubismModel& model, const csm
             shaderEffect->SetMatrix("clipMatrix", &clipM);
 
             // 使用するカラーチャンネルを設定
-            const csmInt32 channelIndex = GetClippingContextBufferForDraw()->_layoutChannelIndex;
-            CubismRenderer::CubismTextureColor* colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-            D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
-            shaderEffect->SetVector("channelFlag", &channel);
+            CubismClippingContext_D3D9* contextBuffer = GetClippingContextBufferForDraw();
+            SetColorChannel(shaderEffect, contextBuffer);
         }
 
-        CubismMatrix44 mvp = GetMvpMatrix();
-        D3DXMATRIX proj = ConvertToD3DX(mvp);
-        shaderEffect->SetMatrix("projectMatrix", &proj);
+        // プロジェクション行列
+        SetProjectionMatrix(shaderEffect, GetMvpMatrix());
 
-        CubismTextureColor modelColorRGBA = (IsGeneratingMask() ? GetModelColor() : GetModelColorWithOpacity(model.GetDrawableOpacity(index)));
-        D3DXVECTOR4 color(modelColorRGBA.R, modelColorRGBA.G, modelColorRGBA.B, modelColorRGBA.A);
-        shaderEffect->SetVector("baseColor", &color);
-
-        const CubismTextureColor& multiplyColor = model.GetMultiplyColor(index);
-        D3DXVECTOR4 shaderMultiplyColor(multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
-        shaderEffect->SetVector("multiplyColor", &shaderMultiplyColor);
-
-        const CubismTextureColor& screenColor = model.GetScreenColor(index);
-        D3DXVECTOR4 shaderScreenColor(screenColor.R, screenColor.G, screenColor.B, screenColor.A);
-        shaderEffect->SetVector("screenColor", &shaderScreenColor);
+        // 色
+        CubismTextureColor modelColorRGBA = GetModelColorWithOpacity(model.GetDrawableOpacity(index));
+        CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+        CubismTextureColor screenColor = model.GetScreenColor(index);
+        SetColorVectors(shaderEffect, modelColorRGBA, multiplyColor, screenColor);
     }
 
     // パラメータ反映
     shaderEffect->CommitChanges();
 
     // 描画
-    {
-        const csmInt32 vertexCount = model.GetDrawableVertexCount(index);
-        const csmInt32 indexCount = model.GetDrawableVertexIndexCount(index);
-        const csmInt32 triangleCount = indexCount / 3;
-        const csmUint16* indexArray = _indexStore[index];
-        const CubismVertexD3D9* vertexArray = _vertexStore[index];
-        s_useDevice->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, vertexCount, triangleCount, indexArray, D3DFMT_INDEX16, vertexArray, sizeof(CubismVertexD3D9));
-    }
+    DrawIndexedPrimiteveWithSetup(model, index);
 
     shaderEffect->EndPass();
     shaderEffect->End();
@@ -710,48 +690,29 @@ void CubismRenderer_D3D9::ExecuteDrawForMask(const CubismModel& model, const csm
 
     // 定数バッファ
     {
-        CubismMatrix44 modelToWorldF = GetClippingContextBufferForMask()->_matrixForMask;
-        D3DXMATRIX proj = ConvertToD3DX(modelToWorldF);
-        shaderEffect->SetMatrix("projectMatrix", &proj);
+        // プロジェクション行列
+        SetProjectionMatrix(shaderEffect, GetClippingContextBufferForMask()->_matrixForMask);
 
+        // 色
         csmRectF* rect = GetClippingContextBufferForMask()->_layoutBounds;
-        D3DXVECTOR4 color(rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f);
-        shaderEffect->SetVector("baseColor", &color);
+        CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
+        CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+        CubismTextureColor screenColor = model.GetScreenColor(index);
+        SetColorVectors(shaderEffect, baseColor, multiplyColor, screenColor);
 
-        const CubismTextureColor& multiplyColor = model.GetMultiplyColor(index);
-        D3DXVECTOR4 shaderMultiplyColor(multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
-        shaderEffect->SetVector("multiplyColor", &shaderMultiplyColor);
+        // 使用するカラーチャンネルを設定
+        CubismClippingContext_D3D9* contextBuffer = GetClippingContextBufferForMask();
+        SetColorChannel(shaderEffect, contextBuffer);
 
-        const CubismTextureColor& screenColor = model.GetScreenColor(index);
-        D3DXVECTOR4 shaderScreenColor(screenColor.R, screenColor.G, screenColor.B, screenColor.A);
-        shaderEffect->SetVector("screenColor", &shaderScreenColor);
-
-        // チャンネル
-        const csmInt32 channelIndex = GetClippingContextBufferForMask()->_layoutChannelIndex;
-        // チャンネルをRGBAに変換
-        CubismTextureColor* colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-        D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
-        shaderEffect->SetVector("channelFlag", &channel);
-
-        // テクスチャセット
-        shaderEffect->SetTexture("mainTexture", GetTextureWithIndex(model, index));
-        // 使わない場合はNULLを必ず代入
-        shaderEffect->SetTexture("maskTexture", NULL);
+        // テスクチャ
+        SetExecutionTextures(model, index, shaderEffect);
 
         // パラメータ反映
         shaderEffect->CommitChanges();
     }
 
     // 描画
-    {
-        const csmInt32 vertexCount = model.GetDrawableVertexCount(index);
-        const csmInt32 indexCount = model.GetDrawableVertexIndexCount(index);
-        const csmInt32 triangleCount = indexCount / 3;
-        const csmUint16* indexArray = _indexStore[index];
-        const CubismVertexD3D9* vertexArray = _vertexStore[index];
-        s_useDevice->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, vertexCount, triangleCount,
-                                            indexArray, D3DFMT_INDEX16, vertexArray, sizeof(CubismVertexD3D9));
-    }
+    DrawIndexedPrimiteveWithSetup(model, index);
 
     shaderEffect->EndPass();
     shaderEffect->End();
@@ -1099,6 +1060,52 @@ void CubismRenderer_D3D9::SetTextureFilter() const
         {
             GetRenderStateManager()->SetTextureFilter(s_useDevice, 0, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
         }
+}
+
+void CubismRenderer_D3D9::SetColorVectors(ID3DXEffect* shaderEffect, CubismTextureColor& baseColor, CubismTextureColor& multiplyColor, CubismTextureColor& screenColor)
+{
+    D3DXVECTOR4 shaderBaseColor(baseColor.R, baseColor.G, baseColor.B, baseColor.A);
+    D3DXVECTOR4 shaderMultiplyColor(multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
+    D3DXVECTOR4 shaderScreenColor(screenColor.R, screenColor.G, screenColor.B, screenColor.A);
+
+    shaderEffect->SetVector("baseColor", &shaderBaseColor);
+    shaderEffect->SetVector("multiplyColor", &shaderMultiplyColor);
+    shaderEffect->SetVector("screenColor", &shaderScreenColor);
+}
+
+void CubismRenderer_D3D9::SetExecutionTextures(const CubismModel& model, const csmInt32 index, ID3DXEffect* shaderEffect)
+{
+    const csmBool drawing = !IsGeneratingMask();
+    const csmBool masked = GetClippingContextBufferForDraw() != NULL;
+    LPDIRECT3DTEXTURE9 mainTexture = GetTextureWithIndex(model, index);
+    LPDIRECT3DTEXTURE9 maskTexture = ((drawing && masked) ? _offscreenSurfaces[_commandBufferCurrent][GetClippingContextBufferForDraw()->_bufferIndex].GetTexture() : NULL);
+
+    shaderEffect->SetTexture("mainTexture", mainTexture);
+    shaderEffect->SetTexture("maskTexture", maskTexture);
+}
+
+void CubismRenderer_D3D9::SetColorChannel(ID3DXEffect* shaderEffect, CubismClippingContext_D3D9* contextBuffer)
+{
+    const csmInt32 channelIndex = contextBuffer->_layoutChannelIndex;
+    CubismRenderer::CubismTextureColor* colorChannel = contextBuffer->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
+    D3DXVECTOR4 channel(colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
+    shaderEffect->SetVector("channelFlag", &channel);
+}
+
+void CubismRenderer_D3D9::SetProjectionMatrix(ID3DXEffect* shaderEffect, CubismMatrix44& matrix)
+{
+    D3DXMATRIX proj = ConvertToD3DX(matrix);
+    shaderEffect->SetMatrix("projectMatrix", &proj);
+}
+
+void CubismRenderer_D3D9::DrawIndexedPrimiteveWithSetup(const CubismModel& model, const csmInt32 index)
+{
+    const csmInt32 vertexCount = model.GetDrawableVertexCount(index);
+    const csmInt32 indexCount = model.GetDrawableVertexIndexCount(index);
+    const csmInt32 triangleCount = indexCount / 3;
+    const csmUint16* indexArray = _indexStore[index];
+    const CubismVertexD3D9* vertexArray = _vertexStore[index];
+    s_useDevice->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, vertexCount, triangleCount, indexArray, D3DFMT_INDEX16, vertexArray, sizeof(CubismVertexD3D9));
 }
 
 }}}}

@@ -39,21 +39,7 @@ void ACubismMotion::UpdateParameters(CubismModel* model, CubismMotionQueueEntry*
         return;
     }
 
-    if (!motionQueueEntry->IsStarted())
-    {
-        motionQueueEntry->IsStarted(true);
-        motionQueueEntry->SetStartTime(userTimeSeconds - _offsetSeconds); //モーションの開始時刻を記録
-        motionQueueEntry->SetFadeInStartTime(userTimeSeconds); //フェードインの開始時刻
-
-        const csmFloat32 duration = GetDuration();
-
-        if (motionQueueEntry->GetEndTime() < 0)
-        {
-            //開始していないうちに終了設定している場合がある。
-            motionQueueEntry->SetEndTime( (duration <= 0) ? -1 : motionQueueEntry->GetStartTime() + duration );
-            //duration == -1 の場合はループする
-        }
-    }
+    SetupMotionQueueEntry(motionQueueEntry, userTimeSeconds);
 
     csmFloat32 fadeWeight = UpdateFadeWeight(motionQueueEntry, userTimeSeconds);
 
@@ -68,8 +54,37 @@ void ACubismMotion::UpdateParameters(CubismModel* model, CubismMotionQueueEntry*
     }
 }
 
+void ACubismMotion::SetupMotionQueueEntry(CubismMotionQueueEntry* motionQueueEntry, csmFloat32 userTimeSeconds)
+{
+    if (!motionQueueEntry->IsAvailable() || motionQueueEntry->IsFinished()) {
+        return;
+    }
+
+    if (motionQueueEntry->IsStarted()) {
+        return;
+    }
+
+    motionQueueEntry->IsStarted(true);
+    motionQueueEntry->SetStartTime(userTimeSeconds - _offsetSeconds); //モーションの開始時刻を記録
+    motionQueueEntry->SetFadeInStartTime(userTimeSeconds); //フェードインの開始時刻
+
+    const csmFloat32 duration = GetDuration();
+
+    if (motionQueueEntry->GetEndTime() < 0)
+    {
+        //開始していないうちに終了設定している場合がある。
+        motionQueueEntry->SetEndTime((duration <= 0) ? -1 : motionQueueEntry->GetStartTime() + duration);
+        //duration == -1 の場合はループする
+    }
+}
+
 csmFloat32 ACubismMotion::UpdateFadeWeight(CubismMotionQueueEntry* motionQueueEntry, csmFloat32 userTimeSeconds)
 {
+    if (motionQueueEntry == NULL)
+    {
+        CubismLogError("motionQueueEntry is null.");
+    }
+
     csmFloat32 fadeWeight = _weight; //現在の値と掛け合わせる割合
 
     //---- フェードイン・アウトの処理 ----

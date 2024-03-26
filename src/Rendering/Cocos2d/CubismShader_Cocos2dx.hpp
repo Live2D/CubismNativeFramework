@@ -41,6 +41,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 // 前方宣言
 class CubismRenderer_Cocos2dx;
+class CubismClippingContext_Cocos2dx;
 
 /**
  * @brief   Cocos2dx用のシェーダプログラムを生成・破棄するクラス<br>
@@ -132,6 +133,49 @@ private:
      * @return  シェーダプログラムのアドレス
      */
     cocos2d::backend::Program* LoadShaderProgram(const csmChar* vertShaderSrc, const csmChar* fragShaderSrc);
+
+    /**
+     * @brief   必要な頂点属性を設定する
+     *
+     * @param[in]   programState          ->  cocos2dプログラムステート
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     */
+    void SetVertexAttributes(cocos2d::backend::ProgramState* programState, CubismShaderSet* shaderSet);
+
+    /**
+     * @brief   テクスチャの設定を行う
+     *
+     * @param[in]   renderer               ->  レンダラー
+     * @param[in]   programState           ->  cocos2dプログラムステート
+     * @param[in]   model                  ->  描画対象のモデル
+     * @param[in]   index                  ->  描画対象のメッシュのインデックス
+     * @param[in]   shaderSet              ->  シェーダープログラムのセット
+     */
+    void SetupTexture(CubismRenderer_Cocos2dx* renderer, cocos2d::backend::ProgramState* programState
+                    , const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet);
+
+    /**
+     * @brief   色関連のユニフォーム変数の設定を行う
+     *
+     * @param[in]   programState          ->  cocos2dプログラムステート
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     * @param[in]   baseColor             ->  ベースカラー
+     * @param[in]   multiplyColor         ->  乗算カラー
+     * @param[in]   screenColor           ->  スクリーンカラー
+     */
+    void SetColorUniformVariables(cocos2d::backend::ProgramState* programState, CubismShaderSet* shaderSet, CubismRenderer::CubismTextureColor& baseColor
+                                , CubismRenderer::CubismTextureColor& multiplyColor, CubismRenderer::CubismTextureColor& screenColor);
+
+    /**
+     * @brief   カラーチャンネル関連のユニフォーム変数の設定を行う
+     *
+     * @param[in]   renderer              ->  レンダラー
+     * @param[in]   programState          ->  cocos2dプログラムステート
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     * @param[in]   contextBuffer         ->  描画コンテキスト
+     */
+    void SetColorChannel(CubismRenderer_Cocos2dx* renderer, cocos2d::backend::ProgramState* programState,
+                         CubismShaderSet* shaderSet, CubismClippingContext_Cocos2dx* contextBuffer);
 
 #ifdef CSM_TARGET_ANDROID_ES2
 public:

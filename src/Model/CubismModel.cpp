@@ -41,9 +41,9 @@ csmFloat32 CubismModel::GetParameterValue(CubismIdHandle parameterId)
     return GetParameterValue(parameterIndex);
 }
 
-void CubismModel::SetParameterValue(CubismIdHandle parameteId, csmFloat32 value, csmFloat32 weight)
+void CubismModel::SetParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight)
 {
-    const csmInt32 index = GetParameterIndex(parameteId);
+    const csmInt32 index = GetParameterIndex(parameterId);
     SetParameterValue(index, value, weight);
 }
 

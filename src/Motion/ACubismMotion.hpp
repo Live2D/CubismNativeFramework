@@ -55,6 +55,14 @@ public:
     void UpdateParameters(CubismModel* model, CubismMotionQueueEntry* motionQueueEntry, csmFloat32 userTimeSeconds);
 
     /**
+     * モーションの再生を開始するためのセットアップを行う。
+     *
+     * @param motionQueueEntry CubismMotionQueueManagerによって管理されるモーション
+     * @param userTimeSeconds 総再生時間（秒）
+     */
+    void SetupMotionQueueEntry(CubismMotionQueueEntry* motionQueueEntry, csmFloat32 userTimeSeconds);
+
+    /**
      * @brief フェードイン
      *
      * フェードインの時間を設定する。
@@ -235,19 +243,6 @@ public:
      */
     virtual CubismIdHandle GetModelOpacityId(csmInt32 index);
 
-protected:
-    /**
-     *
-     * @brief 指定時間の透明度の値を返す
-     *
-     * @param[in]   motionTimeSeconds        現在の再生時間[秒]
-     *
-     * @return  success：モーションの当該時間におけるOpacityの値
-     *
-     * @note  更新後の値を取るにはUpdateParameters() の後に呼び出す。
-     */
-    virtual csmFloat32 GetModelOpacityValue() const;
-
     /**
      * @brief モデルのウェイト更新
      *
@@ -270,6 +265,18 @@ protected:
      * デストラクタ。
      */
     virtual ~ACubismMotion();
+
+    /**
+     *
+     * @brief 指定時間の透明度の値を返す
+     *
+     * @param[in]   motionTimeSeconds        現在の再生時間[秒]
+     *
+     * @return  success：モーションの当該時間におけるOpacityの値
+     *
+     * @note  更新後の値を取るにはUpdateParameters() の後に呼び出す。
+     */
+    virtual csmFloat32 GetModelOpacityValue() const;
 
     /**
      * @brief モデルのパラメータの更新の実行

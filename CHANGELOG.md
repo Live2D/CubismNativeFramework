@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5-r.1] - 2024-03-26
+
+### Added
+
+* Add function `ModF()` to compute floating-point remainder in `CubismMath` class.
+
+### Changed
+
+* Change the `Reset()` function of `CubismPose` class to public.
+* Change some processes in the renderer to be handled as functions.
+* Change to output log if the argument `MotionQueueEntry` is `NULL` in the `UpdateFadeWeight()` function of the `ACubismMotion` class.
+
+### Deprecated
+
+* Deprecate the `_fadeWeight` variable and the `GetFadeWeight()` function of the `CubismExpressionMotion` class.
+  * The `_fadeWeight` variable of the `CubismExpressionMotion` class can cause problems.
+  * Please use the `GetFadeWeight()` function of the `CubismExpressionMotionManager` class with one argument from now on.
+* The `StartMotion()` function of the `CubismMotionQueueManager` class with the unnecessary third argument `userTimeSeconds` is deprecated.
+  * Please use the `StartMotion()` function with two arguments from now on.
+
+### Fixed
+
+* Fix a typo in `SetParameterValue()`.
+* Fix an issue that the override keyword is not specified for some functions of classes inheriting from `CubismRenderer`.
+* Fix operator overloading in the `CubismId` class from being private to public.
+* Fix a bug that caused incorrect weight values when expression motions were shared by multiple models.
+  * Change the way fadeWeight is managed for expression motions.
+* Fix shader build error when running nmake in Vulkan.
+
+### Removed
+
+* Remove `CubismSetupMaskedShaderUniforms`, `CubismNormalShaderUniforms`, `CubismMaskedShaderUniforms` and `CubismFragMaskedShaderUniforms` from Metal and merged them into `CubismMaskedShaderUniforms`.
+
 
 ## [5-r.1-beta.4] - 2024-01-25
 
@@ -338,6 +371,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.4...5-r.1
 [5-r.1-beta.4]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.3...5-r.1-beta.4
 [5-r.1-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.2...5-r.1-beta.3
 [5-r.1-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.1...5-r.1-beta.2

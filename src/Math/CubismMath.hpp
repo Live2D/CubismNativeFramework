@@ -209,6 +209,15 @@ public:
     */
     static csmFloat32 CardanoAlgorithmForBezier(csmFloat32 a, csmFloat32 b, csmFloat32 c, csmFloat32 d);
 
+    /**
+    * @brief   浮動小数点の余りを求める。
+    *
+    * @param dividend 被除数（割られる値）
+    * @param divisor 除数（割る値）
+    * @returns 余り
+    */
+    static csmFloat32 ModF(csmFloat32 dividend, csmFloat32 divisor);
+
 private:
     /**
      *@brief    privateコンストラクタ
