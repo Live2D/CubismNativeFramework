@@ -586,6 +586,34 @@ public:
     CubismOffscreenSurface_Vulkan* GetMaskBuffer(csmInt32 index);
 
 private:
+
+    /**
+     * @brief  色定数バッファを設定する
+     *
+     * @param[in]   ubo                   ->  ユニフォームバッファ
+     * @param[in]   baseColor             ->  ベースカラー
+     * @param[in]   multiplyColor         ->  乗算カラー
+     * @param[in]   screenColor           ->  スクリーンカラー
+     */
+    void SetColorUniformBuffer(ModelUBO& ubo, const CubismTextureColor& baseColor,
+                               const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor);
+
+    /**
+     * @brief  頂点バッファとインデックスバッファをバインドする
+     *
+     * @param[in]   index            ->  描画メッシュのインデックス
+     * @param[in]   commandBuffer    ->  コマンドバッファ
+     */
+    void BindVertexAndIndexBuffers(const csmInt32 index, VkCommandBuffer& cmdBuffer);
+
+    /**
+     * @brief  描画に使用するカラーチャンネルを設定
+     *
+     * @param[in]   ubo              ->  ユニフォームバッファ
+     * @param[in]   contextBuffer    ->  描画コンテキスト
+     */
+    void SetColorChannel(ModelUBO& ubo, CubismClippingContext_Vulkan* contextBuffer);
+
     PFN_vkCmdSetCullModeEXT vkCmdSetCullModeEXT;
 
     CubismRenderer_Vulkan(const CubismRenderer_Vulkan&);
@@ -599,7 +627,6 @@ private:
     csmVector<CubismBufferVulkan> _vertexBuffers; ///< 頂点バッファ
     csmVector<CubismBufferVulkan> _stagingBuffers; ///< 頂点バッファを更新する際に使うステージングバッファ
     csmVector<CubismBufferVulkan> _indexBuffers; ///< インデックスバッファ
-    ModelUBO _ubo; ///< ユニフォームバッファ
     VkDescriptorPool _descriptorPool; ///< ディスクリプタプール
     VkDescriptorSetLayout _descriptorSetLayout; ///< ディスクリプタセットのレイアウト
     csmVector<Descriptor> _descriptorSets; ///< ディスクリプタ管理オブジェクト

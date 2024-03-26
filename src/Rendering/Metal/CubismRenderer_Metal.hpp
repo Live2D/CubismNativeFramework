@@ -127,9 +127,9 @@ public:
      *
      * @param[in]  model -> モデルのインスタンス
      */
-    void Initialize(Framework::CubismModel* model);
+    void Initialize(Framework::CubismModel* model) override;
 
-    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount);
+    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount) override;
 
     /**
      * @brief   テクスチャのバインド処理<br>
@@ -208,7 +208,7 @@ protected:
      * @brief   モデルを描画する実際の処理
      *
      */
-    void DoDrawModel();
+    void DoDrawModel() override;
 
     /**
      * @brief    描画オブジェクト（アートメッシュ）を描画する。<br>
@@ -257,12 +257,12 @@ private:
     /**
      * @brief   SuperClass対応
      */
-    virtual void SaveProfile();
+    void SaveProfile() override;
 
     /**
      * @brief   SuperClass対応
      */
-    virtual void RestoreProfile();
+    void RestoreProfile() override;
 
     /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストをセットする。

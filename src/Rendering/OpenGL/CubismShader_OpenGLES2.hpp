@@ -38,6 +38,7 @@
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
 class CubismRenderer_OpenGLES2;
+class CubismClippingContext_OpenGLES2;
 
 /**
  * @brief   OpenGLES2用のシェーダプログラムを生成・破棄するクラス<br>
@@ -158,6 +159,47 @@ private:
      * @retval      false           ->  異常
      */
     csmBool ValidateProgram(GLuint shaderProgram);
+
+    /**
+     * @brief   必要な頂点属性を設定する
+     *
+     * @param[in]   model                 ->  描画対象のモデル
+     * @param[in]   index                 ->  描画対象のメッシュのインデックス
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     */
+    void SetVertexAttributes(const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet);
+
+    /**
+     * @brief   テクスチャの設定を行う
+     *
+     * @param[in]   renderer              ->  レンダラー
+     * @param[in]   model                 ->  描画対象のモデル
+     * @param[in]   index                 ->  描画対象のメッシュのインデックス
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     */
+    void SetupTexture(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet);
+
+    /**
+     * @brief   色関連のユニフォーム変数の設定を行う
+     *
+     * @param[in]   renderer              ->  レンダラー
+     * @param[in]   model                 ->  描画対象のモデル
+     * @param[in]   index                 ->  描画対象のメッシュのインデックス
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     * @param[in]   baseColor             ->  ベースカラー
+     * @param[in]   multiplyColor         ->  乗算カラー
+     * @param[in]   screenColor           ->  スクリーンカラー
+     */
+    void SetColorUniformVariables(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet,
+                                  CubismRenderer::CubismTextureColor& baseColor, CubismRenderer::CubismTextureColor& multiplyColor, CubismRenderer::CubismTextureColor& screenColor);
+
+    /**
+     * @brief   カラーチャンネル関連のユニフォーム変数の設定を行う
+     *
+     * @param[in]   shaderSet             ->  シェーダープログラムのセット
+     * @param[in]   contextBuffer         ->  描画コンテクスト
+     */
+    void SetColorChannelUniformVariables(CubismShaderSet* shaderSet, CubismClippingContext_OpenGLES2* contextBuffer);
 
 #ifdef CSM_TARGET_ANDROID_ES2
 public:

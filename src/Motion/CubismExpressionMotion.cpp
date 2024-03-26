@@ -31,7 +31,6 @@ const csmFloat32 DefaultFadeTime = 1.0f;
 
 
 CubismExpressionMotion::CubismExpressionMotion()
-    : _fadeWeight(0.0f)
 { }
 
 CubismExpressionMotion::~CubismExpressionMotion()
@@ -72,29 +71,20 @@ void CubismExpressionMotion::DoUpdateParameters(CubismModel* model, csmFloat32 u
 }
 
 void CubismExpressionMotion::CalculateExpressionParameters(CubismModel* model, csmFloat32 userTimeSeconds, CubismMotionQueueEntry* motionQueueEntry,
-    csmVector<CubismExpressionMotionManager::ExpressionParameterValue>* expressionParameterValues, csmInt32 expressionIndex)
+    csmVector<CubismExpressionMotionManager::ExpressionParameterValue>* expressionParameterValues, csmInt32 expressionIndex, csmFloat32 fadeWeight)
 {
-    if (!motionQueueEntry->IsAvailable() || motionQueueEntry->IsFinished())
+    if (motionQueueEntry == NULL || expressionParameterValues == NULL)
     {
         return;
     }
 
-    if (!motionQueueEntry->IsStarted())
+    if (!motionQueueEntry->IsAvailable())
     {
-        motionQueueEntry->IsStarted(true);
-        motionQueueEntry->SetStartTime(userTimeSeconds - _offsetSeconds); //モーションの開始時刻を記録
-        motionQueueEntry->SetFadeInStartTime(userTimeSeconds); //フェードインの開始時刻
-
-        const csmFloat32 duration = GetDuration();
-
-        if (motionQueueEntry->GetEndTime() < 0.0f)
-        {
-            //開始していないうちに終了設定している場合がある。
-            motionQueueEntry->SetEndTime((duration <= 0.0f) ? -1 : motionQueueEntry->GetStartTime() + duration);
-            //duration == -1 の場合はループする
-        }
+        return;
     }
 
+    // CubismExpressionMotion._fadeWeight は廃止予定です。
+    // 互換性のために処理は残りますが、実際には使用しておりません。
     _fadeWeight = UpdateFadeWeight(motionQueueEntry, userTimeSeconds);
 
     // モデルに適用する値を計算
@@ -138,13 +128,13 @@ void CubismExpressionMotion::CalculateExpressionParameters(CubismModel* model, c
             else
             {
                 expressionParameterValues->At(i).AdditiveValue =
-                    CalculateValue(expressionParameterValue.AdditiveValue, DefaultAdditiveValue);
+                    CalculateValue(expressionParameterValue.AdditiveValue, DefaultAdditiveValue, fadeWeight);
 
                 expressionParameterValues->At(i).MultiplyValue =
-                    CalculateValue(expressionParameterValue.MultiplyValue, DefaultMultiplyValue);
+                    CalculateValue(expressionParameterValue.MultiplyValue, DefaultMultiplyValue, fadeWeight);
 
                 expressionParameterValues->At(i).OverwriteValue =
-                    CalculateValue(expressionParameterValue.OverwriteValue, currentParameterValue);
+                    CalculateValue(expressionParameterValue.OverwriteValue, currentParameterValue, fadeWeight);
             }
             continue;
         }
@@ -178,9 +168,9 @@ void CubismExpressionMotion::CalculateExpressionParameters(CubismModel* model, c
             expressionParameterValues->At(i).OverwriteValue = newSetValue;
         }
         else {
-            expressionParameterValues->At(i).AdditiveValue = (expressionParameterValue.AdditiveValue * (1.0f - _fadeWeight)) + newAdditiveValue * _fadeWeight;
-            expressionParameterValues->At(i).MultiplyValue = (expressionParameterValue.MultiplyValue * (1.0f - _fadeWeight)) + newMultiplyValue * _fadeWeight;
-            expressionParameterValues->At(i).OverwriteValue = (expressionParameterValue.OverwriteValue * (1.0f - _fadeWeight)) + newSetValue * _fadeWeight;
+            expressionParameterValues->At(i).AdditiveValue = (expressionParameterValue.AdditiveValue * (1.0f - fadeWeight)) + newAdditiveValue * fadeWeight;
+            expressionParameterValues->At(i).MultiplyValue = (expressionParameterValue.MultiplyValue * (1.0f - fadeWeight)) + newMultiplyValue * fadeWeight;
+            expressionParameterValues->At(i).OverwriteValue = (expressionParameterValue.OverwriteValue * (1.0f - fadeWeight)) + newSetValue * fadeWeight;
         }
     }
 }
@@ -192,6 +182,10 @@ csmVector<CubismExpressionMotion::ExpressionParameter> CubismExpressionMotion::G
 
 csmFloat32 CubismExpressionMotion::GetFadeWeight()
 {
+#if _DEBUG
+    CubismLogWarning("GetFadeWeight() is a deprecated function. Please use CubismExpressionMotionManager.GetFadeWeight(int index).");
+#endif // _DEBUG
+
     return _fadeWeight;
 }
 
@@ -252,9 +246,9 @@ void CubismExpressionMotion::Parse(const csmByte* buffer, csmSizeInt size)
     Utils::CubismJson::Delete(json);// JSONデータは不要になったら削除する
 }
 
-csmFloat32 CubismExpressionMotion::CalculateValue(csmFloat32 source, csmFloat32 destination)
+csmFloat32 CubismExpressionMotion::CalculateValue(csmFloat32 source, csmFloat32 destination, csmFloat32 fadeWeight)
 {
-    return (source * (1.0f - _fadeWeight)) + (destination * _fadeWeight);
+    return (source * (1.0f - fadeWeight)) + (destination * fadeWeight);
 }
 
 

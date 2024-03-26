@@ -22,35 +22,13 @@ typedef enum MetalVertexInputIndex
 typedef struct
 {
     simd::float4x4 matrix;
-    vector_float4 baseColor;
-    vector_float4 multiplyColor;
-    vector_float4 screenColor;
-
-} CubismNormalShaderUniforms;
-
-typedef struct
-{
-    simd::float4x4 matrix;
     simd::float4x4 clipMatrix;
-    vector_float4 baseColor;
-
-} CubismMaskedShaderUniforms;
-
-typedef struct
-{
-    simd::float4x4 clipMatrix;
-    vector_float4 channelFlag;
-    vector_float4 baseColor;
-
-} CubismSetupMaskedShaderUniforms;
-
-typedef struct
-{
     vector_float4 channelFlag;
     vector_float4 baseColor;
     vector_float4 multiplyColor;
     vector_float4 screenColor;
 
-} CubismFragMaskedShaderUniforms;
+} CubismShaderUniforms;
+
 
 #endif /* MetalShaderTypes_h */

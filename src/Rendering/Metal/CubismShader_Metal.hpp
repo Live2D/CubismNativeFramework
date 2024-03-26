@@ -12,6 +12,7 @@
 #include "CubismRenderer_Metal.hpp"
 #include "CubismCommandBuffer_Metal.hpp"
 #include "Type/csmVector.hpp"
+#include "MetalShaderTypes.h"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
@@ -96,6 +97,38 @@ private:
      * @brief   シェーダプログラムを初期化する
      */
     void GenerateShaders(CubismRenderer_Metal* renderer);
+
+    /**
+     * @brief   CubismMatrix44をsimd::float4x4の形式に変換する
+     */
+    simd::float4x4 ConvertCubismMatrix44IntoSimdFloat4x4(CubismMatrix44& matrix);
+
+    /**
+     * @brief   使用するカラーチャンネルを設定
+     *
+     * @param[in]   shaderUniforms     ->  シェーダー用ユニフォームバッファ
+     * @param[in]   contextBuffer      ->  クリッピングマスクのコンテキスト
+     */
+    void SetColorChannel(CubismShaderUniforms& shaderUniforms, CubismClippingContext_Metal* contextBuffer);
+
+    /**
+     * @brief   モデルにバインドされているテクスチャを、フラグメントシェーダーのテクスチャに設定する
+     *
+     * @param[in]   drawCommandBuffer     ->  コマンドバッファ
+     * @param[in]   renderEncoder         ->  MTLRenderCommandEncoder
+     * @param[in]   renderer              ->  レンダラのインスタンス
+     * @param[in]   model                 ->  描画対象のモデル
+     * @param[in]   index                 ->  描画オブジェクトのインデックス
+     */
+    void SetFragmentModelTexture(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
+                          , CubismRenderer_Metal* renderer, const CubismModel& model, const csmInt32 index);
+
+    /**
+     * @brief   頂点シェーダーに頂点インデックスと UV 座標を設定する
+     *
+     * @param[in]   drawCommandBuffer     ->  コマンドバッファ
+     */
+    void SetVertexBufferForVerticesAndUvs(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder);
 
     /**
      * @brief   シェーダプログラムをロードしてアドレス返す。

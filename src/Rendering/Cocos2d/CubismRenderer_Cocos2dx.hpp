@@ -162,9 +162,9 @@ public:
      *
      * @param[in]  model -> モデルのインスタンス
      */
-    void Initialize(Framework::CubismModel* model);
+    void Initialize(Framework::CubismModel* model) override;
 
-    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount);
+    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount) override;
 
     /**
      * @brief   OpenGLテクスチャのバインド処理<br>
@@ -238,7 +238,7 @@ protected:
      * @brief   モデルを描画する実際の処理
      *
      */
-    void DoDrawModel();
+    void DoDrawModel() override;
 
     /**
      * @brief   描画オブジェクト（アートメッシュ）を描画する。<br>
@@ -296,12 +296,12 @@ private:
     /**
      * @brief   モデル描画直前のCocos2dxのステートを保持する
      */
-    virtual void SaveProfile();
+    void SaveProfile() override;
 
     /**
      * @brief   モデル描画直前のCocos2dxのステートを保持する
      */
-    virtual void RestoreProfile();
+    void RestoreProfile() override;
 
     /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストをセットする。

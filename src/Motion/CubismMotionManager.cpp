@@ -41,7 +41,7 @@ CubismMotionQueueEntryHandle CubismMotionManager::StartMotionPriority(ACubismMot
 
     _currentPriority = priority;        // 再生中モーションの優先度を設定
 
-    return CubismMotionQueueManager::StartMotion(motion, autoDelete, _userTimeSeconds);
+    return CubismMotionQueueManager::StartMotion(motion, autoDelete);
 }
 
 csmBool CubismMotionManager::UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds)

@@ -843,15 +843,11 @@ void CubismShader_OpenGLES2::SetupShaderProgramForDraw(CubismRenderer_OpenGLES2*
 
     glUseProgram(shaderSet->ShaderProgram);
 
-    // 頂点配列の設定
-    const csmFloat32* vertexArray = model.GetDrawableVertices(index);
-    glEnableVertexAttribArray(shaderSet->AttributePositionLocation);
-    glVertexAttribPointer(shaderSet->AttributePositionLocation, 2, GL_FLOAT, GL_FALSE, sizeof(csmFloat32) * 2, vertexArray);
+    //テクスチャ設定
+    SetupTexture(renderer, model, index, shaderSet);
 
-    // テクスチャ頂点の設定
-    const csmFloat32* uvArray = reinterpret_cast<const csmFloat32*>(model.GetDrawableVertexUvs(index));
-    glEnableVertexAttribArray(shaderSet->AttributeTexCoordLocation);
-    glVertexAttribPointer(shaderSet->AttributeTexCoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(csmFloat32) * 2, uvArray);
+    // 頂点属性設定
+    SetVertexAttributes(model, index, shaderSet);
 
     if (masked)
     {
@@ -867,30 +863,17 @@ void CubismShader_OpenGLES2::SetupShaderProgramForDraw(CubismRenderer_OpenGLES2*
         glUniformMatrix4fv(shaderSet->UniformClipMatrixLocation, 1, 0, renderer->GetClippingContextBufferForDraw()->_matrixForDraw.GetArray());
 
         // 使用するカラーチャンネルを設定
-        const csmInt32 channelIndex = renderer->GetClippingContextBufferForDraw()->_layoutChannelIndex;
-        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-        glUniform4f(shaderSet->UnifromChannelFlagLocation, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
+        SetColorChannelUniformVariables(shaderSet, renderer->GetClippingContextBufferForDraw());
     }
 
-    //テクスチャ設定
-    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
-    const GLuint textureId = renderer->GetBindedTextureId(textureIndex);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glUniform1i(shaderSet->SamplerTexture0Location, 0);
-
     //座標変換
-    CubismMatrix44 matrix4x4 = renderer->GetMvpMatrix();
-    glUniformMatrix4fv(shaderSet->UniformMatrixLocation, 1, 0, matrix4x4.GetArray()); //
+    glUniformMatrix4fv(shaderSet->UniformMatrixLocation, 1, 0, renderer->GetMvpMatrix().GetArray()); //
 
-    //ベース色の取得
+    // ユニフォーム変数設定
     CubismRenderer::CubismTextureColor baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
-    const CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    const CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-
-    glUniform4f(shaderSet->UniformBaseColorLocation, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
-    glUniform4f(shaderSet->UniformMultiplyColorLocation, multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
-    glUniform4f(shaderSet->UniformScreenColorLocation, screenColor.R, screenColor.G, screenColor.B, screenColor.A);
+    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+    SetColorUniformVariables(renderer, model, index, shaderSet, baseColor, multiplyColor, screenColor);
 
     glBlendFuncSeparate(SRC_COLOR, DST_COLOR, SRC_ALPHA, DST_ALPHA);
 }
@@ -903,55 +886,31 @@ void CubismShader_OpenGLES2::SetupShaderProgramForMask(CubismRenderer_OpenGLES2*
     }
 
     // Blending
-    csmInt32 SRC_COLOR;
-    csmInt32 DST_COLOR;
-    csmInt32 SRC_ALPHA;
-    csmInt32 DST_ALPHA;
+    csmInt32 SRC_COLOR = GL_ZERO;
+    csmInt32 DST_COLOR = GL_ONE_MINUS_SRC_COLOR;
+    csmInt32 SRC_ALPHA = GL_ZERO;
+    csmInt32 DST_ALPHA = GL_ONE_MINUS_SRC_ALPHA;
 
     CubismShaderSet* shaderSet = _shaderSets[ShaderNames_SetupMask];
     glUseProgram(shaderSet->ShaderProgram);
 
     //テクスチャ設定
-    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
-    const GLuint textureId = renderer->GetBindedTextureId(textureIndex);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glUniform1i(shaderSet->SamplerTexture0Location, 0);
+    SetupTexture(renderer, model, index, shaderSet);
 
-    // 頂点配列の設定
-    const csmFloat32* vertexArray = model.GetDrawableVertices(index);
-    glEnableVertexAttribArray(shaderSet->AttributePositionLocation);
-    glVertexAttribPointer(shaderSet->AttributePositionLocation, 2, GL_FLOAT, GL_FALSE, sizeof(csmFloat32) * 2, vertexArray);
+    // 頂点属性設定
+    SetVertexAttributes(model, index, shaderSet);
 
-    // テクスチャ頂点の設定
-    const csmFloat32* uvArray = reinterpret_cast<const csmFloat32*>(model.GetDrawableVertexUvs(index));
-    glEnableVertexAttribArray(shaderSet->AttributeTexCoordLocation);
-    glVertexAttribPointer(shaderSet->AttributeTexCoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(csmFloat32) * 2, uvArray);
-
-    // チャンネル
-    const csmInt32 channelIndex = renderer->GetClippingContextBufferForMask()->_layoutChannelIndex;
-    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-    glUniform4f(shaderSet->UnifromChannelFlagLocation, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
+    // 使用するカラーチャンネルを設定
+    SetColorChannelUniformVariables(shaderSet, renderer->GetClippingContextBufferForMask());
 
     glUniformMatrix4fv(shaderSet->UniformClipMatrixLocation, 1, GL_FALSE, renderer->GetClippingContextBufferForMask()->_matrixForMask.GetArray());
 
+    // ユニフォーム変数設定
     csmRectF* rect = renderer->GetClippingContextBufferForMask()->_layoutBounds;
-
-    glUniform4f(shaderSet->UniformBaseColorLocation,
-                rect->X * 2.0f - 1.0f,
-                rect->Y * 2.0f - 1.0f,
-                rect->GetRight() * 2.0f - 1.0f,
-                rect->GetBottom() * 2.0f - 1.0f);
-
-    const CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    const CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-    glUniform4f(shaderSet->UniformMultiplyColorLocation, multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
-    glUniform4f(shaderSet->UniformScreenColorLocation, screenColor.R, screenColor.G, screenColor.B, screenColor.A);
-
-    SRC_COLOR = GL_ZERO;
-    DST_COLOR = GL_ONE_MINUS_SRC_COLOR;
-    SRC_ALPHA = GL_ZERO;
-    DST_ALPHA = GL_ONE_MINUS_SRC_ALPHA;
+    CubismRenderer::CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
+    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+    SetColorUniformVariables(renderer, model, index, shaderSet, baseColor, multiplyColor, screenColor);
 
     glBlendFuncSeparate(SRC_COLOR, DST_COLOR, SRC_ALPHA, DST_ALPHA);
 }
@@ -1096,6 +1055,43 @@ GLuint CubismShader_OpenGLES2::LoadShaderProgram(const csmChar* vertShaderSrc, c
     }
 
     return shaderProgram;
+}
+
+void CubismShader_OpenGLES2::SetVertexAttributes(const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet)
+{
+    // 頂点位置属性の設定
+    const csmFloat32* vertexArray = model.GetDrawableVertices(index);
+    glEnableVertexAttribArray(shaderSet->AttributePositionLocation);
+    glVertexAttribPointer(shaderSet->AttributePositionLocation, 2, GL_FLOAT, GL_FALSE, sizeof(csmFloat32) * 2, vertexArray);
+
+    // テクスチャ座標属性の設定
+    const csmFloat32* uvArray = reinterpret_cast<const csmFloat32*>(model.GetDrawableVertexUvs(index));
+    glEnableVertexAttribArray(shaderSet->AttributeTexCoordLocation);
+    glVertexAttribPointer(shaderSet->AttributeTexCoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(csmFloat32) * 2, uvArray);
+}
+
+void CubismShader_OpenGLES2::SetupTexture(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet)
+{
+    const csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+    const GLuint textureId = renderer->GetBindedTextureId(textureIndex);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glUniform1i(shaderSet->SamplerTexture0Location, 0);
+}
+
+void CubismShader_OpenGLES2::SetColorUniformVariables(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index, CubismShaderSet* shaderSet,
+                                                      CubismRenderer::CubismTextureColor& baseColor, CubismRenderer::CubismTextureColor& multiplyColor, CubismRenderer::CubismTextureColor& screenColor)
+{
+    glUniform4f(shaderSet->UniformBaseColorLocation, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
+    glUniform4f(shaderSet->UniformMultiplyColorLocation, multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
+    glUniform4f(shaderSet->UniformScreenColorLocation, screenColor.R, screenColor.G, screenColor.B, screenColor.A);
+}
+
+void CubismShader_OpenGLES2::SetColorChannelUniformVariables(CubismShaderSet* shaderSet, CubismClippingContext_OpenGLES2* contextBuffer)
+{
+    const csmInt32 channelIndex = contextBuffer->_layoutChannelIndex;
+    CubismRenderer::CubismTextureColor* colorChannel = contextBuffer->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
+    glUniform4f(shaderSet->UnifromChannelFlagLocation, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
 }
 
 }}}}

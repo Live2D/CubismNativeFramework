@@ -32,7 +32,7 @@ vertex MaskedRasterizerData
 VertShaderSrcSetupMask(uint vertexID [[ vertex_id ]],
              constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
              constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
-             constant CubismSetupMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
+             constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
 {
     MaskedRasterizerData out;
     float2 vert = vertexArray[vertexID];
@@ -50,7 +50,7 @@ VertShaderSrcSetupMask(uint vertexID [[ vertex_id ]],
 fragment float4
 FragShaderSrcSetupMask(MaskedRasterizerData in [[stage_in]],
                        texture2d<float> texture [[ texture(0) ]],
-                       constant CubismSetupMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+                       constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                        sampler smp [[sampler(0)]])
 {
     float isInside =
@@ -69,7 +69,7 @@ vertex NormalRasterizerData
 VertShaderSrc(uint vertexID [[ vertex_id ]],
               constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
               constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
-             constant CubismNormalShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
+             constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
 
 {
     NormalRasterizerData out;
@@ -89,7 +89,7 @@ vertex MaskedRasterizerData
 VertShaderSrcMasked(uint vertexID [[ vertex_id ]],
             constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
             constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
-            constant CubismMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
+            constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
 {
     MaskedRasterizerData out;
     float2 vert = vertexArray[vertexID];
@@ -110,7 +110,7 @@ VertShaderSrcMasked(uint vertexID [[ vertex_id ]],
 fragment float4
 FragShaderSrc(NormalRasterizerData in [[stage_in]],
               texture2d<float> texture [[ texture(0) ]],
-              constant CubismNormalShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+              constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
               sampler smp [[sampler(0)]])
 {
     float4 texColor = texture.sample(smp, in.texCoord);
@@ -126,7 +126,7 @@ FragShaderSrc(NormalRasterizerData in [[stage_in]],
 fragment float4
 FragShaderSrcPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
                         texture2d<float> texture [[ texture(0) ]],
-                        constant CubismNormalShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+                        constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                         sampler smp [[sampler(0)]])
 {
     float4 texColor = texture.sample(smp, in.texCoord);
@@ -142,7 +142,7 @@ fragment float4
 FragShaderSrcMask(MaskedRasterizerData in [[stage_in]],
                     texture2d<float> texture0 [[ texture(0) ]],
                     texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                     sampler smp [[sampler(0)]])
 {
     float4 texColor = texture0.sample(smp, in.texCoord);
@@ -162,7 +162,7 @@ fragment float4
 FragShaderSrcMaskInverted(MaskedRasterizerData in [[stage_in]],
                     texture2d<float> texture0 [[ texture(0) ]],
                     texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                     sampler smp [[sampler(0)]])
 {
     float4 texColor = texture0.sample(smp, in.texCoord);
@@ -182,7 +182,7 @@ fragment float4
 FragShaderSrcMaskPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
                     texture2d<float> texture0 [[ texture(0) ]],
                     texture2d<float> texture1 [[ texture(1) ]],
-                                    constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+                                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                                     sampler smp [[sampler(0)]])
 {
     float4 texColor = texture0.sample(smp, in.texCoord);
@@ -201,7 +201,7 @@ fragment float4
 FragShaderSrcMaskInvertedPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
                     texture2d<float> texture0 [[ texture(0) ]],
                     texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismFragMaskedShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
+                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
                     sampler smp [[sampler(0)]])
 {
     float4 texColor = texture0.sample(smp, in.texCoord);

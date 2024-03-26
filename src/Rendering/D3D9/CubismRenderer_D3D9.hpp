@@ -367,6 +367,49 @@ private:
      */
     void SetTextureFilter() const;
 
+    /**
+     * @brief  色関連の定数バッファを設定
+     *
+     * @param[in]   shaderEffect    -> シェーダーエフェクト
+     * @param[in]   baseColor       ->  ベースカラー
+     * @param[in]   multiplyColor   ->  乗算カラー
+     * @param[in]   screenColor     ->  スクリーンカラー
+     */
+    void SetColorVectors(ID3DXEffect* shaderEffect, CubismTextureColor& baseColor, CubismTextureColor& multiplyColor, CubismTextureColor& screenColor);
+
+    /**
+     * @brief  描画実行時のテクスチャを設定
+     *
+     * @param[in]   model           ->  描画対象のモデル
+     * @param[in]   index           ->  描画すべき対象のインデックス
+     * @param[in]   shaderEffect    -> シェーダーエフェクト
+     */
+    void SetExecutionTextures(const CubismModel& model, const csmInt32 index, ID3DXEffect* shaderEffect);
+
+    /**
+     * @brief  描画に使用するカラーチャンネルを設定
+     *
+     * @param[in]   shaderEffect    -> シェーダーエフェクト
+     * @param[in]   contextBuffer   -> 描画コンテキスト
+     */
+    void SetColorChannel(ID3DXEffect* shaderEffect, CubismClippingContext_D3D9* contextBuffer);
+
+    /**
+     * @brief  描画に使用するプロジェクション行列を更新する
+     *
+     * @param[in]   shaderEffect    -> シェーダーエフェクト
+     * @param[in]   matrix          ->  設定するプロジェクション行列
+     */
+    void SetProjectionMatrix(ID3DXEffect* shaderEffect, CubismMatrix44& matrix);
+
+    /**
+     * @brief  引数を指定して DrawIndexedPrimitiveUP 描画命令を実行
+     *
+     * @param[in]   model           ->  描画対象のモデル
+     * @param[in]   index           ->  描画すべき対象のインデックス
+     */
+    void DrawIndexedPrimiteveWithSetup(const CubismModel& model, const csmInt32 index);
+
     csmUint32 _drawableNum;           ///< _vertexBuffers, _indexBuffersの確保数
 
     /**

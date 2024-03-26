@@ -10,8 +10,8 @@ foreach(shader ${shader_files})
     set(output_dir ${CMAKE_CURRENT_BINARY_DIR}/compiledShaders)
     string(REGEX REPLACE \\.frag|\\.vert "" output_file ${file_name})
     set(output_file ${output_dir}/${output_file}.spv)
-    set(compiled_shaders ${compiled_shaders} ${output_file})
-    set(compiled_shaders ${compiled_shaders} PARENT_SCOPE)
+    set(compiled_shaders_framework ${compiled_shaders_framework} ${output_file})
+    set(compiled_shaders_framework ${compiled_shaders_framework} PARENT_SCOPE)
     set_source_files_properties(${shader} PROPERTIES HEADER_FILE_ONLY TRUE)
 
     add_custom_command(
@@ -25,6 +25,6 @@ endforeach()
 source_group("shaders" FILES ${shader_files})
 add_custom_target(
     FrameworkShaders ALL
-    DEPENDS ${compiled_shaders}
+    DEPENDS ${compiled_shaders_framework}
     SOURCES ${shader_files}
 )

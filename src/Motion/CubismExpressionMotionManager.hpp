@@ -97,10 +97,22 @@ public:
      */
     csmBool UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds);
 
+    /**
+     * 現在の表情のフェードのウェイト値を取得する。
+     *
+     * @param index 取得する表情モーションのインデックス
+     *
+     * @return 表情のフェードのウェイト値
+     */
+    csmFloat32 GetFadeWeight(csmInt32 index);
+
 private:
 
     // モデルに適用する各パラメータの値
     csmVector<ExpressionParameterValue>* _expressionParameterValues;
+
+    // 再生中の表情のウェイト
+    csmVector<csmFloat32> _fadeWeights;
 
     csmInt32 _currentPriority;                  ///<  現在再生中のモーションの優先度
     csmInt32 _reservePriority;                  ///<  再生予定のモーションの優先度。再生中は0になる。モーションファイルを別スレッドで読み込むときの機能。

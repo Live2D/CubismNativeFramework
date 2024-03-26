@@ -543,7 +543,6 @@ CubismRenderer_Vulkan::CubismRenderer_Vulkan() :
                                                , _clippingManager(NULL)
                                                , _clippingContextBufferForMask(NULL)
                                                , _clippingContextBufferForDraw(NULL)
-                                               , _ubo()
                                                , _descriptorPool(VK_NULL_HANDLE)
                                                , _descriptorSetLayout(VK_NULL_HANDLE)
                                                , _clearColor()
@@ -1050,6 +1049,7 @@ void CubismRenderer_Vulkan::UpdateDescriptorSet(Descriptor& descriptor, csmUint3
 
 void CubismRenderer_Vulkan::ExecuteDrawForDraw(const CubismModel& model, const csmInt32 index, VkCommandBuffer& cmdBuffer)
 {
+    // パイプラインレイアウト設定用のインデックスを取得
     csmUint32 blendIndex = 0;
     csmUint32 shaderIndex = 0;
     const csmBool masked = GetClippingContextBufferForDraw() != NULL; // この描画オブジェクトはマスク対象か
@@ -1075,93 +1075,91 @@ void CubismRenderer_Vulkan::ExecuteDrawForDraw(const CubismModel& model, const c
     }
 
     Descriptor &descriptor = _descriptorSets[index];
+    ModelUBO ubo;
     if (masked)
     {
-        CubismMatrix44 mvp = GetClippingContextBufferForDraw()->_matrixForDraw;
-        UpdateMatrix(_ubo.clipMatrix, mvp); // テクスチャ座標の変換に使用するのでy軸の向きは反転しない
-        const csmInt32 channelIndex = GetClippingContextBufferForDraw()->_layoutChannelIndex;
-        CubismTextureColor *colorChannel = GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-        UpdateColor(_ubo.channelFlag, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
+        // クリッピング用行列の設定
+        UpdateMatrix(ubo.clipMatrix, GetClippingContextBufferForDraw()->_matrixForDraw); // テクスチャ座標の変換に使用するのでy軸の向きは反転しない
+
+        // カラーチャンネルの設定
+        SetColorChannel(ubo, GetClippingContextBufferForDraw());
     }
 
-    CubismMatrix44 mvp = GetMvpMatrix();
-    CubismTextureColor baseColor = GetModelColor();
-    baseColor.A *= model.GetDrawableOpacity(index);
-    if (IsPremultipliedAlpha())
-    {
-        baseColor.R *= baseColor.A;
-        baseColor.G *= baseColor.A;
-        baseColor.B *= baseColor.A;
-    }
+    // MVP行列の設定
+    UpdateMatrix(ubo.projectionMatrix, GetMvpMatrix());
+
+    // 色定数バッファの設定
+    CubismTextureColor baseColor = GetModelColorWithOpacity(model.GetDrawableOpacity(index));
     CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
     CubismTextureColor screenColor = model.GetScreenColor(index);
-    UpdateMatrix(_ubo.projectionMatrix, mvp);
-    UpdateColor(_ubo.baseColor, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
-    UpdateColor(_ubo.multiplyColor, multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
-    UpdateColor(_ubo.screenColor, screenColor.R, screenColor.G, screenColor.B, screenColor.A);
-    descriptor.uniformBuffer.MemCpy(&_ubo, sizeof(ModelUBO));
+    SetColorUniformBuffer(ubo, baseColor, multiplyColor, screenColor);
 
+    // ディスクリプタにユニフォームバッファをコピー
+    descriptor.uniformBuffer.MemCpy(&ubo, sizeof(ModelUBO));
+
+    // 頂点バッファの設定
+    BindVertexAndIndexBuffers(index, cmdBuffer);
+
+    // テクスチャインデックス取得
+    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+
+    // ディスクリプタセットのバインド
+    UpdateDescriptorSet(descriptor, textureIndex, masked);
+    VkDescriptorSet* descriptorSet = (masked ? &_descriptorSets[index].descriptorSetMasked
+                                             : &_descriptorSets[index].descriptorSet);
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex), 0, 1,
+                                descriptorSet, 0, nullptr);
+
+    // パイプラインのバインド
     vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       CubismPipeline_Vulkan::GetInstance()->GetPipeline(shaderIndex, blendIndex));
 
-    VkBuffer vertexBuffers[] = {_vertexBuffers[index].GetBuffer()};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmdBuffer, _indexBuffers[index].GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-
-    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
-    if (masked)
-    {
-        UpdateDescriptorSet(descriptor, textureIndex, true);
-        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex), 0,
-                                1,
-                                &_descriptorSets[index].descriptorSetMasked, 0,
-                                nullptr);
-    }
-    else
-    {
-        UpdateDescriptorSet(descriptor, textureIndex, false);
-        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex), 0,
-                                1,
-                                &_descriptorSets[index].descriptorSet, 0,
-                                nullptr);
-    }
-
+    // 描画
     vkCmdDrawIndexed(cmdBuffer, model.GetDrawableVertexIndexCount(index), 1, 0, 0, 0);
 }
 
 void CubismRenderer_Vulkan::ExecuteDrawForMask(const CubismModel& model, const csmInt32 index, VkCommandBuffer& cmdBuffer)
 {
-    const csmInt32 channelIndex = GetClippingContextBufferForMask()->_layoutChannelIndex;
-    CubismTextureColor *colorChannel = GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-    csmRectF *rect = GetClippingContextBufferForMask()->_layoutBounds;
-    UpdateMatrix(_ubo.clipMatrix, GetClippingContextBufferForMask()->_matrixForMask);
-    UpdateColor(_ubo.baseColor, rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f,
-                rect->GetBottom() * 2.0f - 1.0f);
-
-    CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    CubismTextureColor screenColor = model.GetScreenColor(index);
-    UpdateColor(_ubo.multiplyColor, multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
-    UpdateColor(_ubo.screenColor, screenColor.R, screenColor.G, screenColor.B, screenColor.A);
-    UpdateColor(_ubo.channelFlag, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
-    Descriptor &descriptor = _descriptorSets[index];
-    descriptor.uniformBuffer.MemCpy(&_ubo, sizeof(ModelUBO));
-    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
-    UpdateDescriptorSet(descriptor, textureIndex, false);
-
     csmUint32 shaderIndex = ShaderNames_SetupMask;
     csmUint32 blendIndex = Blend_Mask;
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      CubismPipeline_Vulkan::GetInstance()->GetPipeline(shaderIndex, blendIndex));
-    VkBuffer vertexBuffers[] = {_vertexBuffers[index].GetBuffer()};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmdBuffer, _indexBuffers[index].GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+    Descriptor &descriptor = _descriptorSets[index];
+    ModelUBO ubo;
+
+    // クリッピング用行列の設定
+    UpdateMatrix(ubo.clipMatrix, GetClippingContextBufferForMask()->_matrixForMask);
+
+    // カラーチャンネルの設定
+    SetColorChannel(ubo, GetClippingContextBufferForMask());
+
+    // 色定数バッファの設定
+    csmRectF *rect = GetClippingContextBufferForMask()->_layoutBounds;
+    CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
+    CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+    CubismTextureColor screenColor = model.GetScreenColor(index);
+    SetColorUniformBuffer(ubo, baseColor, multiplyColor, screenColor);
+
+    // ディスクリプタにユニフォームバッファをコピー
+    descriptor.uniformBuffer.MemCpy(&ubo, sizeof(ModelUBO));
+
+    // 頂点バッファの設定
+    BindVertexAndIndexBuffers(index, cmdBuffer);
+
+    // テクスチャインデックス取得
+    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
+
+    // ディスクリプタセットのバインド
+    UpdateDescriptorSet(descriptor, textureIndex, false);
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex), 0, 1,
                             &_descriptorSets[index].descriptorSet, 0, nullptr);
+
+    // パイプラインのバインド
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      CubismPipeline_Vulkan::GetInstance()->GetPipeline(shaderIndex, blendIndex));
+
+    // 描画
     vkCmdDrawIndexed(cmdBuffer, model.GetDrawableVertexIndexCount(index), 1, 0, 0, 0);
 }
 
@@ -1515,6 +1513,30 @@ CubismOffscreenSurface_Vulkan* CubismRenderer_Vulkan::GetMaskBuffer(csmInt32 ind
 {
     return &_offscreenFrameBuffers[index];
 }
+
+void CubismRenderer_Vulkan::SetColorUniformBuffer(ModelUBO& ubo, const CubismTextureColor& baseColor,
+                                                  const CubismTextureColor& multiplyColor, const CubismTextureColor& screenColor)
+{
+    UpdateColor(ubo.baseColor, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
+    UpdateColor(ubo.multiplyColor, multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A);
+    UpdateColor(ubo.screenColor, screenColor.R, screenColor.G, screenColor.B, screenColor.A);
+}
+
+void CubismRenderer_Vulkan::BindVertexAndIndexBuffers(const csmInt32 index, VkCommandBuffer& cmdBuffer)
+{
+    VkBuffer vertexBuffers[] = {_vertexBuffers[index].GetBuffer()};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(cmdBuffer, _indexBuffers[index].GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+}
+
+void CubismRenderer_Vulkan::SetColorChannel(ModelUBO& ubo, CubismClippingContext_Vulkan* contextBuffer)
+{
+    const csmInt32 channelIndex = contextBuffer->_layoutChannelIndex;
+    CubismTextureColor *colorChannel = contextBuffer->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
+    UpdateColor(ubo.channelFlag, colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A);
+}
+
 }}}}
 
 //------------ LIVE2D NAMESPACE ------------

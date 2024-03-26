@@ -8,7 +8,6 @@
 #include "CubismShader_Metal.hpp"
 #include "CubismRenderer_Metal.hpp"
 #include "CubismRenderingInstanceSingleton_Metal.h"
-#include "MetalShaderTypes.h"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
@@ -220,6 +219,35 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
     _shaderSets[18]->SamplerState = _shaderSets[0]->SamplerState;
 }
 
+simd::float4x4 CubismShader_Metal::ConvertCubismMatrix44IntoSimdFloat4x4(CubismMatrix44& matrix)
+{
+    csmFloat32* srcArray = matrix.GetArray();
+    return simd::float4x4(simd::float4 {srcArray[0], srcArray[1], srcArray[2], srcArray[3]},
+                          simd::float4 {srcArray[4], srcArray[5], srcArray[6], srcArray[7]},
+                          simd::float4 {srcArray[8], srcArray[9], srcArray[10], srcArray[11]},
+                          simd::float4 {srcArray[12], srcArray[13], srcArray[14], srcArray[15]});
+}
+
+void CubismShader_Metal::SetColorChannel(CubismShaderUniforms& shaderUniforms, CubismClippingContext_Metal* contextBuffer)
+{
+    const csmInt32 channelIndex = contextBuffer->_layoutChannelIndex;
+    CubismRenderer::CubismTextureColor* colorChannel = contextBuffer->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
+    shaderUniforms.channelFlag = (vector_float4){ colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
+}
+
+void CubismShader_Metal::SetFragmentModelTexture(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
+                                          , CubismRenderer_Metal* renderer, const CubismModel& model, const csmInt32 index)
+{
+    const id <MTLTexture> texture = renderer->GetBindedTextureId(model.GetDrawableTextureIndex(index));
+    [renderEncoder setFragmentTexture:texture atIndex:0];
+}
+
+void CubismShader_Metal::SetVertexBufferForVerticesAndUvs(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder)
+{
+    [renderEncoder setVertexBuffer:(drawCommandBuffer->GetVertexBuffer()) offset:0 atIndex:MetalVertexInputIndexVertices];
+    [renderEncoder setVertexBuffer:(drawCommandBuffer->GetUvBuffer()) offset:0 atIndex:MetalVertexInputUVs];
+}
+
 void CubismShader_Metal::SetupShaderProgramForDraw(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
                                                   , CubismRenderer_Metal* renderer, const CubismModel& model, const csmInt32 index)
 {
@@ -254,17 +282,15 @@ void CubismShader_Metal::SetupShaderProgramForDraw(CubismCommandBuffer_Metal::Dr
         break;
     }
 
-    // 頂点配列の設定
-    [renderEncoder setVertexBuffer:(drawCommandBuffer->GetVertexBuffer()) offset:0 atIndex:MetalVertexInputIndexVertices];
+    //テクスチャ設定
+    SetFragmentModelTexture(drawCommandBuffer, renderEncoder, renderer, model, index);
 
-    // テクスチャ頂点の設定
-    [renderEncoder setVertexBuffer:(drawCommandBuffer->GetUvBuffer()) offset:0 atIndex:MetalVertexInputUVs];
+    // 頂点・テクスチャバッファの設定
+    SetVertexBufferForVerticesAndUvs(drawCommandBuffer, renderEncoder);
 
+    CubismShaderUniforms shaderUniforms;
     if (masked)
     {
-        CubismMaskedShaderUniforms maskedShaderUniforms;
-        CubismFragMaskedShaderUniforms fragMaskedShaderUniforms;
-
         // frameBufferに書かれたテクスチャ
         id <MTLTexture> tex = renderer->GetOffscreenSurface(renderer->GetClippingContextBufferForDraw()->_bufferIndex)->GetColorBuffer();
 
@@ -272,77 +298,31 @@ void CubismShader_Metal::SetupShaderProgramForDraw(CubismCommandBuffer_Metal::Dr
         [renderEncoder setFragmentTexture:tex atIndex:1];
 
         // 使用するカラーチャンネルを設定
-        const csmInt32 channelIndex = renderer->GetClippingContextBufferForDraw()->_layoutChannelIndex;
-        CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForDraw()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
+        SetColorChannel(shaderUniforms, renderer->GetClippingContextBufferForDraw());
 
-        fragMaskedShaderUniforms.channelFlag = (vector_float4){ colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
-        {
-            csmFloat32* srcArray = renderer->GetClippingContextBufferForDraw()->_matrixForDraw.GetArray();
-
-            maskedShaderUniforms.clipMatrix = simd::float4x4(
-                                simd::float4 {srcArray[0], srcArray[1], srcArray[2], srcArray[3]},
-                                simd::float4 {srcArray[4], srcArray[5], srcArray[6], srcArray[7]},
-                                simd::float4 {srcArray[8], srcArray[9], srcArray[10], srcArray[11]},
-                                simd::float4 {srcArray[12], srcArray[13], srcArray[14], srcArray[15]});
-        }
-        {
-            //座標変換
-            CubismMatrix44 matrix4x4 = renderer->GetMvpMatrix();
-            csmFloat32* srcArray = matrix4x4.GetArray();
-            maskedShaderUniforms.matrix = simd::float4x4(
-                                                         simd::float4 {srcArray[0], srcArray[1], srcArray[2], srcArray[3]},
-                                                         simd::float4 {srcArray[4], srcArray[5], srcArray[6], srcArray[7]},
-                                                         simd::float4 {srcArray[8], srcArray[9], srcArray[10], srcArray[11]},
-                                                         simd::float4 {srcArray[12], srcArray[13], srcArray[14], srcArray[15]});
-        }
-
-        //テクスチャ設定
-        const id <MTLTexture> texture = renderer->GetBindedTextureId(model.GetDrawableTextureIndex(index));
-        [renderEncoder setFragmentTexture:texture atIndex:0];
-
-        CubismRenderer::CubismTextureColor baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
-        CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-        CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-        maskedShaderUniforms.baseColor = (vector_float4){ baseColor.R, baseColor.G, baseColor.B, baseColor.A };
-        fragMaskedShaderUniforms.baseColor = (vector_float4){ baseColor.R, baseColor.G, baseColor.B, baseColor.A };
-        fragMaskedShaderUniforms.multiplyColor = (vector_float4){ multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
-        fragMaskedShaderUniforms.screenColor = (vector_float4){ screenColor.R, screenColor.G, screenColor.B, screenColor.A };
-
-        // 転送
-        [renderEncoder setVertexBytes:&maskedShaderUniforms length:sizeof(CubismMaskedShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-        [renderEncoder setFragmentBytes:&fragMaskedShaderUniforms length:sizeof(CubismFragMaskedShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-        [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
-
-    } else {
-        CubismNormalShaderUniforms normalShaderUniforms;
-
-        //テクスチャ設定
-        const id <MTLTexture> texture = renderer->GetBindedTextureId(model.GetDrawableTextureIndex(index));
-        [renderEncoder setFragmentTexture:texture atIndex:0];
-
-        //座標変換
-        CubismMatrix44 matrix4x4 = renderer->GetMvpMatrix();
-        csmFloat32* srcArray = matrix4x4.GetArray();
-        normalShaderUniforms.matrix = simd::float4x4(
-                                                     simd::float4 {srcArray[0], srcArray[1], srcArray[2], srcArray[3]},
-                                                     simd::float4 {srcArray[4], srcArray[5], srcArray[6], srcArray[7]},
-                                                     simd::float4 {srcArray[8], srcArray[9], srcArray[10], srcArray[11]},
-                                                     simd::float4 {srcArray[12], srcArray[13], srcArray[14], srcArray[15]});
-
-        CubismRenderer::CubismTextureColor baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
-        CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-        CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-        normalShaderUniforms.baseColor = (vector_float4){ baseColor.R, baseColor.G, baseColor.B, baseColor.A };
-        normalShaderUniforms.multiplyColor = (vector_float4){ multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
-        normalShaderUniforms.screenColor = (vector_float4){ screenColor.R, screenColor.G, screenColor.B, screenColor.A };
-
-        // 転送
-        [renderEncoder setVertexBytes:&normalShaderUniforms length:sizeof(CubismNormalShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-        [renderEncoder setFragmentBytes:&normalShaderUniforms length:sizeof(CubismNormalShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-        [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
+        // クリッピング変換行列設定
+        shaderUniforms.clipMatrix = ConvertCubismMatrix44IntoSimdFloat4x4(renderer->GetClippingContextBufferForDraw()->_matrixForDraw);
     }
 
+    // MVP行列設定
+    CubismMatrix44 mvp = renderer->GetMvpMatrix();
+    shaderUniforms.matrix = ConvertCubismMatrix44IntoSimdFloat4x4(mvp);
+
+    // 色定数バッファの設定
+    CubismRenderer::CubismTextureColor baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
+    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+
+    shaderUniforms.baseColor = (vector_float4){ baseColor.R, baseColor.G, baseColor.B, baseColor.A };
+    shaderUniforms.multiplyColor = (vector_float4){ multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
+    shaderUniforms.screenColor = (vector_float4){ screenColor.R, screenColor.G, screenColor.B, screenColor.A };
+
+    // 転送
+    [renderEncoder setVertexBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
+    [renderEncoder setFragmentBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
+    [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
     [renderEncoder setDepthStencilState:shaderSet->DepthStencilState];
+
     drawCommandBuffer->GetCommandDraw()->SetRenderPipelineState(shaderSet->RenderPipelineState);
 }
 
@@ -355,40 +335,35 @@ void CubismShader_Metal::SetupShaderProgramForMask(CubismCommandBuffer_Metal::Dr
         GenerateShaders(renderer);
     }
 
+    // シェーダーセットの設定
     CubismShaderSet* shaderSet = _shaderSets[ShaderNames_SetupMask];
 
     // テクスチャ設定
-    const id <MTLTexture> texture = renderer->GetBindedTextureId(model.GetDrawableTextureIndex(index));
-    [renderEncoder setFragmentTexture:texture atIndex:0];
+    SetFragmentModelTexture(drawCommandBuffer, renderEncoder, renderer, model, index);
 
     // 頂点・テクスチャバッファの設定
-    [renderEncoder setVertexBuffer:(drawCommandBuffer->GetVertexBuffer()) offset:0 atIndex:MetalVertexInputIndexVertices];
-    [renderEncoder setVertexBuffer:(drawCommandBuffer->GetUvBuffer()) offset:0 atIndex:MetalVertexInputUVs];
+    SetVertexBufferForVerticesAndUvs(drawCommandBuffer, renderEncoder);
 
-    CubismSetupMaskedShaderUniforms maskedShaderUniforms;
-    const csmInt32 channelIndex = renderer->GetClippingContextBufferForMask()->_layoutChannelIndex;
-    CubismRenderer::CubismTextureColor* colorChannel = renderer->GetClippingContextBufferForMask()->GetClippingManager()->GetChannelFlagAsColor(channelIndex);
-    maskedShaderUniforms.channelFlag = (vector_float4){ colorChannel->R, colorChannel->G, colorChannel->B, colorChannel->A };
+    CubismShaderUniforms shaderUniforms;
 
-    csmFloat32* srcArray = renderer->GetClippingContextBufferForMask()->_matrixForMask.GetArray();
+    // 使用するカラーチャンネルを設定
+    SetColorChannel(shaderUniforms, renderer->GetClippingContextBufferForMask());
 
-    maskedShaderUniforms.clipMatrix = simd::float4x4(
-                        simd::float4 {srcArray[0], srcArray[1], srcArray[2], srcArray[3]},
-                        simd::float4 {srcArray[4], srcArray[5], srcArray[6], srcArray[7]},
-                        simd::float4 {srcArray[8], srcArray[9], srcArray[10], srcArray[11]},
-                        simd::float4 {srcArray[12], srcArray[13], srcArray[14], srcArray[15]});
+    // クリッピング変換行列設定
+    shaderUniforms.clipMatrix = ConvertCubismMatrix44IntoSimdFloat4x4(renderer->GetClippingContextBufferForMask()->_matrixForMask);
 
+    // 色定数バッファの設定
     csmRectF* rect = renderer->GetClippingContextBufferForMask()->_layoutBounds;
-
-    maskedShaderUniforms.baseColor = (vector_float4){ rect->X * 2.0f - 1.0f,
+    shaderUniforms.baseColor = (vector_float4){ rect->X * 2.0f - 1.0f,
                                 rect->Y * 2.0f - 1.0f,
                                 rect->GetRight() * 2.0f - 1.0f,
                                 rect->GetBottom() * 2.0f - 1.0f };
 
     // 転送
-    [renderEncoder setVertexBytes:&maskedShaderUniforms length:sizeof(CubismSetupMaskedShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-    [renderEncoder setFragmentBytes:&maskedShaderUniforms length:sizeof(CubismSetupMaskedShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
+    [renderEncoder setVertexBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
+    [renderEncoder setFragmentBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
     [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
+
     drawCommandBuffer->GetCommandDraw()->SetRenderPipelineState(shaderSet->RenderPipelineState);
 }
 
