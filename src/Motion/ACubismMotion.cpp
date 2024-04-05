@@ -83,6 +83,7 @@ csmFloat32 ACubismMotion::UpdateFadeWeight(CubismMotionQueueEntry* motionQueueEn
     if (motionQueueEntry == NULL)
     {
         CubismLogError("motionQueueEntry is null.");
+        return 0;
     }
 
     csmFloat32 fadeWeight = _weight; //現在の値と掛け合わせる割合
