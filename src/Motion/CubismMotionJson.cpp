@@ -267,7 +267,7 @@ void CubismMotionJson::RecoverTotals() {
                     default:
                         std::ostringstream errmsg;
                         errmsg << "Invalid curve type " << curveType << std::endl;
-                        throw std::invalid_argument("Invalid curve type ");
+                        throw std::invalid_argument(errmsg.str());
                     }
                 }
             }
