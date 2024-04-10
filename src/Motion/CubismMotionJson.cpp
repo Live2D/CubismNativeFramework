@@ -8,8 +8,12 @@
 #include "CubismMotionJson.hpp"
 #include "Id/CubismId.hpp"
 #include "Id/CubismIdManager.hpp"
+#include <cassert>
+#include <sstream>
 
-namespace Live2D { namespace Cubism { namespace Framework {
+namespace Live2D { namespace Cubism {
+namespace Framework {
+
 
 namespace {
 // JSON keys
@@ -34,9 +38,11 @@ const csmChar* Time = "Time";
 const csmChar* Value = "Value";
 }
 
-CubismMotionJson::CubismMotionJson(const csmByte* buffer, csmSizeInt size)
+CubismMotionJson::CubismMotionJson(const csmByte* buffer, csmSizeInt size, bool trustUserBounds) : _trustUserBounds(trustUserBounds)
 {
     CreateCubismJson(buffer, size);
+    if (!trustUserBounds)
+        RecoverTotals();
 }
 
 CubismMotionJson::~CubismMotionJson()
@@ -66,7 +72,11 @@ csmBool CubismMotionJson::GetEvaluationOptionFlag(const csmInt32 flagType) const
 
 csmInt32 CubismMotionJson::GetMotionCurveCount() const
 {
-    return _json->GetRoot()[Meta][CurveCount].ToInt();
+    if (_trustUserBounds)
+        return _json->GetRoot()[Meta][CurveCount].ToInt();
+    else
+        return CountCurves();
+    
 }
 
 csmFloat32 CubismMotionJson::GetMotionFps() const
@@ -76,12 +86,18 @@ csmFloat32 CubismMotionJson::GetMotionFps() const
 
 csmInt32 CubismMotionJson::GetMotionTotalSegmentCount() const
 {
-    return _json->GetRoot()[Meta][TotalSegmentCount].ToInt();
+    if(_trustUserBounds)
+        return _json->GetRoot()[Meta][TotalSegmentCount].ToInt();
+    else
+        return CountSegments();
 }
 
 csmInt32 CubismMotionJson::GetMotionTotalPointCount() const
 {
-    return _json->GetRoot()[Meta][TotalPointCount].ToInt();
+    if(_trustUserBounds)
+        return _json->GetRoot()[Meta][TotalPointCount].ToInt();
+    else
+        return CountPoints();
 }
 
 csmBool CubismMotionJson::IsExistMotionFadeInTime() const
@@ -163,5 +179,109 @@ const csmChar* CubismMotionJson::GetEventValue(csmInt32 userDataIndex) const
 {
     return _json->GetRoot()[UserData][userDataIndex][Value].GetRawString();
 }
+constexpr char TOTAL_CURVES = 0;
+constexpr char TOTAL_SEGMENTS = 1;
+constexpr char TOTAL_POINTS = 2;
+inline csmInt32 CubismMotionJson::GetRecoveredTotal(csmChar const key) const {
+    assert(0 <= key && key <= 2);
+    if(recoveredTotals == nullptr)
+        throw std::invalid_argument("Requested totals which have not been calculated yet.");
+    csmInt32 out = 0;
+    switch (key) {
+    case TOTAL_CURVES:
+        out = std::get<TOTAL_CURVES>(*recoveredTotals);
+        break;
+    case TOTAL_SEGMENTS:
+        out = std::get<TOTAL_SEGMENTS>(*recoveredTotals);
+        break;
+    case TOTAL_POINTS:
+        out = std::get<TOTAL_POINTS>(*recoveredTotals);
+        break;
+    default:
+        std::ostringstream errmsg;
+        errmsg << "Invalid tuple offset: " << key << std::endl;
+        throw std::invalid_argument(errmsg.str());
+    }
+    return out;
+}
+inline csmInt32 CubismMotionJson::CountCurves() const {
+  return GetRecoveredTotal(TOTAL_CURVES);
+}
+inline csmInt32 CubismMotionJson::CountSegments() const {
+  return GetRecoveredTotal(TOTAL_SEGMENTS);
+}
+constexpr csmChar SEGMENT_LINEAR = 0;
+constexpr csmChar SEGMENT_CUBIC_BÉZIER = 1;
+constexpr csmChar SEGMENT_STEPPED = 2;
+constexpr csmChar SEGMENT_INVERSE_STEPPED = 3;
+inline csmInt32 CubismMotionJson::CountPoints() const {
+  return GetRecoveredTotal(TOTAL_POINTS);
+}
+/* reconstruct the total numbers using the data. This kind of makes the total numbers in the json really pointless, but w/e ¯\_(ツ)_/¯
+   If you trust user data absolutely you can turn off this check in the constructor.
+   Algorithm mostly based on {2}, with additional documentation from {1}.
+ */
+void CubismMotionJson::RecoverTotals() {
+    auto totalPointCount = 0;
+    auto totalSegmentCount = 0;
+    auto curves = _json->GetRoot()[Curves].GetVector();
+    auto curveCount = curves->GetSize();
+    // clang complains that this weird archaic iterator stuff is deprecated but this fits the style of the other modules in this codebase.
+    for ( auto ite = curves->Begin(); ite != curves->End();) {
+      auto curve = (*ite)->GetMap();
 
-}}}
+        for (auto ckeyref = curve->Begin(); ckeyref != curve->End();) {
+            auto ckey = *ckeyref;
+            if (ckey.First == Segments) {
+                auto segments = ckey.Second->GetVector();
+                auto segments_size = segments->GetSize();
+                // »Each curve starts with the first point followed by the segment identifier. Therefore, the first segment identifier is the third number in the flat segments array.« {1}
+                auto pos = 2u;
+                totalPointCount += 1;
+                
+                while (pos < segments_size) {
+                    auto curveType = segments->At(pos)->ToInt();
+                    
+                    // » A segment identifier is followed by 1 point in case of linear, stepped, and inverse stepped segments, that represents the end of the segment, or 3 point[s] in case of bézier segments « {1}
+                    switch (curveType) {
+                    case SEGMENT_LINEAR:
+                        totalPointCount += 1;
+                        totalSegmentCount += 1;
+                        pos += 3;
+                        break;
+                    case SEGMENT_CUBIC_BÉZIER:
+                        totalPointCount += 3;
+                        totalSegmentCount += 1;
+                        pos += 7;
+                        break;
+                    case SEGMENT_STEPPED:
+                        totalPointCount += 1;
+                        totalSegmentCount += 1;
+                        pos += 3;
+                        break;
+                    case SEGMENT_INVERSE_STEPPED:
+                        totalPointCount += 1;
+                        totalSegmentCount += 1;
+                        pos += 3;
+                        break;
+                    default:
+                        std::ostringstream errmsg;
+                        errmsg << "Invalid curve type " << curveType << std::endl;
+                        throw std::invalid_argument("Invalid curve type ");
+                    }
+                }
+            }
+            ++ckeyref;
+        }
+        ++ite;
+    }
+
+recoveredTotals.reset(new std::tuple<csmInt32,csmInt32,csmInt32>{curveCount,totalSegmentCount,totalPointCount});
+    
+}
+
+} // namespace Framework
+} // namespace Cubism
+} // namespace Live2D
+// {1} https://github.com/Live2D/CubismSpecs/blob/ab04558655dfd4d8c2d529286124e274648c772d/FileFormats/motion3.json.md
+// {2} https://gist.github.com/MizunagiKB/7fd109925e56db0ed88b77450cdea579
