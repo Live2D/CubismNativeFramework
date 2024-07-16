@@ -153,9 +153,6 @@ csmBool CubismExpressionMotionManager::UpdateMotion(CubismModel* model, csmFloat
     // ----- 最新のExpressionのフェードが完了していればそれ以前を削除する ------
     if (motions->GetSize() > 1)
     {
-        CubismExpressionMotion* expressionMotion =
-            (CubismExpressionMotion*)(motions->At(motions->GetSize() - 1))->GetCubismMotion();
-
         csmFloat32 latestFadeWeight = _fadeWeights[_fadeWeights.GetSize() - 1];
         if (latestFadeWeight >= 1.0f)
         {

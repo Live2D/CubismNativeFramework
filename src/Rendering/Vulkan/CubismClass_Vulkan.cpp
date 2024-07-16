@@ -264,7 +264,6 @@ void CubismImageVulkan::SetImageLayout(VkCommandBuffer commandBuffer, VkImageLay
 
     case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         destinationStage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
         break;
 
