@@ -16,10 +16,9 @@ CubismModelMatrix::CubismModelMatrix()
 { }
 
 CubismModelMatrix::CubismModelMatrix(csmFloat32 w, csmFloat32 h)
+                                : _width(w)
+                                , _height(h)
 {
-    _width = w;
-    _height = h;
-
     SetHeight(2.0f);
 }
 

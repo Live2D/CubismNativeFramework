@@ -271,7 +271,7 @@ VkShaderModule CubismPipeline_Vulkan::PipelineResource::CreateShaderModule(VkDev
     return shaderModule;
 }
 
-void CubismPipeline_Vulkan::PipelineResource::CreateGraphicsPipeline(std::string vertFileName, std::string fragFileName,
+void CubismPipeline_Vulkan::PipelineResource::CreateGraphicsPipeline(const std::string vertFileName, const std::string fragFileName,
                                                                    VkDescriptorSetLayout descriptorSetLayout)
 {
     VkShaderModule vertShaderModule = CreateShaderModule(s_device, vertFileName);
