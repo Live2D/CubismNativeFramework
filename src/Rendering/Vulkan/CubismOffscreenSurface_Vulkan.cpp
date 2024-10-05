@@ -80,7 +80,8 @@ void CubismOffscreenSurface_Vulkan::CreateOffscreenSurface(
     csmUint32 displayBufferWidth, csmUint32 displayBufferHeight,
     VkFormat surfaceFormat, VkFormat depthFormat)
 {
-    if (_colorImage != nullptr) {
+    if (_colorImage != nullptr)
+    {
         vkFreeMemory(device, _colorImage, nullptr);
     }
 
