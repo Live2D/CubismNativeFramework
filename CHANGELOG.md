@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [5-r.2] - 2024-12-19
+
+### Added
+
+* Add copy constructor to `csmMap`.
+* Add functions to get `CombinedParameters` listed in `cdi3.json`.
+* Add the functionality to call a function when motion playback starts.
+* Add updates to the OpenGL rendering code for HarmonyOS compatibility.
+* Add Linux support for the Vulkan renderer.
+* Add an API to `CubismMotionJson` for verifying the consistency of `motion3.json`. by [@pillowtrucker](https://github.com/Live2D/CubismNativeFramework/pull/57)
+* Add dedicated resource destruction functions for some platforms
+
+### Changed
+
+* Change to permit to overwrite motion fade by the value specified in .model3.json on `CubismUserModel::LoadMotion()`.
+* Change the threshold for enabling anisotropic filtering in all renderers.
+* Change `CubismJson` to not use character masking.
+* Resources in Vulkan have been changed to support multi-buffering.
+* Change the `ACubismMotion::UpdateFadeWeight()` function to return an error code of `-1` when the argument is NULL. by [@Coloryr](https://github.com/Live2D/CubismNativeFramework/pull/56)
+* Change the access level of the private members in the `CubismModelSettingJson` class to protected.
+* Change the value of pi used in the calculation of `CubismBreath::UpdateParameters()` to `CubismMath.PI`.
+
+### Deprecated
+
+* Deprecate the following elements because a priority value is not actually used during expression motion playback:
+  * `CubismExpressionMotionManager::_currentPriority`
+  * `CubismExpressionMotionManager::_reservePriority`
+  * `CubismExpressionMotionManager::StartMotionPriority()`
+  * `CubismExpressionMotionManager::GetCurrentPriority()`
+  * `CubismExpressionMotionManager::GetReservePriority()`
+  * `CubismExpressionMotionManager::SetReservePriority()`
+
+  Please use the `CubismMotionQueueManager::StartMotion()` instead of `CubismExpressionMotionManager::StartMotionPriority()`.
+
+### Fixed
+
+* Fix an issue where already registered keys could be added on `csmMap.appendKey()`.
+* Fix JSON parser to work even when locale is set.
+* Fix memory leak in Vulkan.
+* Fix the Anisotropy processing of Vulkan to match the Sample.
+* Fix D3D11 anisotropic filtering to allow filtering with the specified settings.
+* Fix anisotropic filtering in D3D9.
+  * Improved the rendering quality by setting the appropriate filter settings.
+  * Anisotropic filtering is now properly processed.
+* Fix a bug that caused an error when playing CubismExpresionMotion with CubismMotionQueueManager::StartMotion().
+* Fix a potential problem with division by 0 when a pose fade time is set to 0 seconds.
+* Fix an issue where calling `+=` on `csmString` would throw an exception if the character count exceeded 64.
+
+### Removed
+
+* Remove the Cocos2d-x renderer.
+
+
 ## [5-r.1] - 2024-03-26
 
 ### Added
@@ -371,6 +425,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1...5-r.2
 [5-r.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.4...5-r.1
 [5-r.1-beta.4]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.3...5-r.1-beta.4
 [5-r.1-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.2...5-r.1-beta.3
