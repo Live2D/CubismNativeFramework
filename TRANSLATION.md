@@ -9,10 +9,10 @@ Please see the table below for progress.
 | Module | Path | Status |
 | ---: | :--- | :---: |
 | Framework Systems | ./src/ | Done |
-| Effect | ./src/Effect/ | - |
-| Id | ./src/Id/ | - |
-| Math | ./src/Math/ | - |
-| Model | ./src/Model/ | - |
+| Effect | ./src/Effect/ | Done |
+| Id | ./src/Id/ | Done |
+| Math | ./src/Math/ | Done |
+| Model | ./src/Model/ | Done |
 | Physics | ./src/Physics/ | - |
 | Utils | ./src/Utils/ | - |
 | Rendering | ./src/Rendering/ | - |
@@ -36,37 +36,37 @@ Please see the table below for progress.
 
 | File | Completion Date |
 | :--- | :--- |
-| ./Effect/CubismBreath.hpp | - |
-| ./Effect/CubismEyeBlink.hpp | - |
-| ./Effect/CubismPose.hpp | - |
+| ./Effect/CubismBreath.hpp | 2024-10-08 |
+| ./Effect/CubismEyeBlink.hpp | 2024-10-08 |
+| ./Effect/CubismPose.hpp | 2024-10-08 |
 
 ## Id
 
 | File | Completion Date |
 | :--- | :--- |
-| ./Id/CubismId.hpp | - |
-| ./Id/CubismIdManager.hpp | - |
+| ./Id/CubismId.hpp | 2024-10-08 |
+| ./Id/CubismIdManager.hpp | 2024-10-08 |
 
 ## Math
 
 | File | Completion Date |
 | :--- | :--- |
-| ./Math/CubismMath.hpp | - |
-| ./Math/CubismMatrix44.hpp | - |
-| ./Math/CubismModelMatrix.hpp | - |
-| ./Math/CubismTargetPoint.hpp | - |
-| ./Math/CubismVector2.hpp | - |
-| ./Math/CubismViewMatrix.hpp | - |
+| ./Math/CubismMath.hpp | 2024-10-08 |
+| ./Math/CubismMatrix44.hpp | 2024-10-08 |
+| ./Math/CubismModelMatrix.hpp | 2024-10-08 |
+| ./Math/CubismTargetPoint.hpp | 2024-10-08 |
+| ./Math/CubismVector2.hpp | 2024-10-08 |
+| ./Math/CubismViewMatrix.hpp | 2024-10-08 |
 
 ## Model
 
 | File | Completion Date |
 | :--- | :--- |
-| ./Model/CubismMoc.hpp | - |
-| ./Model/CubismModel.hpp | - |
-| ./Model/CubismModelUserData.hpp | - |
-| ./Model/CubismModelUserDataJson.hpp | - |
-| ./Model/CubismUserModel.hpp | - |
+| ./Model/CubismMoc.hpp | 2024-10-08 |
+| ./Model/CubismModel.hpp | 2024-10-08 |
+| ./Model/CubismModelUserData.hpp | 2024-10-08 |
+| ./Model/CubismModelUserDataJson.hpp | 2024-10-08 |
+| ./Model/CubismUserModel.hpp | 2024-10-08 |
 
 ## Physics
 
