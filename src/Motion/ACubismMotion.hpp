@@ -127,6 +127,34 @@ public:
     void SetOffsetTime(csmFloat32 offsetSeconds);
 
     /**
+     * Sets whether the motion should loop.
+     *
+     * @param loop true to set the motion to loop
+     */
+    void SetLoop(csmBool loop);
+
+    /**
+     * Checks whether the motion is set to loop.
+     *
+     * @return true if the motion is set to loop; otherwise false.
+     */
+    csmBool GetLoop() const;
+
+    /**
+     * Sets whether to perform fade-in for looping motion.
+     *
+     * @param loopFadeIn true to perform fade-in for looping motion
+     */
+    void SetLoopFadeIn(csmBool loopFadeIn);
+
+    /**
+     * Checks the setting for fade-in of looping motion.
+     *
+     * @return true if fade-in for looping motion is set; otherwise false.
+     */
+    csmBool GetLoopFadeIn() const;
+
+    /**
      * Returns the triggered user data events.
      *
      * @param beforeCheckTimeSeconds previous playback time in seconds
@@ -272,10 +300,15 @@ protected:
 
     virtual void DoUpdateParameters(CubismModel* model, csmFloat32 userTimeSeconds, csmFloat32 weight, CubismMotionQueueEntry* motionQueueEntry) = 0;
 
+    void AdjustEndTime(CubismMotionQueueEntry* motionQueueEntry);
+
     csmFloat32    _fadeInSeconds;
     csmFloat32    _fadeOutSeconds;
     csmFloat32    _weight;
     csmFloat32    _offsetSeconds;
+    csmBool       _isLoop;
+    csmBool       _isLoopFadeIn;
+    csmBool       _previousLoopState;
 
     csmVector<const csmString*>    _firedEventValues;
 
