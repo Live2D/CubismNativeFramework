@@ -157,20 +157,13 @@ csmBool CubismRenderer::IsUsingHighPrecisionMask()
 *                                      CubismClippingContext
 ********************************************************************************************************************/
 CubismClippingContext::CubismClippingContext(const csmInt32* clippingDrawableIndices, csmInt32 clipCount)
-{
-    // クリップしている（＝マスク用の）Drawableのインデックスリスト
-    _clippingIdList = clippingDrawableIndices;
-
-    // マスクの数
-    _clippingIdCount = clipCount;
-
-    _layoutChannelIndex = 0;
-
-    _allClippedDrawRect = CSM_NEW csmRectF();
-    _layoutBounds = CSM_NEW csmRectF();
-
-    _clippedDrawableIndexList = CSM_NEW csmVector<csmInt32>();
-}
+                                : _clippingIdList(clippingDrawableIndices)
+                                , _clippingIdCount(clipCount)
+                                , _layoutChannelIndex(0)
+                                , _allClippedDrawRect(CSM_NEW csmRectF())
+                                , _layoutBounds(CSM_NEW csmRectF())
+                                , _clippedDrawableIndexList(CSM_NEW csmVector<csmInt32>())
+{ }
 
 CubismClippingContext::~CubismClippingContext()
 {
