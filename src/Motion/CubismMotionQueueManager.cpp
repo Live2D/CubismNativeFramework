@@ -227,7 +227,7 @@ csmBool CubismMotionQueueManager::IsFinished(CubismMotionQueueEntryHandle motion
 {
     // 既にモーションがあれば終了フラグを立てる
 
-    for (csmVector<CubismMotionQueueEntry*>::iterator ite = _motions.Begin(); ite != _motions.End(); ite++)
+    for (csmVector<CubismMotionQueueEntry*>::iterator ite = _motions.Begin(); ite != _motions.End(); ++ite)
     {
         CubismMotionQueueEntry* motionQueueEntry = *ite;
 
