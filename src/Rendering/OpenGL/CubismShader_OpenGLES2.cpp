@@ -619,8 +619,20 @@ GLuint CubismShader_OpenGLES2::LoadShaderProgramFromFile(const csmChar* vertShad
 
     // ファイルからシェーダーのソースコードを読み込み
     csmSizeInt vertSrcSize, fragSrcSize;
+
     csmByte* vertSrc = fileLoader(vertShaderPath, &vertSrcSize);
+    if (vertSrc == NULL)
+    {
+        CubismLogError("Failed to load vertex shader");
+        return 0;
+    }
+
     csmByte* fragSrc = fileLoader(fragShaderPath, &fragSrcSize);
+    if (fragSrc == NULL)
+    {
+        CubismLogError("Failed to load fragment shader");
+        return 0;
+    }
 
     // 読み込んだソースコードを文字列として扱うために、終端文字列を付加
     csmString vertString = csmString(reinterpret_cast<const csmChar*>(vertSrc), vertSrcSize);

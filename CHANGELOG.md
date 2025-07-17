@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [5-r.4.1] - 2025-07-17
+
+### Fixed
+
+* Fix app crashing when shader files could not be loaded.
+
+
 ## [5-r.4] - 2025-05-29
 
 ### Added
@@ -470,6 +477,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4...5-r.4.1
 [5-r.4]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.3...5-r.4
 [5-r.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.2...5-r.3
 [5-r.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1...5-r.2

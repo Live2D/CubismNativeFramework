@@ -70,6 +70,11 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
 
     csmSizeInt shaderSize;
     csmByte* shaderSrc = fileLoader(frameworkShaderPath, &shaderSize);
+    if (shaderSrc == NULL)
+    {
+        CubismLogError("Failed to load shader");
+        return;
+    }
     csmString shaderString = csmString(reinterpret_cast<const csmChar*>(shaderSrc), shaderSize);
 
     _shaderSrc.Clear();
