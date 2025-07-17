@@ -95,6 +95,11 @@ void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
 
         csmSizeInt shaderSize;
         csmByte* shaderSrc = fileLoader(frameworkShaderPath, &shaderSize);
+        if (shaderSrc == NULL)
+        {
+            CubismLogError("Failed to load shader");
+            break;
+        }
         csmString shaderString = csmString(reinterpret_cast<const csmChar*>(shaderSrc), shaderSize);
 
         _shaderSrc.Clear();
@@ -310,8 +315,10 @@ void CubismShader_D3D11::SetupShader(ID3D11Device* device, ID3D11DeviceContext* 
 {
     // まだシェーダ・頂点宣言未作成ならば作成する
     GenerateShaders(device);
-
-    if (!renderContext || !_vertexFormat) return;
+    if (!renderContext || !_vertexFormat)
+    {
+        return;
+    }
 
     renderContext->IASetInputLayout(_vertexFormat);
 }
