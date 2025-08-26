@@ -172,6 +172,13 @@ public:
      */
     void            MultiplyByMatrix(CubismMatrix44* m);
 
+    /**
+     * Calculates the inverse matrix of the current matrix.
+     *
+     * @return inverse matrix of the current matrix; identity matrix when epsilon is small.
+     */
+    CubismMatrix44 GetInvert() const;
+
 protected:
     csmFloat32  _tr[16];
 };

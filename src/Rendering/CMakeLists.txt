@@ -1,9 +1,12 @@
 target_sources(${LIB_NAME}
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/csmBlendMode.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/csmBlendMode.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismClippingManager.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismClippingManager.tpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderTarget.hpp
 )
 
 # Add specified rendering directory.

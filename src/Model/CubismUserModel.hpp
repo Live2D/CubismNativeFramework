@@ -68,6 +68,14 @@ public:
     virtual void            IsUpdating(csmBool v);
 
     /**
+     * Set the offscreen buffer size.
+     *
+     * @param width Width of the offscreen buffer
+     * @param height Height of the offscreen buffer
+     */
+    void SetRenderTargetSize(csmUint32 width, csmUint32 height);
+
+    /**
      * Sets the information during mouse dragging.
      *
      * @param x X position of the mouse cursor during dragging
@@ -193,8 +201,12 @@ public:
 
     /**
      * Makes the renderer.
+     *
+     * @param width Width of the buffer where the model is rendered
+     * @param height Height of the buffer where the model is rendered
+     * @param maskBufferCount Number of buffers used for masking
      */
-    void CreateRenderer(csmInt32 maskBufferCount = 1);
+    void CreateRenderer(csmUint32 width, csmUint32 height, csmInt32 maskBufferCount = 1);
 
     /**
      * Destroys the renderer.

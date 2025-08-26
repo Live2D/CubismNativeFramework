@@ -8,8 +8,8 @@
 #include "CubismRenderer_OpenGLES2.hpp"
 #include "Math/CubismMatrix44.hpp"
 #include "Type/csmVector.hpp"
+#include "Type/csmVectorSort.hpp"
 #include "Model/CubismModel.hpp"
-#include <float.h>
 
 #ifdef CSM_TARGET_WIN_GL
 #include <Windows.h>
@@ -24,10 +24,20 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
+namespace {
+    /**
+     * コピーする際に使用する
+     */
+    const csmUint16 ModelRenderTargetIndexArray[] = {
+        0, 1, 2,
+        2, 1, 3,
+    };
+}
+
 /*********************************************************************************************************************
 *                                      CubismClippingManager_OpenGLES2
 ********************************************************************************************************************/
-void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer, GLint lastFBO, GLint lastViewport[4])
+void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, CubismRenderer_OpenGLES2* renderer, GLint lastFBO, GLint lastViewport[4], CubismRenderer::DrawableObjectType drawableObjectType)
 {
     // 全てのクリッピングを用意する
     // 同じクリップ（複数の場合はまとめて１つのクリップ）を使う場合は１度だけ設定する
@@ -38,7 +48,16 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
         CubismClippingContext_OpenGLES2* cc = _clippingContextListForMask[clipIndex];
 
         // このクリップを利用する描画オブジェクト群全体を囲む矩形を計算
-        CalcClippedDrawTotalBounds(model, cc);
+        switch (drawableObjectType)
+        {
+        case CubismRenderer::DrawableObjectType_Drawable:
+        default:
+            CalcClippedDrawableTotalBounds(model, cc);
+            break;
+        case CubismRenderer::DrawableObjectType_Offscreen:
+            CalcClippedOffscreenTotalBounds(model, cc);
+            break;
+        }
 
         if (cc->_isUsing)
         {
@@ -52,11 +71,20 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
     }
 
     // マスク作成処理
-    // 生成したOffscreenSurfaceと同じサイズでビューポートを設定
+    // 生成したRenderTargetと同じサイズでビューポートを設定
     glViewport(0, 0, _clippingMaskBufferSize.X, _clippingMaskBufferSize.Y);
 
     // 後の計算のためにインデックスの最初をセット
-    _currentMaskBuffer = renderer->GetMaskBuffer(0);
+    switch (drawableObjectType)
+    {
+    case CubismRenderer::DrawableObjectType_Drawable:
+    default:
+        _currentMaskBuffer = renderer->GetDrawableMaskBuffer(0);
+        break;
+    case CubismRenderer::DrawableObjectType_Offscreen:
+        _currentMaskBuffer = renderer->GetOffscreenMaskBuffer(0);
+        break;
+    }
     // ----- マスク描画処理 -----
     _currentMaskBuffer->BeginDraw(lastFBO);
 
@@ -94,14 +122,24 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
         csmRectF* layoutBoundsOnTex01 = clipContext->_layoutBounds; //この中にマスクを収める
         const csmFloat32 MARGIN = 0.05f;
 
-        // clipContextに設定したオフスクリーンサーフェイスをインデックスで取得
-        CubismOffscreenSurface_OpenGLES2* clipContextOffscreenSurface = renderer->GetMaskBuffer(clipContext->_bufferIndex);
+        // clipContextに設定したレンダーターゲットをインデックスで取得
+        CubismRenderTarget_OpenGLES2* maskBuffer = NULL;
+        switch (drawableObjectType)
+        {
+        case CubismRenderer::DrawableObjectType_Drawable:
+        default:
+            maskBuffer = renderer->GetDrawableMaskBuffer(clipContext->_bufferIndex);
+            break;
+        case CubismRenderer::DrawableObjectType_Offscreen:
+            maskBuffer = renderer->GetOffscreenMaskBuffer(clipContext->_bufferIndex);
+            break;
+        }
 
-        // 現在のオフスクリーンサーフェイスがclipContextのものと異なる場合
-        if (_currentMaskBuffer != clipContextOffscreenSurface)
+        // 現在のレンダーターゲットがclipContextのものと異なる場合
+        if (_currentMaskBuffer != maskBuffer)
         {
             _currentMaskBuffer->EndDraw();
-            _currentMaskBuffer = clipContextOffscreenSurface;
+            _currentMaskBuffer = maskBuffer;
             // マスク用RenderTextureをactiveにセット
             _currentMaskBuffer->BeginDraw(lastFBO);
 
@@ -123,6 +161,13 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
 
         clipContext->_matrixForMask.SetMatrix(_tmpMatrixForMask.GetArray());
         clipContext->_matrixForDraw.SetMatrix(_tmpMatrixForDraw.GetArray());
+
+        if (drawableObjectType == CubismRenderer::DrawableObjectType_Offscreen)
+        {
+            // clipContext * mvp^-1
+            CubismMatrix44 invertMvp = renderer->GetMvpMatrix().GetInvert();
+            clipContext->_matrixForDraw.MultiplyByMatrix(&invertMvp);
+        }
 
         // 実際の描画を行う
         const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
@@ -165,7 +210,7 @@ void CubismClippingManager_OpenGLES2::SetupClippingContext(CubismModel& model, C
 /*********************************************************************************************************************
 *                                      CubismClippingContext_OpenGLES2
 ********************************************************************************************************************/
-CubismClippingContext_OpenGLES2::CubismClippingContext_OpenGLES2(CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_OpenGLES2>* manager, CubismModel& model, const csmInt32* clippingDrawableIndices, csmInt32 clipCount)
+CubismClippingContext_OpenGLES2::CubismClippingContext_OpenGLES2(CubismClippingManager<CubismClippingContext_OpenGLES2, CubismRenderTarget_OpenGLES2>* manager, CubismModel& model, const csmInt32* clippingDrawableIndices, csmInt32 clipCount)
     : CubismClippingContext(clippingDrawableIndices, clipCount)
 {
     _owner = manager;
@@ -175,7 +220,7 @@ CubismClippingContext_OpenGLES2::~CubismClippingContext_OpenGLES2()
 {
 }
 
-CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_OpenGLES2>* CubismClippingContext_OpenGLES2::GetClippingManager()
+CubismClippingManager<CubismClippingContext_OpenGLES2, CubismRenderTarget_OpenGLES2>* CubismClippingContext_OpenGLES2::GetClippingManager()
 {
     return _owner;
 }
@@ -185,14 +230,26 @@ CubismClippingManager<CubismClippingContext_OpenGLES2, CubismOffscreenSurface_Op
 ********************************************************************************************************************/
 void CubismRendererProfile_OpenGLES2::SetGlEnable(GLenum index, GLboolean enabled)
 {
-    if (enabled == GL_TRUE) glEnable(index);
-    else glDisable(index);
+    if (enabled == GL_TRUE)
+    {
+        glEnable(index);
+    }
+    else
+    {
+        glDisable(index);
+    }
 }
 
 void CubismRendererProfile_OpenGLES2::SetGlEnableVertexAttribArray(GLuint index, GLint enabled)
 {
-    if (enabled) glEnableVertexAttribArray(index);
-    else glDisableVertexAttribArray(index);
+    if (enabled)
+    {
+        glEnableVertexAttribArray(index);
+    }
+    else
+    {
+        glDisableVertexAttribArray(index);
+    }
 }
 
 void CubismRendererProfile_OpenGLES2::Save()
@@ -229,11 +286,6 @@ void CubismRendererProfile_OpenGLES2::Save()
     glGetIntegerv(GL_BLEND_DST_RGB, &_lastBlending[1]);
     glGetIntegerv(GL_BLEND_SRC_ALPHA, &_lastBlending[2]);
     glGetIntegerv(GL_BLEND_DST_ALPHA, &_lastBlending[3]);
-
-    // モデル描画直前のFBOとビューポートを保存
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &_lastFBO);
-    glGetIntegerv(GL_VIEWPORT, _lastViewport);
-
 }
 
 void CubismRendererProfile_OpenGLES2::Restore()
@@ -325,6 +377,7 @@ PFNGLDELETESHADERPROC glDeleteShader;
 PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffers;
 PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffers;
 PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebuffer;
+PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;
 PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbuffer;
 PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffers;
 PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffers;
@@ -337,13 +390,18 @@ PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatus;
 
 PFNGLGETVERTEXATTRIBIVPROC glGetVertexAttribiv;
 
+PFNGLTEXTUREBARRIERPROC glTextureBarrier;
+
 csmBool s_isInitializeGlFunctionsSuccess = false;     ///< 初期化が完了したかどうか。trueなら初期化完了
 csmBool s_isFirstInitializeGlFunctions = true;        ///< 最初の初期化実行かどうか。trueなら最初の初期化実行
 }
 
 void CubismRenderer_OpenGLES2::InitializeGlFunctions()
 {
-    if (!s_isFirstInitializeGlFunctions) return;
+    if (!s_isFirstInitializeGlFunctions)
+    {
+        return;
+    }
 
     s_isInitializeGlFunctionsSuccess = true; //失敗した場合にフラグをfalseにする
 
@@ -386,6 +444,7 @@ void CubismRenderer_OpenGLES2::InitializeGlFunctions()
     glGenFramebuffers = (PFNGLGENFRAMEBUFFERSEXTPROC)WinGlGetProcAddress("glGenFramebuffers");
     glGenRenderbuffers = (PFNGLGENRENDERBUFFERSEXTPROC)WinGlGetProcAddress("glGenRenderbuffers");
     glBindFramebuffer = (PFNGLBINDFRAMEBUFFEREXTPROC)WinGlGetProcAddress("glBindFramebuffer");
+    glBlitFramebuffer = (PFNGLBLITFRAMEBUFFERPROC)WinGlGetProcAddress("glBlitFramebuffer");
     glFramebufferTexture2D = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)WinGlGetProcAddress("glFramebufferTexture2D");
     glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSEXTPROC)WinGlGetProcAddress("glDeleteFramebuffers");
     glBindRenderbuffer = (PFNGLBINDRENDERBUFFEREXTPROC)WinGlGetProcAddress("glBindRenderbuffer");
@@ -395,6 +454,11 @@ void CubismRenderer_OpenGLES2::InitializeGlFunctions()
     glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)WinGlGetProcAddress("glFramebufferRenderbuffer");
     glCheckFramebufferStatus = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)WinGlGetProcAddress("glCheckFramebufferStatus");
     glGetVertexAttribiv = (PFNGLGETVERTEXATTRIBIVPROC)WinGlGetProcAddress("glGetVertexAttribiv");
+
+    if (CanUseTextureBarrier())
+    {
+        glTextureBarrier = (PFNGLTEXTUREBARRIERPROC)WinGlGetProcAddress("glTextureBarrier");
+    }
 }
 
 void* CubismRenderer_OpenGLES2::WinGlGetProcAddress(const csmChar* name)
@@ -419,9 +483,9 @@ void CubismRenderer_OpenGLES2::CheckGlError(const csmChar* message)
 
 #endif  //CSM_TARGET_WIN_GL
 
-CubismRenderer* CubismRenderer::Create()
+CubismRenderer* CubismRenderer::Create(csmUint32 width, csmUint32 height)
 {
-    return CSM_NEW CubismRenderer_OpenGLES2();
+    return CSM_NEW CubismRenderer_OpenGLES2(width, height);
 }
 
 void CubismRenderer::StaticRelease()
@@ -429,9 +493,13 @@ void CubismRenderer::StaticRelease()
     CubismRenderer_OpenGLES2::DoStaticRelease();
 }
 
-CubismRenderer_OpenGLES2::CubismRenderer_OpenGLES2() : _clippingManager(NULL)
-                                                     , _clippingContextBufferForMask(NULL)
-                                                     , _clippingContextBufferForDraw(NULL)
+CubismRenderer_OpenGLES2::CubismRenderer_OpenGLES2(csmUint32 width, csmUint32 height)
+    : CubismRenderer(width, height)
+    , _drawableClippingManager(NULL)
+    , _offscreenClippingManager(NULL)
+    , _clippingContextBufferForMask(NULL)
+    , _clippingContextBufferForDrawable(NULL)
+    , _clippingContextBufferForOffscreen(NULL)
 {
     // テクスチャ対応マップの容量を確保しておく.
     _textures.PrepareCapacity(32, true);
@@ -439,16 +507,44 @@ CubismRenderer_OpenGLES2::CubismRenderer_OpenGLES2() : _clippingManager(NULL)
 
 CubismRenderer_OpenGLES2::~CubismRenderer_OpenGLES2()
 {
-    CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _clippingManager);
+    CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _drawableClippingManager);
+    CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _offscreenClippingManager);
 
-    for (csmInt32 i = 0; i < _offscreenSurfaces.GetSize(); ++i)
+    for (csmInt32 i = 0; i < _modelRenderTargets.GetSize(); ++i)
     {
-        if (_offscreenSurfaces[i].IsValid())
+        if (_modelRenderTargets[i].IsValid())
         {
-            _offscreenSurfaces[i].DestroyOffscreenSurface();
+            _modelRenderTargets[i].DestroyRenderTarget();
         }
     }
-    _offscreenSurfaces.Clear();
+    _modelRenderTargets.Clear();
+
+    for (csmInt32 i = 0; i < _drawableMasks.GetSize(); ++i)
+    {
+        if (_drawableMasks[i].IsValid())
+        {
+            _drawableMasks[i].DestroyRenderTarget();
+        }
+    }
+    _drawableMasks.Clear();
+
+    for (csmInt32 i = 0; i < _offscreenMasks.GetSize(); ++i)
+    {
+        if (_offscreenMasks[i].IsValid())
+        {
+            _offscreenMasks[i].DestroyRenderTarget();
+        }
+    }
+    _offscreenMasks.Clear();
+
+    for (csmInt32 i = 0; i < _offscreenList.GetSize(); ++i)
+    {
+        if (_offscreenList[i].IsValid())
+        {
+            _offscreenList[i].DestroyRenderTarget();
+        }
+    }
+    _offscreenList.Clear();
 }
 
 void CubismRenderer_OpenGLES2::DoStaticRelease()
@@ -458,6 +554,22 @@ void CubismRenderer_OpenGLES2::DoStaticRelease()
     s_isFirstInitializeGlFunctions = true;        ///< 最初の初期化実行かどうか。trueなら最初の初期化実行
 #endif
     CubismShader_OpenGLES2::DeleteInstance();
+}
+
+csmBool CubismRenderer_OpenGLES2::CanUseTextureBarrier()
+{
+#if defined(GLEW_ARB_texture_barrier)
+    if (GLEW_ARB_texture_barrier)
+    {
+        return true;
+    }
+#elif defined(GLEW_NV_texture_barrier)
+    if (GLEW_NV_texture_barrier)
+    {
+        return true;
+    }
+#endif
+    return false;
 }
 
 void CubismRenderer_OpenGLES2::Initialize(CubismModel* model)
@@ -474,34 +586,128 @@ void CubismRenderer_OpenGLES2::Initialize(CubismModel* model, csmInt32 maskBuffe
         CubismLogWarning("The number of render textures must be an integer greater than or equal to 1. Set the number of render textures to 1.");
     }
 
+    _modelRenderTargets.Clear();
+    if (model->IsBlendModeEnabled())
+    {
+        // オフスクリーンの作成
+        // TextureBarrierが使えない環境では2枚作成する
+        // 添え字 0 は描画先となる
+        // 添え字 1 はTextureBarrierの代替用
+        csmInt32 createSize = CanUseTextureBarrier() ? 1 : 2;
+        for (csmInt32 i = 0; i < createSize; ++i)
+        {
+            CubismRenderTarget_OpenGLES2 renderTarget;
+            renderTarget.CreateRenderTarget(_modelRenderTargetWidth, _modelRenderTargetHeight, 0);
+            _modelRenderTargets.PushBack(renderTarget);
+        }
+    }
+
     if (model->IsUsingMasking())
     {
-        _clippingManager = CSM_NEW CubismClippingManager_OpenGLES2();  //クリッピングマスク・バッファ前処理方式を初期化
-        _clippingManager->Initialize(
+        _drawableClippingManager = CSM_NEW CubismClippingManager_OpenGLES2();  //クリッピングマスク・バッファ前処理方式を初期化
+        _drawableClippingManager->InitializeForDrawable(
             *model,
             maskBufferCount
         );
 
-        _offscreenSurfaces.Clear();
+        _drawableMasks.Clear();
         for (csmInt32 i = 0; i < maskBufferCount; ++i)
         {
-            CubismOffscreenSurface_OpenGLES2 offscreenSurface;
-            offscreenSurface.CreateOffscreenSurface(_clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
-            _offscreenSurfaces.PushBack(offscreenSurface);
+            CubismRenderTarget_OpenGLES2 masks;
+            masks.CreateRenderTarget(_drawableClippingManager->GetClippingMaskBufferSize().X, _drawableClippingManager->GetClippingMaskBufferSize().Y);
+            _drawableMasks.PushBack(masks);
         }
-
     }
 
-    _sortedDrawableIndexList.Resize(model->GetDrawableCount(), 0);
+    if (model->IsUsingMaskingForOffscreen())
+    {
+        _offscreenClippingManager = CSM_NEW CubismClippingManager_OpenGLES2();  //クリッピングマスク・バッファ前処理方式を初期化
+        _offscreenClippingManager->InitializeForOffscreen(
+            *model,
+            maskBufferCount
+        );
+
+        _offscreenMasks.Clear();
+        for (csmInt32 i = 0; i < maskBufferCount; ++i)
+        {
+            CubismRenderTarget_OpenGLES2 offscreenMask;
+            offscreenMask.CreateRenderTarget(_offscreenClippingManager->GetClippingMaskBufferSize().X, _offscreenClippingManager->GetClippingMaskBufferSize().Y);
+            _offscreenMasks.PushBack(offscreenMask);
+        }
+    }
+
+    _sortedObjectsIndexList.Resize(model->GetDrawableCount() + model->GetOffscreenCount(), 0);
+    _sortedObjectsTypeList.Resize(model->GetDrawableCount() + model->GetOffscreenCount(), DrawableObjectType_Drawable);
+
+    const csmInt32 offscreenCount = model->GetOffscreenCount();
+
+    // オフスクリーンの数が0の場合は何もしない
+    if (offscreenCount > 0)
+    {
+        _offscreenList = csmVector<CubismRenderTarget_OpenGLES2>(offscreenCount);
+        for (csmInt32 offscreenIndex = 0; offscreenIndex < offscreenCount; ++offscreenIndex)
+        {
+            CubismRenderTarget_OpenGLES2 renderTarget;
+            renderTarget.CreateRenderTarget(_modelRenderTargetWidth, _modelRenderTargetHeight);
+            renderTarget.SetOffscreenIndex(offscreenIndex);
+            _offscreenList.PushBack(renderTarget);
+        }
+
+        // 全てのオフスクリーンを登録し終わってから行う
+        SetupParentOffscreens(model, offscreenCount);
+    }
 
     CubismRenderer::Initialize(model, maskBufferCount);  //親クラスの処理を呼ぶ
+}
+
+void CubismRenderer_OpenGLES2::SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount)
+{
+    CubismRenderTarget_OpenGLES2* parentOffscreen;
+    for (csmInt32 offscreenIndex = 0; offscreenIndex < offscreenCount; ++offscreenIndex)
+    {
+        parentOffscreen = NULL;
+        const csmInt32 ownerIndex = model->GetOffscreenOwnerIndices()[offscreenIndex];
+        csmInt32 parentIndex = model->GetPartParentPartIndex(ownerIndex);
+
+        // 親のオフスクリーンを探す
+        while (parentIndex != CubismModel::CubismNoIndex_Parent)
+        {
+            for (csmInt32 i = 0; i < offscreenCount; ++i)
+            {
+                if (model->GetOffscreenOwnerIndices()[_offscreenList.At(i).GetOffscreenIndex()] != parentIndex)
+                {
+                    continue;  //オフスクリーンのインデックスが親と一致しなければスキップ
+                }
+
+                parentOffscreen = &_offscreenList.At(i);
+                break;
+            }
+
+            if (parentOffscreen != NULL)
+            {
+                break;  // 親のオフスクリーンが見つかった場合はループを抜ける
+            }
+
+            parentIndex = model->GetPartParentPartIndex(parentIndex);
+        }
+
+        // 親のオフスクリーンを設定
+        _offscreenList.At(offscreenIndex).SetParentPartOffscreen(parentOffscreen);
+    }
 }
 
 void CubismRenderer_OpenGLES2::PreDraw()
 {
 #ifdef CSM_TARGET_WIN_GL
-    if (s_isFirstInitializeGlFunctions) InitializeGlFunctions();
-    if (!s_isInitializeGlFunctionsSuccess) return;
+    if (s_isFirstInitializeGlFunctions)
+    {
+        InitializeGlFunctions();
+    }
+
+    if (!s_isInitializeGlFunctionsSuccess)
+    {
+        return;
+    }
 #endif
 
     glDisable(GL_SCISSOR_TEST);
@@ -529,136 +735,413 @@ void CubismRenderer_OpenGLES2::PreDraw()
     }
 }
 
-
 void CubismRenderer_OpenGLES2::DoDrawModel()
 {
+    GLint lastFBO;
+    GLint lastViewport[4];
+
+    BeforeDrawModelRenderTarget();
+    // モデル描画直前のFBOとビューポートを保存
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &lastFBO);
+    glGetIntegerv(GL_VIEWPORT, lastViewport);
+
     //------------ クリッピングマスク・バッファ前処理方式の場合 ------------
-    if (_clippingManager != NULL)
+    if (_drawableClippingManager != NULL)
     {
         PreDraw();
 
         // サイズが違う場合はここで作成しなおし
-        for (csmInt32 i = 0; i < _clippingManager->GetRenderTextureCount(); ++i)
+        for (csmInt32 i = 0; i < _drawableClippingManager->GetRenderTextureCount(); ++i)
         {
-            if (_offscreenSurfaces[i].GetBufferWidth() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X) ||
-                _offscreenSurfaces[i].GetBufferHeight() != static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y))
+            if (_drawableMasks[i].GetBufferWidth() != static_cast<csmUint32>(_drawableClippingManager->GetClippingMaskBufferSize().X) ||
+                _drawableMasks[i].GetBufferHeight() != static_cast<csmUint32>(_drawableClippingManager->GetClippingMaskBufferSize().Y))
             {
-                _offscreenSurfaces[i].CreateOffscreenSurface(
-                    static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().X), static_cast<csmUint32>(_clippingManager->GetClippingMaskBufferSize().Y));
+                _drawableMasks[i].CreateRenderTarget(
+                    static_cast<csmUint32>(_drawableClippingManager->GetClippingMaskBufferSize().X), static_cast<csmUint32>(_drawableClippingManager->GetClippingMaskBufferSize().Y));
             }
         }
 
         if (IsUsingHighPrecisionMask())
         {
-           _clippingManager->SetupMatrixForHighPrecision(*GetModel(), false);
+            _drawableClippingManager->SetupMatrixForDrawableHighPrecision(*GetModel(), false);
         }
         else
         {
-           _clippingManager->SetupClippingContext(*GetModel(), this, _rendererProfile._lastFBO, _rendererProfile._lastViewport);
+            _drawableClippingManager->SetupClippingContext(*GetModel(), this, lastFBO, lastViewport, CubismRenderer::DrawableObjectType_Drawable);
+        }
+    }
+
+    if (_offscreenClippingManager != NULL)
+    {
+        PreDraw();
+
+        // サイズが違う場合はここで作成しなおし
+        for (csmInt32 i = 0; i < _offscreenClippingManager->GetRenderTextureCount(); ++i)
+        {
+            if (_offscreenMasks[i].GetBufferWidth() != static_cast<csmUint32>(_offscreenClippingManager->GetClippingMaskBufferSize().X) ||
+                _offscreenMasks[i].GetBufferHeight() != static_cast<csmUint32>(_offscreenClippingManager->GetClippingMaskBufferSize().Y))
+            {
+                _offscreenMasks[i].CreateRenderTarget(
+                    static_cast<csmUint32>(_offscreenClippingManager->GetClippingMaskBufferSize().X), static_cast<csmUint32>(_offscreenClippingManager->GetClippingMaskBufferSize().Y));
+            }
+        }
+
+        if (IsUsingHighPrecisionMask())
+        {
+            _offscreenClippingManager->SetupMatrixForOffscreenHighPrecision(*GetModel(), false, GetMvpMatrix());
+        }
+        else
+        {
+            _offscreenClippingManager->SetupClippingContext(*GetModel(), this, lastFBO, lastViewport, CubismRenderer::DrawableObjectType_Offscreen);
         }
     }
 
     // 上記クリッピング処理内でも一度PreDrawを呼ぶので注意!!
     PreDraw();
 
-    const csmInt32 drawableCount = GetModel()->GetDrawableCount();
-    const csmInt32* renderOrder = GetModel()->GetDrawableRenderOrders();
-
-    // インデックスを描画順でソート
-    for (csmInt32 i = 0; i < drawableCount; ++i)
-    {
-        const csmInt32 order = renderOrder[i];
-        _sortedDrawableIndexList[order] = i;
-    }
-
-    // 描画
-    for (csmInt32 i = 0; i < drawableCount; ++i)
-    {
-        const csmInt32 drawableIndex = _sortedDrawableIndexList[i];
-
-        // Drawableが表示状態でなければ処理をパスする
-        if (!GetModel()->GetDrawableDynamicFlagIsVisible(drawableIndex))
-        {
-            continue;
-        }
-
-        // クリッピングマスク
-        CubismClippingContext_OpenGLES2* clipContext = (_clippingManager != NULL)
-            ? (*_clippingManager->GetClippingContextListForDraw())[drawableIndex]
-            : NULL;
-
-        if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある
-        {
-            if(clipContext->_isUsing) // 書くことになっていた
-            {
-                // 生成したOffscreenSurfaceと同じサイズでビューポートを設定
-                glViewport(0, 0, _clippingManager->GetClippingMaskBufferSize().X, _clippingManager->GetClippingMaskBufferSize().Y);
-
-                PreDraw(); // バッファをクリアする
-
-                // ---------- マスク描画処理 ----------
-                // マスク用RenderTextureをactiveにセット
-                GetMaskBuffer(clipContext->_bufferIndex)->BeginDraw(_rendererProfile._lastFBO);
-
-                // マスクをクリアする
-                // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
-                glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT);
-            }
-
-            {
-                const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
-                for (csmInt32 index = 0; index < clipDrawCount; index++)
-                {
-                    const csmInt32 clipDrawIndex = clipContext->_clippingIdList[index];
-
-                    // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
-                    if (!GetModel()->GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
-                    {
-                        continue;
-                    }
-
-                    IsCulling(GetModel()->GetDrawableCulling(clipDrawIndex) != 0);
-
-                    // 今回専用の変換を適用して描く
-                    // チャンネルも切り替える必要がある(A,R,G,B)
-                    SetClippingContextBufferForMask(clipContext);
-
-                    DrawMeshOpenGL(*GetModel(), clipDrawIndex);
-                }
-            }
-
-            {
-                // --- 後処理 ---
-                GetMaskBuffer(clipContext->_bufferIndex)->EndDraw();
-                SetClippingContextBufferForMask(NULL);
-                glViewport(_rendererProfile._lastViewport[0], _rendererProfile._lastViewport[1], _rendererProfile._lastViewport[2], _rendererProfile._lastViewport[3]);
-
-                PreDraw(); // バッファをクリアする
-            }
-        }
-
-        // クリッピングマスクをセットする
-        SetClippingContextBufferForDraw(clipContext);
-
-        IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
-
-        DrawMeshOpenGL(*GetModel(), drawableIndex);
-    }
+    // モデルの描画順に従って描画する
+    DrawObjectLoop(lastFBO, lastViewport);
 
     PostDraw();
 
+    AfterDrawModelRenderTarget();
+}
+
+void CubismRenderer_OpenGLES2::DrawObjectLoop(GLint lastFBO, GLint lastViewport[4])
+{
+    const csmInt32 drawableCount = GetModel()->GetDrawableCount();
+    const csmInt32 offscreenCount = GetModel()->GetOffscreenCount();
+    const csmInt32 totalCount = drawableCount + offscreenCount;
+    const csmInt32* renderOrder = GetModel()->GetRenderOrders();
+
+    _currentOffscreen = NULL;
+    _currentFBO = lastFBO;
+    _modelRootFBO = lastFBO;
+
+    // インデックスを描画順でソート
+    for (csmInt32 i = 0; i < totalCount; ++i)
+    {
+        const csmInt32 order = renderOrder[i];
+
+        if (i < drawableCount)
+        {
+            _sortedObjectsIndexList[order] = i;
+            _sortedObjectsTypeList[order] = DrawableObjectType_Drawable;
+        }
+        else if (i < totalCount)
+        {
+            _sortedObjectsIndexList[order] = i - drawableCount;
+            _sortedObjectsTypeList[order] = DrawableObjectType_Offscreen;
+        }
+    }
+
+    // 描画
+    for (csmInt32 i = 0; i < totalCount; ++i)
+    {
+        const csmInt32 objectIndex = _sortedObjectsIndexList[i];
+        const csmInt32 objectType = _sortedObjectsTypeList[i];
+
+        RenderObject(objectIndex, objectType);
+    }
+
+    while (_currentOffscreen != NULL)
+    {
+        // オフスクリーンが残っている場合は親オフスクリーンへの伝搬を行う
+        SubmitDrawToParentOffscreen(_currentOffscreen->GetOffscreenIndex(), DrawableObjectType_Offscreen);
+    }
+}
+
+void CubismRenderer_OpenGLES2::RenderObject(const csmInt32 objectIndex, const csmInt32 objectType)
+{
+    switch (objectType)
+    {
+    case DrawableObjectType_Drawable:
+        // Drawable
+        DrawDrawable(objectIndex);
+        break;
+    case DrawableObjectType_Offscreen:
+        // Offscreen
+        AddOffscreen(objectIndex);
+        break;
+    default:
+        // 不明なタイプはエラーログを出す
+        CubismLogError("Unknown drawable type: %d", objectType);
+        break;
+    }
+}
+
+void CubismRenderer_OpenGLES2::DrawDrawable(csmInt32 drawableIndex)
+{
+    // Drawableが表示状態でなければ処理をパスする
+    if (!GetModel()->GetDrawableDynamicFlagIsVisible(drawableIndex))
+    {
+        return;
+    }
+
+    SubmitDrawToParentOffscreen(drawableIndex, DrawableObjectType_Drawable);
+
+    // クリッピングマスク
+    CubismClippingContext_OpenGLES2* clipContext = (_drawableClippingManager != NULL) ?
+        (*_drawableClippingManager->GetClippingContextListForDraw())[drawableIndex] :
+        NULL;
+
+    if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある
+    {
+        if (clipContext->_isUsing) // 書くことになっていた
+        {
+            // 生成したRenderTargetと同じサイズでビューポートを設定
+            glViewport(0, 0, _drawableClippingManager->GetClippingMaskBufferSize().X, _drawableClippingManager->GetClippingMaskBufferSize().Y);
+
+            PreDraw(); // バッファをクリアする
+
+            // ---------- マスク描画処理 ----------
+            // マスク用RenderTextureをactiveにセット
+            GetDrawableMaskBuffer(clipContext->_bufferIndex)->BeginDraw(_currentFBO);
+
+            // マスクをクリアする
+            // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+
+        {
+            const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
+            for (csmInt32 index = 0; index < clipDrawCount; ++index)
+            {
+                const csmInt32 clipDrawIndex = clipContext->_clippingIdList[index];
+
+                // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                if (!GetModel()->GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                {
+                    continue;
+                }
+
+                IsCulling(GetModel()->GetDrawableCulling(clipDrawIndex) != 0);
+
+                // 今回専用の変換を適用して描く
+                // チャンネルも切り替える必要がある(A,R,G,B)
+                SetClippingContextBufferForMask(clipContext);
+
+                DrawMeshOpenGL(*GetModel(), clipDrawIndex);
+            }
+        }
+
+        {
+            // --- 後処理 ---
+            GetDrawableMaskBuffer(clipContext->_bufferIndex)->EndDraw();
+            SetClippingContextBufferForMask(NULL);
+            glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
+
+            PreDraw(); // バッファをクリアする
+        }
+    }
+
+    // クリッピングマスクをセットする
+    SetClippingContextBufferForDrawable(clipContext);
+
+    IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
+
+    DrawMeshOpenGL(*GetModel(), drawableIndex);
+}
+
+void CubismRenderer_OpenGLES2::SubmitDrawToParentOffscreen(const csmInt32 objectIndex, const DrawableObjectType objectType)
+{
+    if (_currentOffscreen == NULL ||
+        objectIndex == CubismModel::CubismNoIndex_Offscreen)
+    {
+        return;
+    }
+
+    csmInt32 currentOwnerIndex = GetModel()->GetOffscreenOwnerIndices()[_currentOffscreen->GetOffscreenIndex()];
+
+    // オーナーが不明な場合は処理を終了
+    if (currentOwnerIndex == CubismModel::CubismNoIndex_Offscreen)
+    {
+        return;
+    }
+
+    csmInt32 targetParentIndex = CubismModel::CubismNoIndex_Parent;
+    // 描画オブジェクトのタイプ別に親パーツのインデックスを取得
+    switch (objectType)
+    {
+    case DrawableObjectType_Drawable:
+        targetParentIndex = GetModel()->GetDrawableParentPartIndex(objectIndex);
+        break;
+    case DrawableObjectType_Offscreen:
+        targetParentIndex = GetModel()->GetPartParentPartIndex(GetModel()->GetOffscreenOwnerIndices()[objectIndex]);
+        break;
+    default:
+        // 不明なタイプだった場合は処理を終了
+        return;
+    }
+
+    // 階層を辿って現在のオフスクリーンのオーナーのパーツがいたら処理を終了する。
+    while (targetParentIndex != CubismModel::CubismNoIndex_Parent)
+    {
+        // オブジェクトの親が現在のオーナーと同じ場合は処理を終了
+        if (targetParentIndex == currentOwnerIndex)
+        {
+            return;
+        }
+
+        targetParentIndex = GetModel()->GetPartParentPartIndex(targetParentIndex);
+    }
+
+    /**
+     * 呼び出し元の描画オブジェクトは現オフスクリーンの描画対象でない。
+     * つまり描画順グループの仕様により、現オフスクリーンの描画対象は全て描画完了しているので
+     * 現オフスクリーンを描画する。
+     */
+    DrawOffscreen(_currentOffscreen);
+
+    // さらに親のオフスクリーンに伝搬可能なら伝搬する。
+    SubmitDrawToParentOffscreen(objectIndex, objectType);
+}
+
+void CubismRenderer_OpenGLES2::AddOffscreen(csmInt32 offscreenIndex)
+{
+    // 以前のオフスクリーンレンダリングターゲットを親に伝搬する処理を追加する
+    if (_currentOffscreen != NULL && _currentOffscreen->GetOffscreenIndex() != offscreenIndex)
+    {
+        csmBool isParent = false;
+        csmInt32 ownerIndex = GetModel()->GetOffscreenOwnerIndices()[offscreenIndex];
+        csmInt32 parentIndex = GetModel()->GetPartParentPartIndex(ownerIndex);
+
+        csmInt32 currentOffscreenIndex = _currentOffscreen->GetOffscreenIndex();
+        csmInt32 currentOffscreenOwnerIndex = GetModel()->GetOffscreenOwnerIndices()[currentOffscreenIndex];
+        while (parentIndex != CubismModel::CubismNoIndex_Parent)
+        {
+            if (parentIndex == currentOffscreenOwnerIndex)
+            {
+                isParent = true;
+                break;
+            }
+            parentIndex = GetModel()->GetPartParentPartIndex(parentIndex);
+        }
+
+        if (!isParent)
+        {
+            // 現在のオフスクリーンレンダリングターゲットがあるなら、親に伝搬する
+            SubmitDrawToParentOffscreen(offscreenIndex, DrawableObjectType_Offscreen);
+        }
+    }
+
+    CubismRenderTarget_OpenGLES2* offscreen = &_offscreenList.At(offscreenIndex);
+
+    // サイズが異なるなら新しいオフスクリーンレンダリングターゲットを作成
+    if (offscreen->GetBufferWidth() != _modelRenderTargetWidth ||
+        offscreen->GetBufferHeight() != _modelRenderTargetHeight)
+    {
+        offscreen->CreateRenderTarget(_modelRenderTargetWidth, _modelRenderTargetHeight);
+    }
+
+    // 以前のオフスクリーンレンダリングターゲットを取得
+    CubismRenderTarget_OpenGLES2* oldOffscreen = offscreen->GetParentPartOffscreen();
+
+    offscreen->SetOldOffscreen(oldOffscreen);
+
+    GLint oldFBO = 0;
+    if (oldOffscreen != NULL)
+    {
+        oldFBO = oldOffscreen->GetRenderTexture();
+    }
+
+    if (oldFBO == 0)
+    {
+        oldFBO = _modelRootFBO; // ルートのFBOを使用する
+    }
+
+    // 別バッファに描画を開始
+    offscreen->BeginDraw(oldFBO);
+    glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
+    offscreen->Clear(0.0f, 0.0f, 0.0f, 0.0f);
+
+    // 現在のオフスクリーンレンダリングターゲットを設定
+    _currentOffscreen = offscreen;
+    _currentFBO = offscreen->GetRenderTexture();
+}
+
+void CubismRenderer_OpenGLES2::DrawOffscreen(CubismRenderTarget_OpenGLES2* currentOffscreen)
+{
+    csmInt32 offscreenIndex = currentOffscreen->GetOffscreenIndex();
+    // クリッピングマスク
+    CubismClippingContext_OpenGLES2* clipContext = (_offscreenClippingManager != NULL) ?
+        (*_offscreenClippingManager->GetClippingContextListForOffscreen())[offscreenIndex] :
+        NULL;
+
+    if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある
+    {
+        if (clipContext->_isUsing) // 書くことになっていた
+        {
+            // 生成したRenderTargetと同じサイズでビューポートを設定
+            glViewport(0, 0, _offscreenClippingManager->GetClippingMaskBufferSize().X, _offscreenClippingManager->GetClippingMaskBufferSize().Y);
+
+            PreDraw(); // バッファをクリアする
+
+            // ---------- マスク描画処理 ----------
+            // マスク用RenderTextureをactiveにセット
+            GetOffscreenMaskBuffer(clipContext->_bufferIndex)->BeginDraw(_currentFBO);
+
+            // マスクをクリアする
+            // 1が無効（描かれない）領域、0が有効（描かれる）領域。（シェーダで Cd*Csで0に近い値をかけてマスクを作る。1をかけると何も起こらない）
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+
+        {
+            const csmInt32 clipDrawCount = clipContext->_clippingIdCount;
+            for (csmInt32 index = 0; index < clipDrawCount; index++)
+            {
+                const csmInt32 clipDrawIndex = clipContext->_clippingIdList[index];
+
+                // 頂点情報が更新されておらず、信頼性がない場合は描画をパスする
+                if (!GetModel()->GetDrawableDynamicFlagVertexPositionsDidChange(clipDrawIndex))
+                {
+                    continue;
+                }
+
+                IsCulling(GetModel()->GetDrawableCulling(clipDrawIndex) != 0);
+
+                // 今回専用の変換を適用して描く
+                // チャンネルも切り替える必要がある(A,R,G,B)
+                SetClippingContextBufferForMask(clipContext);
+
+                DrawMeshOpenGL(*GetModel(), clipDrawIndex);
+            }
+        }
+
+        {
+            // --- 後処理 ---
+            GetOffscreenMaskBuffer(clipContext->_bufferIndex)->EndDraw();
+            SetClippingContextBufferForMask(NULL);
+            glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
+
+            PreDraw(); // バッファをクリアする
+        }
+    }
+
+    // クリッピングマスクをセットする
+    SetClippingContextBufferForOffscreen(clipContext);
+
+    IsCulling(GetModel()->GetOffscreenCulling(offscreenIndex) != 0);
+
+    DrawOffscreenOpenGL(*GetModel(), currentOffscreen);
 }
 
 void CubismRenderer_OpenGLES2::DrawMeshOpenGL(const CubismModel& model, const csmInt32 index)
 {
-
 #ifdef CSM_TARGET_WIN_GL
-    if (s_isFirstInitializeGlFunctions) return;  // WindowsプラットフォームではGL命令のバインドを済ませておく必要がある
+    if (s_isFirstInitializeGlFunctions)
+    {
+        return;  // WindowsプラットフォームではGL命令のバインドを済ませておく必要がある
+    }
 #endif
 
 #ifndef CSM_DEBUG
-    if (_textures[model.GetDrawableTextureIndex(index)] == 0) return;    // モデルが参照するテクスチャがバインドされていない場合は描画をスキップする
+    if (_textures[model.GetDrawableTextureIndex(index)] == 0)
+    {
+        return; // モデルが参照するテクスチャがバインドされていない場合は描画をスキップする
+    }
 #endif
 
     // 裏面描画の有効・無効
@@ -678,7 +1161,7 @@ void CubismRenderer_OpenGLES2::DrawMeshOpenGL(const CubismModel& model, const cs
         CubismShader_OpenGLES2::GetInstance()->SetupShaderProgramForMask(this, model, index);
     }
     else{
-        CubismShader_OpenGLES2::GetInstance()->SetupShaderProgramForDraw(this, model, index);
+        CubismShader_OpenGLES2::GetInstance()->SetupShaderProgramForDrawable(this, model, index);
     }
 
     // ポリゴンメッシュを描画する
@@ -693,7 +1176,44 @@ void CubismRenderer_OpenGLES2::DrawMeshOpenGL(const CubismModel& model, const cs
 
     // 後処理
     glUseProgram(0);
-    SetClippingContextBufferForDraw(NULL);
+    SetClippingContextBufferForDrawable(NULL);
+    SetClippingContextBufferForMask(NULL);
+}
+
+void CubismRenderer_OpenGLES2::DrawOffscreenOpenGL(const CubismModel& model, CubismRenderTarget_OpenGLES2* offscreen)
+{
+
+#ifdef CSM_TARGET_WIN_GL
+    if (s_isFirstInitializeGlFunctions)
+    {
+        return;  // WindowsプラットフォームではGL命令のバインドを済ませておく必要がある
+    }
+#endif
+
+    // 裏面描画の有効・無効
+    if (IsCulling())
+    {
+        glEnable(GL_CULL_FACE);
+    }
+    else
+    {
+        glDisable(GL_CULL_FACE);
+    }
+
+    glFrontFace(GL_CCW);    // Cubism SDK OpenGLはマスク・アートメッシュ共にCCWが表面
+
+    offscreen->EndDraw();
+    _currentOffscreen = _currentOffscreen->GetOldOffscreen();
+    _currentFBO = offscreen->GetOldFBO();
+
+    CubismShader_OpenGLES2::GetInstance()->SetupShaderProgramForOffscreen(this, model, offscreen);
+
+    // ポリゴンメッシュを描画する
+    glDrawElements(GL_TRIANGLES, sizeof(ModelRenderTargetIndexArray) / sizeof(csmUint16), GL_UNSIGNED_SHORT, ModelRenderTargetIndexArray);
+
+    // 後処理
+    glUseProgram(0);
+    SetClippingContextBufferForOffscreen(NULL);
     SetClippingContextBufferForMask(NULL);
 }
 
@@ -707,6 +1227,44 @@ void CubismRenderer_OpenGLES2::RestoreProfile()
     _rendererProfile.Restore();
 }
 
+void CubismRenderer_OpenGLES2::BeforeDrawModelRenderTarget()
+{
+    if (_modelRenderTargets.GetSize() == 0)
+    {
+        return;
+    }
+
+    // オフスクリーンのバッファのサイズが違う場合は作り直し
+    for (csmInt32 i = 0; i < _modelRenderTargets.GetSize(); ++i)
+    {
+        if (_modelRenderTargets[i].GetBufferWidth() != _modelRenderTargetWidth || _modelRenderTargets[i].GetBufferHeight() != _modelRenderTargetHeight)
+        {
+            _modelRenderTargets[i].CreateRenderTarget(_modelRenderTargetWidth, _modelRenderTargetHeight, 0);
+        }
+    }
+
+    // 別バッファに描画を開始
+    _modelRenderTargets[0].BeginDraw();
+    _modelRenderTargets[0].Clear(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+void CubismRenderer_OpenGLES2::AfterDrawModelRenderTarget()
+{
+    if (_modelRenderTargets.GetSize() == 0)
+    {
+        return;
+    }
+
+    // 元のバッファに描画する
+    _modelRenderTargets[0].EndDraw();
+
+    CubismShader_OpenGLES2::GetInstance()->SetupShaderProgramForOffscreenRenderTarget(this);
+
+    glDrawElements(GL_TRIANGLES, sizeof(ModelRenderTargetIndexArray) / sizeof(csmUint16), GL_UNSIGNED_SHORT, ModelRenderTargetIndexArray);
+
+    glUseProgram(0);
+}
+
 void CubismRenderer_OpenGLES2::BindTexture(csmUint32 modelTextureIndex, GLuint glTextureIndex)
 {
     _textures[modelTextureIndex] = glTextureIndex;
@@ -717,42 +1275,123 @@ const csmMap<csmInt32, GLuint>& CubismRenderer_OpenGLES2::GetBindedTextures() co
     return _textures;
 }
 
-void CubismRenderer_OpenGLES2::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
+void CubismRenderer_OpenGLES2::SetDrawableClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
-    if (_clippingManager == NULL)
+    if (_drawableClippingManager == NULL)
     {
         return;
     }
 
     // インスタンス破棄前にレンダーテクスチャの数を保存
-    const csmInt32 renderTextureCount = _clippingManager->GetRenderTextureCount();
+    const csmInt32 renderTextureCount = _drawableClippingManager->GetRenderTextureCount();
 
-    //OffscreenSurfaceのサイズを変更するためにインスタンスを破棄・再作成する
-    CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _clippingManager);
+    // RenderTargetのサイズを変更するためにインスタンスを破棄・再作成する
+    CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _drawableClippingManager);
 
-    _clippingManager = CSM_NEW CubismClippingManager_OpenGLES2();
+    _drawableClippingManager = CSM_NEW CubismClippingManager_OpenGLES2();
 
-    _clippingManager->SetClippingMaskBufferSize(width, height);
+    _drawableClippingManager->SetClippingMaskBufferSize(width, height);
 
-    _clippingManager->Initialize(
+    _drawableClippingManager->InitializeForDrawable(
         *GetModel(),
         renderTextureCount
     );
 }
 
-csmInt32 CubismRenderer_OpenGLES2::GetRenderTextureCount() const
+void CubismRenderer_OpenGLES2::SetOffscreenClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
-    return _clippingManager->GetRenderTextureCount();
+    if (_offscreenClippingManager == NULL)
+    {
+        return;
+    }
+
+    // インスタンス破棄前にレンダーテクスチャの数を保存
+    const csmInt32 renderTextureCount = _offscreenClippingManager->GetRenderTextureCount();
+
+    // RenderTargetのサイズを変更するためにインスタンスを破棄・再作成する
+    CSM_DELETE_SELF(CubismClippingManager_OpenGLES2, _offscreenClippingManager);
+
+    _offscreenClippingManager = CSM_NEW CubismClippingManager_OpenGLES2();
+
+    _offscreenClippingManager->SetClippingMaskBufferSize(width, height);
+
+    _offscreenClippingManager->InitializeForOffscreen(
+        *GetModel(),
+        renderTextureCount
+    );
 }
 
-CubismVector2 CubismRenderer_OpenGLES2::GetClippingMaskBufferSize() const
+csmInt32 CubismRenderer_OpenGLES2::GetDrawableRenderTextureCount() const
 {
-    return _clippingManager->GetClippingMaskBufferSize();
+    return _drawableClippingManager->GetRenderTextureCount();
 }
 
-CubismOffscreenSurface_OpenGLES2* CubismRenderer_OpenGLES2::GetMaskBuffer(csmInt32 index)
+csmInt32 CubismRenderer_OpenGLES2::GetOffscreenRenderTextureCount() const
 {
-    return &_offscreenSurfaces[index];
+    return _offscreenClippingManager->GetRenderTextureCount();
+}
+
+CubismVector2 CubismRenderer_OpenGLES2::GetDrawableClippingMaskBufferSize() const
+{
+    return _drawableClippingManager->GetClippingMaskBufferSize();
+}
+
+CubismVector2 CubismRenderer_OpenGLES2::GetOffscreenClippingMaskBufferSize() const
+{
+    return _offscreenClippingManager->GetClippingMaskBufferSize();
+}
+
+const CubismRenderTarget_OpenGLES2* CubismRenderer_OpenGLES2::CopyOffscreenRenderTarget()
+{
+    return CopyRenderTarget(_modelRenderTargets[0]);
+}
+
+const CubismRenderTarget_OpenGLES2* CubismRenderer_OpenGLES2::CopyRenderTarget(const CubismRenderTarget_OpenGLES2& srcBuffer)
+{
+#if defined(GLEW_ARB_texture_barrier)
+    if (GLEW_ARB_texture_barrier)
+    {
+        glTextureBarrier();
+        return &srcBuffer;
+    }
+#elif defined(GLEW_NV_texture_barrier)
+    if (GLEW_NV_texture_barrier)
+    {
+        glTextureBarrier();
+        return &srcBuffer;
+    }
+#endif
+
+    // textureBarrierが無効な場合は、オフスクリーンの内容をコピーしてから描画する
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
+    _modelRenderTargets[1].BeginDraw();
+
+    CubismShader_OpenGLES2::GetInstance()->CopyTexture(srcBuffer.GetColorBuffer());
+    glDrawElements(GL_TRIANGLES, sizeof(ModelRenderTargetIndexArray) / sizeof(csmUint16), GL_UNSIGNED_SHORT, ModelRenderTargetIndexArray);
+
+    _modelRenderTargets[1].EndDraw();
+
+    return &_modelRenderTargets[1];
+#else
+    CubismRenderTarget_OpenGLES2::CopyBuffer(srcBuffer, _modelRenderTargets[1]);
+
+    return &_modelRenderTargets[1];
+#endif
+}
+
+CubismRenderTarget_OpenGLES2* CubismRenderer_OpenGLES2::GetDrawableMaskBuffer(csmInt32 index)
+{
+    return &_drawableMasks[index];
+}
+
+CubismRenderTarget_OpenGLES2* CubismRenderer_OpenGLES2::GetOffscreenMaskBuffer(csmInt32 index)
+{
+    return &_offscreenMasks[index];
+}
+
+CubismRenderTarget_OpenGLES2* CubismRenderer_OpenGLES2::GetCurrentOffscreen() const
+{
+    return _currentOffscreen;
 }
 
 void CubismRenderer_OpenGLES2::SetClippingContextBufferForMask(CubismClippingContext_OpenGLES2* clip)
@@ -765,14 +1404,24 @@ CubismClippingContext_OpenGLES2* CubismRenderer_OpenGLES2::GetClippingContextBuf
     return _clippingContextBufferForMask;
 }
 
-void CubismRenderer_OpenGLES2::SetClippingContextBufferForDraw(CubismClippingContext_OpenGLES2* clip)
+void CubismRenderer_OpenGLES2::SetClippingContextBufferForDrawable(CubismClippingContext_OpenGLES2* clip)
 {
-    _clippingContextBufferForDraw = clip;
+    _clippingContextBufferForDrawable = clip;
 }
 
-CubismClippingContext_OpenGLES2* CubismRenderer_OpenGLES2::GetClippingContextBufferForDraw() const
+CubismClippingContext_OpenGLES2* CubismRenderer_OpenGLES2::GetClippingContextBufferForDrawable() const
 {
-    return _clippingContextBufferForDraw;
+    return _clippingContextBufferForDrawable;
+}
+
+void CubismRenderer_OpenGLES2::SetClippingContextBufferForOffscreen(CubismClippingContext_OpenGLES2* clip)
+{
+    _clippingContextBufferForOffscreen = clip;
+}
+
+CubismClippingContext_OpenGLES2* CubismRenderer_OpenGLES2::GetClippingContextBufferForOffscreen() const
+{
+    return _clippingContextBufferForOffscreen;
 }
 
 const csmBool inline CubismRenderer_OpenGLES2::IsGeneratingMask() const

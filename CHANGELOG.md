@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [5-r.5-beta.1] - 2025-08-26
+
+### Added
+
+* Add support for Blend mode and Offscreen drawing.
+  * In `5-r.5-beta.1`, the OpenGL renderer works only on Windows, macOS, iOS, and Android. The SDK does not function in other environments. Please check `NOTICE.md`.
+
+### Changed
+
+* Rename CubismOffscreenSurface_OpenGLES2 class to CubismRenderTarget_OpenGLES2.
+* Change the API called to retrieve the drawable render order from `GetDrawableRenderOrder()` to `GetRenderOrder()` in CubismCore.
+
+
 ## [5-r.4.1] - 2025-07-17
 
 ### Fixed
@@ -477,6 +490,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4.1...5-r.5-beta.1
 [5-r.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4...5-r.4.1
 [5-r.4]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.3...5-r.4
 [5-r.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.2...5-r.3
