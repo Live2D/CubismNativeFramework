@@ -96,6 +96,25 @@ Core::csmMocVersion CubismMoc::GetMocVersion()
     return _mocVersion;
 }
 
+Core::csmMocVersion CubismMoc::GetMocVersionFromBuffer(const csmByte* mocBytes, csmSizeInt size)
+{
+    if (mocBytes == nullptr || size == 0)
+    {
+        CubismLogError("Invalid mocBytes or size.");
+        return 0;
+    }
+    void* alignedBuffer = CSM_MALLOC_ALLIGNED(size, Core::csmAlignofMoc);
+    if (alignedBuffer == nullptr)
+    {
+        CubismLogError("Failed to allocate aligned memory.");
+        return 0;
+    }
+    memcpy(alignedBuffer, mocBytes, size);
+    const Core::csmMocVersion version = Core::csmGetMocVersion(alignedBuffer, size);
+    CSM_FREE_ALLIGNED(alignedBuffer);
+    return version;
+}
+
 csmBool CubismMoc::HasMocConsistency(void* address, const csmUint32 size)
 {
     csmInt32 isConsistent = Core::csmHasMocConsistency(address, size);

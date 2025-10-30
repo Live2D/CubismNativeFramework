@@ -17,7 +17,7 @@
 #include "Type/csmRectF.hpp"
 #include "Math/CubismVector2.hpp"
 #include "Type/csmMap.hpp"
-#include "Rendering/D3D11/CubismOffscreenSurface_D3D11.hpp"
+#include "Rendering/D3D11/CubismRenderTarget_D3D11.hpp"
 #include "CubismRenderState_D3D11.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
@@ -34,22 +34,91 @@ class CubismClippingContext_D3D11;
 DirectX::XMMATRIX ConvertToD3DX(CubismMatrix44& mtx);
 
 /**
+ * @brief デバイスに紐づいているデータの使用箇所の数とデータを管理するクラス
+ */
+class DeviceInfo_D3D11
+{
+public:
+    /**
+     * @brief    レンダラを作成するための各種設定
+     * 　　　　　モデルロード前に毎回設定されている必要あり
+     *
+     * @param[in]   bufferSetNum -> 1パーツに付き作成するバッファ数
+     * @param[in]   device       -> 使用デバイス
+     */
+    static void SetConstantSettings(csmUint32 bufferSetNum, ID3D11Device* device);
+
+    /**
+     * @brief   デバイスに紐づいているデータを取得し使用数をカウントする
+     *
+     * @param[in]   device         -> 使用デバイス
+     *
+     * @return デバイスに紐づいているデータを返す
+     */
+    static DeviceInfo_D3D11& AcquireInfo(ID3D11Device* device);
+
+    /**
+     * @brief   デバイスに紐づいているデータの使用数を減らす
+     *
+     * @param[in]   device         -> 使用デバイス
+     */
+    static void ReleaseInfo(ID3D11Device* device);
+
+    /**
+     * @brief   デバイスに紐づいているデータの全削除
+     */
+    static void DeleteAllInfo();
+
+    /**
+     * @brief   コンストラクタ
+     */
+    DeviceInfo_D3D11();
+
+    /**
+     * @brief   ディストラクタ
+     */
+    ~DeviceInfo_D3D11();
+
+    /**
+     * @brief   シェーダーを取得する
+     *
+     * @return シェーダーを返す
+     */
+    CubismShader_D3D11* GetShader() const;
+
+    /**
+     * @brief   レンダーステートを取得する
+     *
+     * @return レンダーステートを返す
+     */
+    CubismRenderState_D3D11* GetRenderState() const;
+
+private:
+    csmUint32 _useCount;       ///< 使用箇所の数
+    CubismShader_D3D11* _shader; ///< シェーダ
+    CubismRenderState_D3D11* _renderState;   ///< レンダーステート
+};
+
+/**
  * @brief  クリッピングマスクの処理を実行するクラス
  *
  */
-class CubismClippingManager_D3D11 : public CubismClippingManager<CubismClippingContext_D3D11, CubismOffscreenSurface_D3D11>
+class CubismClippingManager_D3D11 : public CubismClippingManager<CubismClippingContext_D3D11, CubismRenderTarget_D3D11>
 {
 public:
-
     /**
      * @brief   クリッピングコンテキストを作成する。モデル描画時に実行する。
      *
-     * @param[in]   model       ->  モデルのインスタンス
-     * @param[in]   renderer    ->  レンダラのインスタンス
+     * @param[in]   device              ->  デバイス
+     * @param[in]   context             ->  コンテキスト
+     * @param[in]   renderState         ->  レンダーステート
+     * @param[in]   model               ->  モデルのインスタンス
+     * @param[in]   renderer            ->  レンダラのインスタンス
+     * @param[in]   currentRenderTarget ->  現在使用中のバッファ
+     * @param[in]   drawableObjectType  ->  描画オブジェクトのタイプ
      */
-    void SetupClippingContext(ID3D11Device* device, ID3D11DeviceContext* renderContext, CubismModel& model, CubismRenderer_D3D11* renderer, csmInt32 offscreenCurrent);
+    void SetupClippingContext(ID3D11Device* device, ID3D11DeviceContext* context, CubismRenderState_D3D11* renderState, CubismModel& model, CubismRenderer_D3D11* renderer, csmInt32 currentRenderTarget, CubismRenderer::DrawableObjectType drawableObjectType);
 };
-
 
 /**
  * @brief   クリッピングマスクのコンテキスト
@@ -65,7 +134,7 @@ public:
      * @brief   引数付きコンストラクタ
      *
      */
-    CubismClippingContext_D3D11(CubismClippingManager<CubismClippingContext_D3D11, CubismOffscreenSurface_D3D11>* manager, CubismModel& model, const csmInt32* clippingDrawableIndices, csmInt32 clipCount);
+    CubismClippingContext_D3D11(CubismClippingManager<CubismClippingContext_D3D11, CubismRenderTarget_D3D11>* manager, CubismModel& model, const csmInt32* clippingDrawableIndices, csmInt32 clipCount);
 
     /**
      * @brief   デストラクタ
@@ -77,11 +146,10 @@ public:
      *
      * @return  クリッピングマネージャのインスタンス
      */
-    CubismClippingManager<CubismClippingContext_D3D11, CubismOffscreenSurface_D3D11>* GetClippingManager();
+    CubismClippingManager<CubismClippingContext_D3D11, CubismRenderTarget_D3D11>* GetClippingManager();
 
-    CubismClippingManager<CubismClippingContext_D3D11, CubismOffscreenSurface_D3D11>* _owner;        ///< このマスクを管理しているマネージャのインスタンス
+    CubismClippingManager<CubismClippingContext_D3D11, CubismRenderTarget_D3D11>* _owner;        ///< このマスクを管理しているマネージャのインスタンス
 };
-
 
 /**
  * @brief   DirectX11用の描画命令を実装したクラス
@@ -94,71 +162,26 @@ class CubismRenderer_D3D11 : public CubismRenderer
     friend class CubismShader_D3D11;
 
 public:
-
     /**
-     * @brief    レンダラを作成するための各種設定
-     *           モデルロードの前に一度だけ呼び出す
+     * @brief    デバイスを設定する
      *
-     * @param[in]   bufferSetNum -> 描画コマンドバッファ数
-     * @param[in]   device       -> 使用デバイス
+     * @return 設定に成功したらtrueを返す
      */
-    static void InitializeConstantSettings(csmUint32 bufferSetNum, ID3D11Device* device);
-
-    /**
-     *  @brief  CubismRenderStateにデフォルトの設定をセットする
-     */
-    static void SetDefaultRenderState();
+    csmBool OnDeviceChanged();
 
     /**
      * @brief  Cubism描画関連の先頭で行う処理。
      *          各フレームでのCubism処理前にこれを呼んでもらう
      *
-     * @param[in]   device         -> 使用デバイス
+     * @param[in]  context -> コンテキスト
      */
-    static void StartFrame(ID3D11Device* device, ID3D11DeviceContext* renderContext, csmUint32 viewportWidth, csmUint32 viewportHeight);
+    void StartFrame(ID3D11DeviceContext* context);
 
     /**
      * @brief  Cubism描画関連の終了時行う処理。
      *          各フレームでのCubism処理前にこれを呼んでもらう
-     *
-     * @param[in]   device         -> 使用デバイス
      */
-    static void EndFrame(ID3D11Device* device);
-
-    /**
-     * @brief  CubismRenderer_D3D11で使用するレンダーステート管理マネージャ取得
-     */
-    static CubismRenderState_D3D11* GetRenderStateManager();
-
-    /**
-     * @brief   レンダーステート管理マネージャ削除
-     */
-    static void DeleteRenderStateManager();
-
-    /**
-     * @brief   シェーダ管理機構の取得
-     */
-    static CubismShader_D3D11* GetShaderManager();
-
-    /**
-     * @brief   シェーダ管理機構の削除
-     */
-    static void DeleteShaderManager();
-
-    /**
-     * @brief   デバイスロスト・デバイス再作成時コールする
-     */
-    static void OnDeviceLost();
-
-    /**
-     * @brief   使用シェーダー作成
-     */
-    static void GenerateShader(ID3D11Device* device);
-
-    /**
-     * @brief   使用中デバイス取得
-     */
-    static ID3D11Device* GetCurrentDevice();
+    void EndFrame();
 
     /**
      * @brief   レンダラの初期化処理を実行する<br>
@@ -166,18 +189,32 @@ public:
      *
      * @param[in]  model -> モデルのインスタンス
      */
-    virtual void Initialize(Framework::CubismModel* model);
+    virtual void Initialize(Framework::CubismModel* model) override;
 
     /**
-     * @brief   レンダラの初期化処理を実行する<br>
+     * @brief   レンダラの初期化処理を実行する
      *           引数に渡したモデルからレンダラの初期化処理に必要な情報を取り出すことができる
      *
-     * @param[in]  model -> モデルのインスタンス
+     * @param[in]  model           -> モデルのインスタンス
+     * @param[in]  maskBufferCount -> マスクの分割数
      */
-    virtual void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount);
+    virtual void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount) override;
 
     /**
-     * @brief   OpenGLテクスチャのバインド処理<br>
+     * @bref オフスクリーンの親を探して設定する
+     *
+     * @param model -> モデルのインスタンス
+     * @param offscreenCount -> オフスクリーンの数
+     */
+    void SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount);
+
+    /**
+     * @brief   コマンドバッファーの開放
+     */
+    void ReleaseCommandBuffer();
+
+    /**
+     * @brief   OpenGLテクスチャのバインド処理
      *           CubismRendererにテクスチャを設定し、CubismRenderer中でその画像を参照するためのIndex値を戻り値とする
      *
      * @param[in]   modelTextureAssign  ->  セットするモデルテクスチャのアサイン番号
@@ -187,61 +224,168 @@ public:
     void BindTexture(csmUint32 modelTextureAssign, ID3D11ShaderResourceView* textureView);
 
     /**
-     * @brief   OpenGLにバインドされたテクスチャのリストを取得する
+     * @brief   D3D11にバインドされたテクスチャのリストを取得する
      *
      * @return  テクスチャのアドレスのリスト
      */
     const csmMap<csmInt32, ID3D11ShaderResourceView*>& GetBindedTextures() const;
 
     /**
-     * @brief  クリッピングマスクバッファのサイズを設定する<br>
-     *         マスク用のOffscreenSurfaceを破棄・再作成するため処理コストは高い。
+     * @brief  drawable用のクリッピングマスクバッファのサイズを設定する<br>
+     *         マスク用のRenderTargetを破棄・再作成するため処理コストは高い。
      *
-     * @param[in]  size -> クリッピングマスクバッファのサイズ
-     *
+     * @param[in]   width         -> ウインドウの幅
+     * @param[in]   height        -> ウインドウの高さ
      */
-    void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
+    void SetDrawableClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
     /**
-     * @brief  レンダーテクスチャの枚数を取得する。
+     * @brief  drawable用のレンダーテクスチャの枚数を取得する。
      *
      * @return  レンダーテクスチャの枚数
-     *
      */
-    csmInt32 GetRenderTextureCount() const;
+    csmInt32 GetDrawableRenderTextureCount() const;
 
     /**
-     * @brief  クリッピングマスクバッファのサイズを取得する
+     * @brief  drawable用のクリッピングマスクバッファのサイズを取得する
      *
      * @return クリッピングマスクバッファのサイズ
-     *
      */
-    CubismVector2 GetClippingMaskBufferSize() const;
+    CubismVector2 GetDrawableClippingMaskBufferSize() const;
 
     /**
-     * @brief  クリッピングマスクのバッファを取得する
+     * @brief  offscreen用のクリッピングマスクバッファのサイズを設定する<br>
+     *         マスク用のRenderTargetを破棄・再作成するため処理コストは高い。
+     *
+     * @param[in]   width         -> ウインドウの幅
+     * @param[in]   height        -> ウインドウの高さ
+     */
+    void SetOffscreenClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
+
+    /**
+     * @brief  offscreen用のレンダーテクスチャの枚数を取得する。
+     *
+     * @return  レンダーテクスチャの枚数
+     */
+    csmInt32 GetOffscreenRenderTextureCount() const;
+
+    /**
+     * @brief  offscreen用のクリッピングマスクバッファのサイズを取得する
+     *
+     * @return クリッピングマスクバッファのサイズ
+     */
+    CubismVector2 GetOffscreenClippingMaskBufferSize() const;
+
+    /**
+     * @brief  drawable用のクリッピングマスクのバッファを取得する
+     *
+     * @param[in]  backbufferNum -> バッファの番号
+     * @param[in]  index         -> インデックス
      *
      * @return クリッピングマスクのバッファへの参照
-     *
      */
-    CubismOffscreenSurface_D3D11* GetMaskBuffer(csmUint32 backbufferNum, csmInt32 offscreenIndex);
+    CubismRenderTarget_D3D11* GetDrawableMaskBuffer(csmUint32 backbufferNum, csmInt32 index);
+
+    /**
+     * @brief  offscreen用のクリッピングマスクのバッファを取得する
+     *
+     * @param[in]  backbufferNum -> バッファの番号
+     * @param[in]  index         -> インデックス
+     *
+     * @return クリッピングマスクのバッファへの参照
+     */
+    CubismRenderTarget_D3D11* GetOffscreenMaskBuffer(csmUint32 backbufferNum, csmInt32 index);
+
+   /**
+     * @brief  現在のオフスクリーンのフレームバッファを取得する
+     *
+     * @return 現在のオフスクリーンのフレームバッファを返す
+     */
+    CubismRenderTarget_D3D11* GetCurrentOffscreen() const;
+
+    /**
+     * @brief  モデルで使用するレンダーターゲットのバッファをコピーする
+     *
+     * @return モデルで使用するレンダーターゲットのバッファへのポインタ
+     */
+    ID3D11ShaderResourceView* CopyModelRenderTarget();
+
+    /**
+     * @brief  任意のバッファをコピーする
+     *
+     * @param srcBuffer コピー元のバッファ
+     *
+     * @return コピー後のバッファへのポインタ
+     */
+    ID3D11ShaderResourceView* CopyRenderTarget(CubismRenderTarget_D3D11& srcBuffer);
 
 protected:
     /**
-     * @brief   コンストラクタ
+     *  @brief  CubismRenderStateにデフォルトの設定をセットする
+     *
+     * @param[in]   width         -> ウインドウの幅
+     * @param[in]   height        -> ウインドウの高さ
      */
-    CubismRenderer_D3D11();
+    void SetDefaultRenderState(csmUint32 width, csmUint32 height);
+
+    /**
+     * @brief   コンストラクタ
+     *
+     * @param[in]   width         -> ウインドウの幅
+     * @param[in]   height        -> ウインドウの高さ
+     */
+    CubismRenderer_D3D11(csmUint32 width, csmUint32 height);
 
     /**
      * @brief   デストラクタ
      */
-    virtual ~CubismRenderer_D3D11();
+    virtual ~CubismRenderer_D3D11() override;
 
     /**
      * @brief   モデルを描画する実際の処理
-     *
      */
     virtual void DoDrawModel() override;
+
+    /**
+     * @brief   描画オブジェクト（アートメッシュ、オフスクリーン）を描画するループ処理
+     */
+    void DrawObjectLoop();
+
+    /**
+     * @brief 各オブジェクトの描画処理を呼ぶ。
+     *
+     * @param[in]   objectIndex  ->  描画対象のオブジェクトのインデックス
+     * @param[in]   objectType  ->  描画対象のオブジェクトのタイプ
+     */
+    void RenderObject(csmInt32 objectIndex, csmInt32 objectType);
+
+    /**
+     * @brief   描画オブジェクト（アートメッシュ）を描画する。
+     *
+     * @param[in]   drawableIndex ->  描画対象のメッシュのインデックス
+     */
+    void DrawDrawable(csmInt32 drawableIndex);
+
+    /**
+     * @brief   Drawable が属していないオフスクリーンを確定描画し、親オフスクリーンへ辿る。
+     *
+     * @param[in]   drawableIndex ->  描画対象のメッシュのインデックス
+     */
+    void FlushOffscreenChainForDrawable(csmInt32 drawableIndex);
+
+    /**
+     * @brief   描画オブジェクト（オフスクリーン）を追加する。
+     *
+     * @param[in]   offscreenIndex ->  描画対象のオフスクリーンのインデックス
+     */
+    void AddOffscreen(csmInt32 offscreenIndex);
+
+    /**
+     * @brief   描画オブジェクト（オフスクリーン）を描画する。
+     *
+     * @param[in]   currentOffscreen ->  描画対象のオフスクリーン
+     */
+    void DrawOffscreen(CubismRenderTarget_D3D11* offscreen);
 
     /**
      * @brief   描画オブジェクト（アートメッシュ）を描画する。
@@ -251,8 +395,15 @@ protected:
      */
     void DrawMeshDX11(const CubismModel& model, const csmInt32 index);
 
-private:
+    /**
+     * @brief   オフスクリーンを描画する。
+     *
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   offscreen ->  描画対象のオフスクリーン
+     */
+    void DrawOffscreenDX11(const CubismModel& model, CubismRenderTarget_D3D11* offscreen);
 
+private:
     /**
      * @brief  描画用に使用するシェーダの設定・コンスタントバッファの設定などを行い、マスク描画を実行
      *
@@ -267,7 +418,15 @@ private:
      * @param[in]   model       ->  描画対象のモデル
      * @param[in]   index       ->  描画対象のインデックス
      */
-    void ExecuteDrawForDraw(const CubismModel& model, const csmInt32 index);
+    void ExecuteDrawForDrawable(const CubismModel& model, const csmInt32 index);
+
+    /**
+     * @brief  オフスクリーン用に使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行
+     *
+     * @param[in]   model           ->  描画対象のモデル
+     * @param[in]   offscreen       ->  描画すべき対象
+     */
+    void ExecuteDrawForOffscreen(const CubismModel& model, CubismRenderTarget_D3D11* offscreen);
 
     /**
      * @brief  指定されたメッシュインデックスに対して描画命令を実行する
@@ -278,28 +437,31 @@ private:
     void DrawDrawableIndexed(const CubismModel& model, const csmInt32 index);
 
     /**
+     * @brief   モデルのレンダーターゲットからのシェーダプログラムの一連のセットアップを実行する
+     */
+    void ExecuteDrawForRenderTarget();
+
+    /**
      * @brief   レンダラが保持する静的なリソースを解放する
      */
     static void DoStaticRelease();
 
-    /**
-     * @brief   使用シェーダーと頂点定義の削除
-     */
-    static void ReleaseShader();
-
-
     // Prevention of copy Constructor
     CubismRenderer_D3D11(const CubismRenderer_D3D11&);
-    CubismRenderer_D3D11& operator=(const CubismRenderer_D3D11&);
 
     /**
-     * @brief   描画開始時の追加処理。<br>
+     * @brief   バッファ作成
+     */
+    void CreateMeshBuffer();
+
+    /**
+     * @brief   描画開始時の追加処理。
      *           モデルを描画する前にクリッピングマスクに必要な処理を実装している。
      */
     void PreDraw();
 
     /**
-     * @brief   描画完了後の追加処理。<br>
+     * @brief   描画完了後の追加処理。
      *           ダブル・トリプルバッファリングに必要な処理を実装している。
      */
     void PostDraw();
@@ -315,6 +477,16 @@ private:
     virtual void RestoreProfile() override;
 
     /**
+     * @brief   モデル描画直前のオフスクリーン設定
+     */
+    virtual void BeforeDrawModelRenderTarget() override;
+
+    /**
+     * @brief   モデル描画後のオフスクリーン設定
+     */
+    virtual void AfterDrawModelRenderTarget() override;
+
+    /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストをセットする。
      */
     void SetClippingContextBufferForMask(CubismClippingContext_D3D11* clip);
@@ -327,16 +499,28 @@ private:
     CubismClippingContext_D3D11* GetClippingContextBufferForMask() const;
 
     /**
-     * @brief   画面上に描画するクリッピングコンテキストをセットする。
+     * @brief   drawable用の画面上に描画するクリッピングコンテキストをセットする。
      */
-    void SetClippingContextBufferForDraw(CubismClippingContext_D3D11* clip);
+    void SetClippingContextBufferForDrawable(CubismClippingContext_D3D11* clip);
 
     /**
-     * @brief   画面上に描画するクリッピングコンテキストを取得する。
+     * @brief   drawable用の画面上に描画するクリッピングコンテキストを取得する。
      *
      * @return  画面上に描画するクリッピングコンテキスト
      */
-    CubismClippingContext_D3D11* GetClippingContextBufferForDraw() const;
+    CubismClippingContext_D3D11* GetClippingContextBufferForDrawable() const;
+
+    /**
+     * @brief   offscreen用の画面上に描画するクリッピングコンテキストをセットする。
+     */
+    void SetClippingContextBufferForOffscreen(CubismClippingContext_D3D11* clip);
+
+    /**
+     * @brief   offscreen用の画面上に描画するクリッピングコンテキストを取得する。
+     *
+     * @return  画面上に描画するクリッピングコンテキスト
+     */
+    CubismClippingContext_D3D11* GetClippingContextBufferForOffscreen() const;
 
     /**
      * @brief   GetDrawableVertices,GetDrawableVertexUvsの内容をバッファへコピー
@@ -354,35 +538,60 @@ private:
     /**
      *  @brief   ブレンドステートをセットする。
      */
-    void SetBlendState(const CubismBlendMode blendMode);
+    void SetBlendState(const CubismBlendMode blendMode) const;
 
     /**
-     * @brief   シェーダをコンテキストにセットする<br>
-     * @param[in]   model       ->  描画対象のモデル
-     * @param[in]   index       ->  描画対象のインデックス
+     * @brief   ブレンドモードを設定する
+     *
+     * @param[in]   blendMode      ->  ブレンドモード
+     * @param[in]   isBlendMode    ->  ブレンドモードを利用するかを格納する
      */
-    Csm::csmBool SetShader(const CubismModel& model, const csmInt32 index);
+    void SetBlendMode(csmBlendMode blendMode, csmBool& isBlendMode) const;
 
     /**
-     * @brief  描画に使用するテクスチャを設定する。
+     * @brief   drawable用のシェーダをコンテキストにセットする
      *
      * @param[in]   model       ->  描画対象のモデル
      * @param[in]   index       ->  描画対象のインデックス
+     * @param[in]   blendMode   ->  ブレンドモード
      */
-    void SetTextureView(const CubismModel& model, const csmInt32 index);
+    void SetShaderForDrawable(const CubismModel& model, const csmInt32 index, csmBlendMode blendMode);
+
+    /**
+     * @brief   offscreen用のシェーダをコンテキストにセットする
+     *
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   index       ->  描画対象のインデックス
+     * @param[in]   blendMode   ->  ブレンドモード
+     */
+    void SetShaderForOffscreen(const CubismModel& model, const csmInt32 index, csmBlendMode blendMode);
+
+    /**
+     * @brief  drawable用の描画に使用するテクスチャを設定する。
+     *
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   index       ->  描画対象のインデックス
+     * @param[in]   isBlendMode ->  ブレンドモードを使用するか
+     */
+    void SetTextureViewForDrawable(const CubismModel& model, const csmInt32 index, csmBool isBlendMode = false);
+
+    /**
+     * @brief  offscreen用の描画に使用するテクスチャを設定する。
+     *
+     * @param[in]   model       ->  描画対象のモデル
+     * @param[in]   offscreen   ->  オフスクリーン
+     */
+    void SetTextureViewForOffscreen(const CubismModel& model, const CubismRenderTarget_D3D11* offscreen);
 
     /**
      * @brief  色関連の定数バッファを設定する
      *
      * @param[in]   cb             ->  設定する定数バッファ
-     * @param[in]   model          ->  描画対象のモデル
-     * @param[in]   index          ->  描画対象のインデックス
      * @param[in]   baseColor      ->  ベースカラー
      * @param[in]   multiplyColor  ->  乗算カラー
      * @param[in]   screenColor    ->  スクリーンカラー
      */
-    void SetColorConstantBuffer(CubismConstantBufferD3D11& cb, const CubismModel& model, const csmInt32 index,
-                                CubismTextureColor& baseColor, CubismTextureColor& multiplyColor, CubismTextureColor& screenColor);
+    void SetColorConstantBuffer(CubismConstantBufferD3D11& cb, CubismTextureColor& baseColor, CubismTextureColor& multiplyColor, CubismTextureColor& screenColor);
 
     /**
      * @brief  描画に使用するカラーチャンネルを設定
@@ -420,23 +629,41 @@ private:
      */
     const csmBool inline IsGeneratingMask() const;
 
+    ID3D11Device* _device;        ///< 使用デバイス。モデルロード前に設定されている必要あり。
+    CubismShader_D3D11* _shader;      ///< シェーダ
+    CubismRenderState_D3D11* _renderState;   ///< レンダーステート
+    ID3D11DeviceContext* _context;  ///< 使用描画コンテキスト
+
     ID3D11Buffer*** _vertexBuffers;         ///< 描画バッファ カラー無し、位置+UV
     ID3D11Buffer*** _indexBuffers;          ///< インデックスのバッファ
     ID3D11Buffer*** _constantBuffers;       ///< 定数のバッファ
+    ID3D11Buffer* _offscreenVertexBuffer;       ///< オフスクリーン用描画バッファ カラー無し、位置+UV
+    ID3D11Buffer* _offscreenConstantBuffer;     ///< コピーシェーダー用定数のバッファ
+    ID3D11Buffer* _copyVertexBuffer;       ///< コピーシェーダー用描画バッファ カラー無し、位置+UV
+    ID3D11Buffer* _copyIndexBuffer;        ///< コピーシェーダー用インデックスのバッファ
+    ID3D11Buffer* _copyConstantBuffer;     ///< コピーシェーダー用定数のバッファ
     csmUint32 _drawableNum;           ///< _vertexBuffers, _indexBuffersの確保数
 
     csmInt32 _commandBufferNum;
     csmInt32 _commandBufferCurrent;
 
-    csmVector<csmInt32> _sortedDrawableIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
+    csmVector<csmInt32> _sortedObjectsIndexList;           ///< 描画オブジェクトのインデックスを描画順に並べたリスト
+    csmVector<DrawableObjectType> _sortedObjectsTypeList;  ///< 描画オブジェクトの種別を描画順に並べたリスト
 
     csmMap<csmInt32, ID3D11ShaderResourceView*> _textures;              ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
 
-    csmVector<csmVector<CubismOffscreenSurface_D3D11> > _offscreenSurfaces; ///< マスク描画用のフレームバッファ
+    csmVector<CubismRenderTarget_D3D11> _modelRenderTargets; ///< 描画先のフレームバッファ
+    csmVector<csmVector<CubismRenderTarget_D3D11> > _drawableMasks;  ///< Drawable用のマスク描画用のフレームバッファ
+    csmVector<csmVector<CubismRenderTarget_D3D11> > _offscreenMasks; ///< offscreen用のマスク描画用のフレームバッファ
 
-    CubismClippingManager_D3D11* _clippingManager;               ///< クリッピングマスク管理オブジェクト
-    CubismClippingContext_D3D11* _clippingContextBufferForMask;  ///< マスクテクスチャに描画するためのクリッピングコンテキスト
-    CubismClippingContext_D3D11* _clippingContextBufferForDraw;  ///< 画面上描画するためのクリッピングコンテキスト
+    CubismClippingManager_D3D11* _drawableClippingManager;            ///< drawable用のクリッピングマスク管理オブジェクト
+    CubismClippingManager_D3D11* _offscreenClippingManager;           ///< offscreen用のクリッピングマスク管理オブジェクト
+    CubismClippingContext_D3D11* _clippingContextBufferForMask;       ///< マスクテクスチャに描画するためのクリッピングコンテキスト
+    CubismClippingContext_D3D11* _clippingContextBufferForDrawable;   ///< drawable用の画面上描画するためのクリッピングコンテキスト
+    CubismClippingContext_D3D11* _clippingContextBufferForOffscreen;  ///< offscreen用の画面上描画するためのクリッピングコンテキスト
+
+    csmVector<CubismRenderTarget_D3D11> _offscreenList; ///< モデルのオフスクリーン
+    CubismRenderTarget_D3D11* _currentOffscreen;        ///< 現在のオフスクリーンのフレームバッファ
 };
 
 }}}}

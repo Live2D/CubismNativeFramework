@@ -13,7 +13,7 @@
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
-static csmInt32 IsBitSet(const csmUint8 byte, const csmUint8 mask)
+static csmBool IsBitSet(const csmUint8 byte, const csmUint8 mask)
 {
     return ((byte & mask) == mask);
 }
@@ -28,6 +28,7 @@ CubismModel::CubismModel(Core::csmModel* model)
     , _isOverriddenModelMultiplyColors(false)
     , _isOverriddenModelScreenColors(false)
     , _isOverriddenCullings(false)
+    , _isBlendModeEnabled(false)
     , _modelOpacity(1.0f)
 { }
 
@@ -132,6 +133,16 @@ csmFloat32 CubismModel::GetPartOpacity(csmInt32 partIndex)
     CSM_ASSERT(0 <= partIndex && partIndex < GetPartCount());
 
     return _partOpacities[partIndex];
+}
+
+csmFloat32 CubismModel::GetOffscreenOpacity(csmInt32 offscreenIndex) const
+{
+    if (offscreenIndex < 0 || offscreenIndex >= Core::csmGetOffscreenCount(GetModel()))
+    {
+        return 1.0f; // オフスクリーンが無いのでスキップ
+    }
+
+    return  Core::csmGetOffscreenOpacities(GetModel())[offscreenIndex];
 }
 
 csmInt32 CubismModel::GetParameterCount() const
@@ -407,6 +418,12 @@ csmFloat32 CubismModel::GetCanvasHeight() const
     return tmpSizeInPixels.Y / tmpPixelsPerUnit;
 }
 
+const csmInt32* CubismModel::GetRenderOrders() const
+{
+    const csmInt32* renderOrders = Core::csmGetRenderOrders(_model);
+    return renderOrders;
+}
+
 csmInt32 CubismModel::GetDrawableIndex(CubismIdHandle drawableId) const
 {
     const csmInt32 drawableCount = Core::csmGetDrawableCount(_model);
@@ -429,18 +446,16 @@ const csmFloat32* CubismModel::GetDrawableVertices(csmInt32 drawableIndex) const
 
 csmInt32 CubismModel::GetPartIndex(CubismIdHandle partId)
 {
-    csmInt32            partIndex;
-    const csmInt32      idCount = Core::csmGetPartCount(_model);
+    csmInt32 partIndex;
+    const csmInt32 partCount = Core::csmGetPartCount(_model);
 
-    for (partIndex = 0; partIndex < idCount; ++partIndex)
+    for (partIndex = 0; partIndex < partCount; ++partIndex)
     {
         if (partId == _partIds[partIndex])
         {
             return partIndex;
         }
     }
-
-    const csmInt32 partCount = Core::csmGetPartCount(_model);
 
     // モデルに存在していない場合、非存在パーツIDリスト内にあるかを検索し、そのインデックスを返す
     if (_notExistPartId.IsExist(partId))
@@ -502,12 +517,12 @@ void CubismModel::Initialize()
         const csmInt32  drawableCount = Core::csmGetDrawableCount(_model);
 
         _drawableIds.PrepareCapacity(drawableCount);
-        _userMultiplyColors.PrepareCapacity(drawableCount);
-        _userScreenColors.PrepareCapacity(drawableCount);
-        _userCullings.PrepareCapacity(drawableCount);
+        _userDrawableMultiplyColors.PrepareCapacity(drawableCount);
+        _userDrawableScreenColors.PrepareCapacity(drawableCount);
+        _userDrawableCullings.PrepareCapacity(drawableCount);
 
         // カリング設定
-        DrawableCullingData userCulling;
+        CullingData userCulling;
         userCulling.IsOverridden = false;
         userCulling.IsCulling = 0;
 
@@ -528,12 +543,12 @@ void CubismModel::Initialize()
         // Parts
         {
             // 乗算色
-            PartColorData userMultiplyColor;
+            ColorData userMultiplyColor;
             userMultiplyColor.IsOverridden = false;
             userMultiplyColor.Color = multiplyColor;
 
             // スクリーン色
-            PartColorData userScreenColor;
+            ColorData userScreenColor;
             userScreenColor.IsOverridden = false;
             userScreenColor.Color = screenColor;
 
@@ -547,21 +562,21 @@ void CubismModel::Initialize()
         // Drawables
         {
             // 乗算色
-            DrawableColorData userMultiplyColor;
+            ColorData userMultiplyColor;
             userMultiplyColor.IsOverridden = false;
             userMultiplyColor.Color = multiplyColor;
 
             // スクリーン色
-            DrawableColorData userScreenColor;
+            ColorData userScreenColor;
             userScreenColor.IsOverridden = false;
             userScreenColor.Color = screenColor;
 
             for (csmInt32 i = 0; i < drawableCount; ++i)
             {
                 _drawableIds.PushBack(CubismFramework::GetIdManager()->GetId(drawableIds[i]));
-                _userMultiplyColors.PushBack(userMultiplyColor);
-                _userScreenColors.PushBack(userScreenColor);
-                _userCullings.PushBack(userCulling);
+                _userDrawableMultiplyColors.PushBack(userMultiplyColor);
+                _userDrawableScreenColors.PushBack(userScreenColor);
+                _userDrawableCullings.PushBack(userCulling);
 
                 csmInt32 parentIndex = Core::csmGetDrawableParentPartIndices(_model)[i];
                 if (parentIndex >= 0)
@@ -570,6 +585,141 @@ void CubismModel::Initialize()
                 }
             }
         }
+    }
+
+    // blendMode
+    InitializeBlendMode();
+
+    // Offscreen
+    InitializeOffscreen();
+
+    if (_isBlendModeEnabled)
+    {
+        SetupPartsHierarchy();
+    }
+}
+
+void CubismModel::InitializeBlendMode()
+{
+    const csmInt32  drawableCount = Core::csmGetDrawableCount(_model);
+
+    // オフスクリーンが存在するか、DrawableのブレンドモードでColorBlend、AlphaBlendを使用するのであればブレンドモードを有効にする。
+    if (Core::csmGetOffscreenCount(_model) > 0)
+    {
+        _isBlendModeEnabled = true;
+    }
+    else
+    {
+        csmBlendMode blendMode;
+        const csmInt32* const blendModes = Core::csmGetDrawableBlendModes(_model);
+        for (csmInt32 i = 0; i < drawableCount; ++i)
+        {
+            blendMode.SetBlendMode(blendModes[i]);
+            const csmInt32 colorBlendType = blendMode.GetColorBlendType();
+            const csmInt32 alphaBlendType = blendMode.GetAlphaBlendType();
+
+            // NormalOver、AddCompatible、MultiplyCompatible以外であればブレンドモードを有効にする。
+            if (!(colorBlendType == Core::csmColorBlendType_Normal && alphaBlendType == Core::csmAlphaBlendType_Over) &&
+                colorBlendType != Core::csmColorBlendType_AddCompatible &&
+                colorBlendType != Core::csmColorBlendType_MultiplyCompatible)
+            {
+                _isBlendModeEnabled = true;
+                break;
+            }
+        }
+    }
+}
+
+void CubismModel::InitializeOffscreen()
+{
+    // 乗算色
+    ColorData userMultiplyColor;
+    userMultiplyColor.IsOverridden = false;
+    userMultiplyColor.Color = Rendering::CubismRenderer::CubismTextureColor();
+
+    // スクリーン色
+    ColorData userScreenColor;
+    userScreenColor.IsOverridden = false;
+    userScreenColor.Color = Rendering::CubismRenderer::CubismTextureColor();
+    userScreenColor.Color.R = 0.0f;
+    userScreenColor.Color.G = 0.0f;
+    userScreenColor.Color.B = 0.0f;
+    userScreenColor.Color.A = 1.0f;
+
+    const csmInt32 offscreenCount = Core::csmGetOffscreenCount(_model);
+
+    _userOffscreenMultiplyColors.PrepareCapacity(offscreenCount);
+    _userOffscreenScreenColors.PrepareCapacity(offscreenCount);
+    _userOffscreenCullings.PrepareCapacity(offscreenCount);
+
+    for (csmInt32 i = 0; i < offscreenCount; ++i)
+    {
+        _userOffscreenMultiplyColors.PushBack(userMultiplyColor);
+        _userOffscreenScreenColors.PushBack(userScreenColor);
+        _userOffscreenCullings.PushBack(CullingData());
+    }
+}
+
+void CubismModel::SetupPartsHierarchy()
+{
+    _partsHierarchy.Clear();
+
+    // すべてのパーツのパーツ情報管理構造体を作成
+    const csmInt32  partCount = Core::csmGetPartCount(_model);
+    for (csmInt32 i = 0; i < partCount; ++i)
+    {
+        _partsHierarchy.PushBack(CubismModelPartInfo());
+    }
+
+    // Partごとに親パーツを取得し、親パーツの子objectリストに追加する
+    for (csmInt32 i = 0; i < partCount; ++i)
+    {
+        const csmInt32 parentPartIndex = GetPartParentPartIndex(i);
+
+        if (parentPartIndex == CubismNoIndex_Parent)
+        {
+            continue;
+        }
+
+        for (csmInt32 partIndex = 0; partIndex < _partsHierarchy.GetSize(); ++partIndex)
+        {
+            if (partIndex == parentPartIndex)
+            {
+                CubismModelObjectInfo objectInfo(i, CubismModelObjectInfo::ObjectType_Parts);
+                _partsHierarchy[partIndex].Objects.PushBack(objectInfo);
+                break;
+            }
+        }
+    }
+
+    // Drawableごとに親パーツを取得し、親パーツの子objectリストに追加する
+    for (csmInt32 i = 0; i < Core::csmGetDrawableCount(_model); ++i)
+    {
+        const csmInt32 parentPartIndex = GetDrawableParentPartIndex(i);
+
+        if (parentPartIndex == CubismNoIndex_Parent)
+        {
+            continue;
+        }
+
+        for (csmInt32 partIndex = 0; partIndex < _partsHierarchy.GetSize(); ++partIndex)
+        {
+            if (partIndex == parentPartIndex)
+            {
+                CubismModelObjectInfo objectInfo(i, CubismModelObjectInfo::ObjectType_Drawable);
+                _partsHierarchy[partIndex].Objects.PushBack(objectInfo);
+                break;
+            }
+        }
+    }
+
+    // ここまででモデルのパーツ構造が完成
+
+    // パーツ子描画オブジェクト情報構造体を作成
+    for (csmInt32 i = 0; i < _partsHierarchy.GetSize(); ++i)
+    {
+        // パーツ管理構造体を取得
+        GetPartChildDrawObjects(i);
     }
 }
 
@@ -597,10 +747,22 @@ const csmInt32* CubismModel::GetPartParentPartIndices() const
     return partIndices;
 }
 
-const csmInt32* CubismModel::GetDrawableRenderOrders() const
+const csmInt32* CubismModel::GetPartOffscreenIndices() const
 {
-    const csmInt32* renderOrders = Core::csmGetDrawableRenderOrders(_model);
-    return renderOrders;
+    const csmInt32* offscreenSourcesIndices = Core::csmGetPartOffscreenIndices(_model);
+    return offscreenSourcesIndices;
+}
+
+const csmInt32* CubismModel::GetOffscreenOwnerIndices() const
+{
+    const csmInt32* ownerIndices = Core::csmGetOffscreenOwnerIndices(_model);
+    return ownerIndices;
+}
+
+const CubismIdHandle CubismModel::GetOffscreenOwnerId(csmUint32 offscreenIndex) const
+{
+    const csmUint32 ownerIndex = GetOffscreenOwnerIndices()[offscreenIndex];
+    return CubismFramework::GetIdManager()->GetId(Core::csmGetPartIds(_model)[ownerIndex]);
 }
 
 csmInt32 CubismModel::GetDrawableCount() const
@@ -668,10 +830,28 @@ Core::csmVector4 CubismModel::GetDrawableScreenColor(csmInt32 drawableIndex) con
     return screenColors[drawableIndex];
 }
 
+Core::csmVector4 CubismModel::GetOffscreenMultiplyColor(csmInt32 offscreenIndex) const
+{
+    const Core::csmVector4* offscreenColors = Core::csmGetOffscreenMultiplyColors(_model);
+    return offscreenColors[offscreenIndex];
+}
+
+Core::csmVector4 CubismModel::GetOffscreenScreenColor(csmInt32 offscreenIndex) const
+{
+    const Core::csmVector4* offscreenColors = Core::csmGetOffscreenScreenColors(_model);
+    return offscreenColors[offscreenIndex];
+}
+
 csmInt32 CubismModel::GetDrawableParentPartIndex(csmUint32 drawableIndex) const
 {
     return Core::csmGetDrawableParentPartIndices(_model)[drawableIndex];
 }
+
+csmInt32 CubismModel::GetPartParentPartIndex(csmUint32 partIndex) const
+{
+    return Core::csmGetPartParentPartIndices(_model)[partIndex];
+}
+
 
 csmBool CubismModel::GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const
 {
@@ -717,18 +897,50 @@ csmBool CubismModel::GetDrawableDynamicFlagBlendColorDidChange(csmInt32 drawable
 
 Rendering::CubismRenderer::CubismBlendMode CubismModel::GetDrawableBlendMode(csmInt32 drawableIndex) const
 {
+    CubismLogWarning("GetDrawableBlendMode() is a deprecated function. Please use GetDrawableBlendModeType().");
+
     const csmUint8* constantFlags = Core::csmGetDrawableConstantFlags(_model);
-    return (IsBitSet(constantFlags[drawableIndex], Core::csmBlendAdditive))
-               ? Rendering::CubismRenderer::CubismBlendMode_Additive
-               : (IsBitSet(constantFlags[drawableIndex], Core::csmBlendMultiplicative))
-               ? Rendering::CubismRenderer::CubismBlendMode_Multiplicative
-               : Rendering::CubismRenderer::CubismBlendMode_Normal;
+    return (IsBitSet(constantFlags[drawableIndex], Core::csmBlendAdditive)) ?
+        Rendering::CubismRenderer::CubismBlendMode_Additive :
+        (IsBitSet(constantFlags[drawableIndex], Core::csmBlendMultiplicative)) ?
+            Rendering::CubismRenderer::CubismBlendMode_Multiplicative :
+            Rendering::CubismRenderer::CubismBlendMode_Normal;
+}
+
+csmBlendMode CubismModel::GetDrawableBlendModeType(csmInt32 drawableIndex) const
+{
+    csmBlendMode blendMode;
+
+    // 5.2以前のモデルでも使用することが可能
+    const csmInt32* const blendModes = Core::csmGetDrawableBlendModes(_model);
+    blendMode.SetBlendMode(blendModes[drawableIndex]);
+
+    return blendMode;
+}
+
+csmBlendMode CubismModel::GetOffscreenBlendModeType(csmInt32 offscreenIndex) const
+{
+    csmBlendMode blendMode;
+
+    const csmInt32* blendModes = Core::csmGetOffscreenBlendModes(_model);
+    if (blendModes)
+    {
+        blendMode.SetBlendMode(blendModes[offscreenIndex]);
+    }
+
+    return blendMode;
 }
 
 csmBool CubismModel::GetDrawableInvertedMask(csmInt32 drawableIndex) const
 {
     const csmUint8* constantFlags = Core::csmGetDrawableConstantFlags(_model);
     return IsBitSet(constantFlags[drawableIndex], Core::csmIsInvertedMask) != 0 ? true : false;
+}
+
+csmBool CubismModel::GetOffscreenInvertedMask(csmInt32 offscreenIndex) const
+{
+    const csmUint8* constantFlags = Core::csmGetOffscreenConstantFlags(_model);
+    return IsBitSet(constantFlags[offscreenIndex], Core::csmIsInvertedMask) != 0 ? true : false;
 }
 
 const csmInt32** CubismModel::GetDrawableMasks() const
@@ -740,6 +952,24 @@ const csmInt32** CubismModel::GetDrawableMasks() const
 const csmInt32* CubismModel::GetDrawableMaskCounts() const
 {
     const csmInt32* maskCounts = Core::csmGetDrawableMaskCounts(_model);
+    return maskCounts;
+}
+
+csmInt32 CubismModel::GetOffscreenCount() const
+{
+    const csmInt32 offscreenCount = Core::csmGetOffscreenCount(_model);
+    return offscreenCount;
+}
+
+const csmInt32** CubismModel::GetOffscreenMasks() const
+{
+    const csmInt32** masks = Core::csmGetOffscreenMasks(_model);
+    return masks;
+}
+
+const csmInt32* CubismModel::GetOffscreenMaskCounts() const
+{
+    const csmInt32* maskCounts = Core::csmGetOffscreenMaskCounts(_model);
     return maskCounts;
 }
 
@@ -781,23 +1011,22 @@ Rendering::CubismRenderer::CubismTextureColor CubismModel::GetMultiplyColor(csmI
 {
     if (GetOverrideFlagForModelMultiplyColors() || GetOverrideFlagForDrawableMultiplyColors(drawableIndex))
     {
-        return _userMultiplyColors[drawableIndex].Color;
+        return _userDrawableMultiplyColors[drawableIndex].Color;
     }
+    const Core::csmVector4 tmpColor = GetDrawableMultiplyColor(drawableIndex);
 
-    const Core::csmVector4 color = GetDrawableMultiplyColor(drawableIndex);
-
-    return Rendering::CubismRenderer::CubismTextureColor(color.X, color.Y, color.Z, color.W);
+    return Rendering::CubismRenderer::CubismTextureColor(tmpColor.X, tmpColor.Y, tmpColor.Z, tmpColor.W);
 }
 
 Rendering::CubismRenderer::CubismTextureColor CubismModel::GetScreenColor(csmInt32 drawableIndex) const
 {
     if (GetOverrideFlagForModelScreenColors() || GetOverrideFlagForDrawableScreenColors(drawableIndex))
     {
-        return _userScreenColors[drawableIndex].Color;
+        return _userDrawableScreenColors[drawableIndex].Color;
     }
+    const Core::csmVector4 tmpColor = GetDrawableScreenColor(drawableIndex);
 
-    const Core::csmVector4 color = GetDrawableScreenColor(drawableIndex);
-    return Rendering::CubismRenderer::CubismTextureColor(color.X, color.Y, color.Z, color.W);
+    return Rendering::CubismRenderer::CubismTextureColor(tmpColor.X, tmpColor.Y, tmpColor.Z, tmpColor.W);
 }
 
 void CubismModel::SetMultiplyColor(csmInt32 drawableIndex, const Rendering::CubismRenderer::CubismTextureColor& color)
@@ -807,10 +1036,10 @@ void CubismModel::SetMultiplyColor(csmInt32 drawableIndex, const Rendering::Cubi
 
 void CubismModel::SetMultiplyColor(csmInt32 drawableIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
 {
-    _userMultiplyColors[drawableIndex].Color.R = r;
-    _userMultiplyColors[drawableIndex].Color.G = g;
-    _userMultiplyColors[drawableIndex].Color.B = b;
-    _userMultiplyColors[drawableIndex].Color.A = a;
+    _userDrawableMultiplyColors[drawableIndex].Color.R = r;
+    _userDrawableMultiplyColors[drawableIndex].Color.G = g;
+    _userDrawableMultiplyColors[drawableIndex].Color.B = b;
+    _userDrawableMultiplyColors[drawableIndex].Color.A = a;
 }
 
 void CubismModel::SetScreenColor(csmInt32 drawableIndex, const Rendering::CubismRenderer::CubismTextureColor& color)
@@ -820,10 +1049,10 @@ void CubismModel::SetScreenColor(csmInt32 drawableIndex, const Rendering::Cubism
 
 void CubismModel::SetScreenColor(csmInt32 drawableIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
 {
-    _userScreenColors[drawableIndex].Color.R = r;
-    _userScreenColors[drawableIndex].Color.G = g;
-    _userScreenColors[drawableIndex].Color.B = b;
-    _userScreenColors[drawableIndex].Color.A = a;
+    _userDrawableScreenColors[drawableIndex].Color.R = r;
+    _userDrawableScreenColors[drawableIndex].Color.G = g;
+    _userDrawableScreenColors[drawableIndex].Color.B = b;
+    _userDrawableScreenColors[drawableIndex].Color.A = a;
 }
 
 Rendering::CubismRenderer::CubismTextureColor CubismModel::GetPartMultiplyColor(csmInt32 partIndex) const
@@ -844,8 +1073,8 @@ void CubismModel::SetPartMultiplyColor(csmInt32 partIndex, const Rendering::Cubi
 void CubismModel::SetPartColor(
     csmUint32 partIndex,
     csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a,
-    csmVector<PartColorData>& partColors,
-    csmVector <DrawableColorData>& drawableColors)
+    csmVector<ColorData>& partColors,
+    csmVector<ColorData>& drawableColors)
 {
     partColors[partIndex].Color.R = r;
     partColors[partIndex].Color.G = g;
@@ -854,7 +1083,7 @@ void CubismModel::SetPartColor(
 
     if (partColors[partIndex].IsOverridden)
     {
-        for (csmUint32 i = 0; i < _partChildDrawables[partIndex].GetSize(); i++)
+        for (csmUint32 i = 0; i < _partChildDrawables[partIndex].GetSize(); ++i)
         {
             csmUint32 drawableIndex = _partChildDrawables[partIndex][i];
             drawableColors[drawableIndex].Color.R = r;
@@ -867,7 +1096,7 @@ void CubismModel::SetPartColor(
 
 void CubismModel::SetPartMultiplyColor(csmInt32 partIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
 {
-    SetPartColor(partIndex, r, g, b, a, _userPartMultiplyColors, _userMultiplyColors);
+    SetPartColor(partIndex, r, g, b, a, _userPartMultiplyColors, _userDrawableMultiplyColors);
 }
 
 void CubismModel::SetPartScreenColor(csmInt32 partIndex, const Rendering::CubismRenderer::CubismTextureColor& color)
@@ -877,7 +1106,55 @@ void CubismModel::SetPartScreenColor(csmInt32 partIndex, const Rendering::Cubism
 
 void CubismModel::SetPartScreenColor(csmInt32 partIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
 {
-    SetPartColor(partIndex, r, g, b, a, _userPartScreenColors, _userScreenColors);
+    SetPartColor(partIndex, r, g, b, a, _userPartScreenColors, _userDrawableScreenColors);
+}
+
+Rendering::CubismRenderer::CubismTextureColor CubismModel::GetMultiplyColorOffscreen(csmInt32 offscreenIndex) const
+{
+    if (GetOverrideFlagForModelMultiplyColors() || GetOverrideFlagForOffscreenMultiplyColors(offscreenIndex))
+    {
+        return _userOffscreenMultiplyColors[offscreenIndex].Color;
+    }
+    const Core::csmVector4 tmpColor = GetOffscreenMultiplyColor(offscreenIndex);
+
+    return Rendering::CubismRenderer::CubismTextureColor(tmpColor.X, tmpColor.Y, tmpColor.Z, tmpColor.W);
+}
+
+Rendering::CubismRenderer::CubismTextureColor CubismModel::GetScreenColorOffscreen(csmInt32 offscreenIndex) const
+{
+    if (GetOverrideFlagForModelScreenColors() || GetOverrideFlagForOffscreenScreenColors(offscreenIndex))
+    {
+        return _userOffscreenScreenColors[offscreenIndex].Color;
+    }
+    const Core::csmVector4 tmpColor = GetOffscreenScreenColor(offscreenIndex);
+
+    return Rendering::CubismRenderer::CubismTextureColor(tmpColor.X, tmpColor.Y, tmpColor.Z, tmpColor.W);
+}
+
+void CubismModel::SetMultiplyColorOffscreen(csmInt32 offscreenIndex, const Rendering::CubismRenderer::CubismTextureColor& color)
+{
+    SetMultiplyColorOffscreen(offscreenIndex, color.R, color.G, color.B, color.A);
+}
+
+void CubismModel::SetMultiplyColorOffscreen(csmInt32 offscreenIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
+{
+    _userOffscreenMultiplyColors[offscreenIndex].Color.R = r;
+    _userOffscreenMultiplyColors[offscreenIndex].Color.G = g;
+    _userOffscreenMultiplyColors[offscreenIndex].Color.B = b;
+    _userOffscreenMultiplyColors[offscreenIndex].Color.A = a;
+}
+
+void CubismModel::SetScreenColorOffscreen(csmInt32 offscreenIndex, const Rendering::CubismRenderer::CubismTextureColor& color)
+{
+    SetScreenColorOffscreen(offscreenIndex, color.R, color.G, color.B, color.A);
+}
+
+void CubismModel::SetScreenColorOffscreen(csmInt32 offscreenIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a)
+{
+    _userOffscreenScreenColors[offscreenIndex].Color.R = r;
+    _userOffscreenScreenColors[offscreenIndex].Color.G = g;
+    _userOffscreenScreenColors[offscreenIndex].Color.B = b;
+    _userOffscreenScreenColors[offscreenIndex].Color.A = a;
 }
 
 csmBool CubismModel::GetOverrideFlagForModelParameterRepeat() const
@@ -967,7 +1244,7 @@ csmBool CubismModel::GetOverwriteFlagForDrawableMultiplyColors(csmInt32 drawable
 
 csmBool CubismModel::GetOverrideFlagForDrawableMultiplyColors(csmInt32 drawableIndex) const
 {
-    return _userMultiplyColors[drawableIndex].IsOverridden;
+    return _userDrawableMultiplyColors[drawableIndex].IsOverridden;
 }
 
 csmBool CubismModel::GetOverwriteFlagForDrawableScreenColors(csmInt32 drawableIndex) const
@@ -979,7 +1256,7 @@ csmBool CubismModel::GetOverwriteFlagForDrawableScreenColors(csmInt32 drawableIn
 
 csmBool CubismModel::GetOverrideFlagForDrawableScreenColors(csmInt32 drawableIndex) const
 {
-    return _userScreenColors[drawableIndex].IsOverridden;
+    return _userDrawableScreenColors[drawableIndex].IsOverridden;
 }
 
 void CubismModel::SetOverwriteFlagForDrawableMultiplyColors(csmUint32 drawableIndex, csmBool value)
@@ -991,7 +1268,7 @@ void CubismModel::SetOverwriteFlagForDrawableMultiplyColors(csmUint32 drawableIn
 
 void CubismModel::SetOverrideFlagForDrawableMultiplyColors(csmUint32 drawableIndex, csmBool value)
 {
-    _userMultiplyColors[drawableIndex].IsOverridden = value;
+    _userDrawableMultiplyColors[drawableIndex].IsOverridden = value;
 }
 
 void CubismModel::SetOverwriteFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value)
@@ -1003,7 +1280,7 @@ void CubismModel::SetOverwriteFlagForDrawableScreenColors(csmUint32 drawableInde
 
 void CubismModel::SetOverrideFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value)
 {
-    _userScreenColors[drawableIndex].IsOverridden = value;
+    _userDrawableScreenColors[drawableIndex].IsOverridden = value;
 }
 
 csmBool CubismModel::GetOverwriteColorForPartMultiplyColors(csmInt32 partIndex) const
@@ -1033,12 +1310,12 @@ csmBool CubismModel::GetOverrideColorForPartScreenColors(csmInt32 partIndex) con
 void CubismModel::SetOverrideColorForPartColors(
     csmUint32 partIndex,
     csmBool value,
-    csmVector<PartColorData>& partColors,
-    csmVector <DrawableColorData>& drawableColors)
+    csmVector<ColorData>& partColors,
+    csmVector<ColorData>& drawableColors)
 {
     partColors[partIndex].IsOverridden = value;
 
-    for (csmUint32 i = 0; i < _partChildDrawables[partIndex].GetSize(); i++)
+    for (csmUint32 i = 0; i < _partChildDrawables[partIndex].GetSize(); ++i)
     {
         csmUint32 drawableIndex = _partChildDrawables[partIndex][i];
         drawableColors[drawableIndex].IsOverridden = value;
@@ -1062,7 +1339,7 @@ void CubismModel::SetOverwriteColorForPartMultiplyColors(csmUint32 partIndex, cs
 void CubismModel::SetOverrideColorForPartMultiplyColors(csmUint32 partIndex, csmBool value)
 {
     _userPartMultiplyColors[partIndex].IsOverridden = value;
-    SetOverrideColorForPartColors(partIndex, value, _userPartMultiplyColors, _userMultiplyColors);
+    SetOverrideColorForPartColors(partIndex, value, _userPartMultiplyColors, _userDrawableMultiplyColors);
 }
 
 void CubismModel::SetOverwriteColorForPartScreenColors(csmUint32 partIndex, csmBool value)
@@ -1075,14 +1352,34 @@ void CubismModel::SetOverwriteColorForPartScreenColors(csmUint32 partIndex, csmB
 void CubismModel::SetOverrideColorForPartScreenColors(csmUint32 partIndex, csmBool value)
 {
     _userPartScreenColors[partIndex].IsOverridden = value;
-    SetOverrideColorForPartColors(partIndex, value, _userPartScreenColors, _userScreenColors);
+    SetOverrideColorForPartColors(partIndex, value, _userPartScreenColors, _userDrawableScreenColors);
+}
+
+csmBool CubismModel::GetOverrideFlagForOffscreenMultiplyColors(csmInt32 offscreenIndex) const
+{
+    return _userOffscreenMultiplyColors[offscreenIndex].IsOverridden;
+}
+
+csmBool CubismModel::GetOverrideFlagForOffscreenScreenColors(csmInt32 offscreenIndex) const
+{
+    return _userOffscreenScreenColors[offscreenIndex].IsOverridden;
+}
+
+void CubismModel::SetOverrideFlagForOffscreenMultiplyColors(csmUint32 offscreenIndex, csmBool value)
+{
+    _userOffscreenMultiplyColors[offscreenIndex].IsOverridden = value;
+}
+
+void CubismModel::SetOverrideFlagForOffscreenScreenColors(csmUint32 offscreenIndex, csmBool value)
+{
+    _userOffscreenScreenColors[offscreenIndex].IsOverridden = value;
 }
 
 csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
 {
     if (GetOverrideFlagForModelCullings() || GetOverrideFlagForDrawableCullings(drawableIndex))
     {
-        return _userCullings[drawableIndex].IsCulling;
+        return _userDrawableCullings[drawableIndex].IsCulling;
     }
 
     const Core::csmFlags* constantFlags = Core::csmGetDrawableConstantFlags(_model);
@@ -1091,7 +1388,23 @@ csmInt32 CubismModel::GetDrawableCulling(csmInt32 drawableIndex) const
 
 void CubismModel::SetDrawableCulling(csmInt32 drawableIndex, csmInt32 isCulling)
 {
-    _userCullings[drawableIndex].IsCulling = isCulling;
+    _userDrawableCullings[drawableIndex].IsCulling = isCulling;
+}
+
+csmInt32 CubismModel::GetOffscreenCulling(csmInt32 offscreenIndex) const
+{
+    if (GetOverrideFlagForModelCullings() || GetOverrideFlagForOffscreenCullings(offscreenIndex))
+    {
+        return _userOffscreenCullings[offscreenIndex].IsCulling;
+    }
+
+    const Core::csmFlags* constantFlags = Core::csmGetOffscreenConstantFlags(_model);
+    return !IsBitSet(constantFlags[offscreenIndex], Core::csmIsDoubleSided);
+}
+
+void CubismModel::SetOffscreenCulling(csmInt32 offscreenIndex, csmInt32 isCulling)
+{
+    _userOffscreenCullings[offscreenIndex].IsCulling = isCulling;
 }
 
 csmBool CubismModel::GetOverwriteFlagForModelCullings() const
@@ -1127,7 +1440,7 @@ csmBool CubismModel::GetOverwriteFlagForDrawableCullings(csmInt32 drawableIndex)
 
 csmBool CubismModel::GetOverrideFlagForDrawableCullings(csmInt32 drawableIndex) const
 {
-    return _userCullings[drawableIndex].IsOverridden;
+    return _userDrawableCullings[drawableIndex].IsOverridden;
 }
 
 void CubismModel::SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)
@@ -1139,7 +1452,22 @@ void CubismModel::SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, c
 
 void CubismModel::SetOverrideFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)
 {
-    _userCullings[drawableIndex].IsOverridden = value;
+    _userDrawableCullings[drawableIndex].IsOverridden = value;
+}
+
+csmBool CubismModel::GetOverrideFlagForOffscreenCullings(csmInt32 offscreenIndex) const
+{
+    return _userOffscreenCullings[offscreenIndex].IsOverridden;
+}
+
+void CubismModel::SetOverrideFlagForOffscreenCullings(csmInt32 offscreenIndex, csmBool value)
+{
+    _userOffscreenCullings[offscreenIndex].IsOverridden = value;
+}
+
+csmBool CubismModel::IsBlendModeEnabled() const
+{
+    return _isBlendModeEnabled;
 }
 
 csmFloat32 CubismModel::GetModelOpacity()
@@ -1152,6 +1480,66 @@ void CubismModel::SetModelOpacity(csmFloat32 value)
     _modelOpacity = value;
 }
 
+void CubismModel::GetPartChildDrawObjects(csmInt32 partInfoIndex)
+{
+    if (_partsHierarchy[partInfoIndex].GetChildObjectCount() < 1)
+    {
+        return;
+    }
+
+    PartChildDrawObjects& childDrawObjects = _partsHierarchy[partInfoIndex].ChildDrawObjects;
+
+    // 既にchildDrawObjectsが処理されている場合はスキップ
+    if (childDrawObjects.DrawableIndices.GetSize() != 0 ||
+        childDrawObjects.OffscreenIndices.GetSize() != 0)
+    {
+        return;
+    }
+
+    csmVector<CubismModelObjectInfo>& objects = _partsHierarchy[partInfoIndex].Objects;
+
+    for (csmInt32 i = 0; i < objects.GetSize(); ++i)
+    {
+        if (objects[i].ObjectType == CubismModelObjectInfo::ObjectType_Parts)
+        {
+            // 子のパーツの場合、再帰的に子objectsを取得
+            GetPartChildDrawObjects(objects[i].ObjectIndex);
+
+            // 子パーツの子Drawable、Offscreenを取得
+            PartChildDrawObjects childToChildDrawObjects = _partsHierarchy[_partsHierarchy[partInfoIndex].Objects[i].ObjectIndex].ChildDrawObjects;
+
+            for (csmInt32 j = 0; j < childToChildDrawObjects.DrawableIndices.GetSize(); ++j)
+            {
+                // 孫Drawableをパーツの子Drawableに追加
+                childDrawObjects.DrawableIndices.PushBack(childToChildDrawObjects.DrawableIndices[j]);
+            }
+            for (csmInt32 j = 0; j < childToChildDrawObjects.OffscreenIndices.GetSize(); ++j)
+            {
+                // 孫Offscreenをパーツの子Offscreenに追加
+                childDrawObjects.OffscreenIndices.PushBack(childToChildDrawObjects.OffscreenIndices[j]);
+            }
+
+            // Offscreenの確認
+            csmInt32 offscreenIndex = Core::csmGetPartOffscreenIndices(_model)[objects[i].ObjectIndex];
+            if (offscreenIndex != CubismNoIndex_Offscreen)
+            {
+                // Offscreenが存在する場合、パーツの子Offscreenに追加
+                childDrawObjects.OffscreenIndices.PushBack(offscreenIndex);
+            }
+        }
+        else if (objects[i].ObjectType == CubismModelObjectInfo::ObjectType_Drawable)
+        {
+            // Drawableの場合、パーツの子Drawableに追加
+            childDrawObjects.DrawableIndices.PushBack(objects[i].ObjectIndex);
+        }
+    }
+}
+
+csmVector<CubismModel::CubismModelPartInfo> CubismModel::GetPartsHierarchy() const
+{
+    return _partsHierarchy;
+}
+
 Core::csmModel* CubismModel::GetModel() const
 {
     return _model;
@@ -1162,6 +1550,20 @@ csmBool CubismModel::IsUsingMasking() const
     for (csmInt32 d = 0; d < Core::csmGetDrawableCount(_model); ++d)
     {
         if (Core::csmGetDrawableMaskCounts(_model)[d] <= 0)
+        {
+            continue;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+csmBool CubismModel::IsUsingMaskingForOffscreen() const
+{
+    for (csmInt32 d = 0; d < Core::csmGetOffscreenCount(_model); ++d)
+    {
+        if (Core::csmGetOffscreenMaskCounts(_model)[d] <= 0)
         {
             continue;
         }

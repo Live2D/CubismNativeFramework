@@ -6,9 +6,6 @@
  */
 
 #include "CubismRenderState_D3D9.hpp"
-#include "CubismShader_D3D9.hpp"
-#include "CubismRenderer_D3D9.hpp"
-#include "Type/csmVector.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {

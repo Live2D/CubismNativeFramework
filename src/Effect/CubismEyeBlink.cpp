@@ -52,7 +52,7 @@ CubismEyeBlink::~CubismEyeBlink()
 
 csmFloat32 CubismEyeBlink::DetermineNextBlinkingTiming() const
 {
-    const csmFloat32 r = static_cast<csmFloat32>(rand()) / RAND_MAX;
+    const csmFloat32 r = static_cast<csmFloat32>(rand()) / static_cast<csmFloat32>(RAND_MAX);
 
     return _userTimeSeconds + (r * (2.0f * _blinkingIntervalSeconds - 1.0f));
 }

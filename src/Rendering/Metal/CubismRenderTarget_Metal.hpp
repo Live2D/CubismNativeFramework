@@ -8,7 +8,7 @@
 #pragma once
 
 #include <MetalKit/MetalKit.h>
-#include "CubismFramework.hpp"
+#include "Rendering/CubismRenderTarget.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
@@ -16,29 +16,49 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismOffscreenSurface_Metal
+class CubismRenderTarget_Metal : public CubismRenderTarget<CubismRenderTarget_Metal>
 {
 public:
 
-    CubismOffscreenSurface_Metal();
+    /**
+    * @brief オフスクリーンサーフェス間でカラーバッファをコピーする
+    *
+    * @param  src コピー元
+    * @param  dst コピー先
+    * @param  blitEncoder MTLBlitCommandEncoder
+    */
+    static void CopyBuffer(CubismRenderTarget_Metal& src, CubismRenderTarget_Metal& dst, id <MTLBlitCommandEncoder> blitEncoder);
 
     /**
-     * @brief  CubismOffscreenSurface作成
+     * @brief   コンストラクタ
+     */
+    CubismRenderTarget_Metal();
+
+    /**
+     * @brief  CubismRenderTarget作成
+     * @param  device   デバイス
      * @param  displayBufferWidth     作成するバッファ幅
      * @param  displayBufferHeight    作成するバッファ高さ
      * @param  colorBuffer            0以外の場合、ピクセル格納領域としてcolorBufferを使用する
+     * @param  depthBuffer            0以外の場合、深度納領域としてdepthBufferを使用する
+     * @return 成功時はtrue、失敗時はfalse
      */
-    csmBool CreateOffscreenSurface(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer = NULL);
+    csmBool CreateRenderTarget(id<MTLDevice> device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer = NULL, id <MTLTexture> depthBuffer = NULL);
 
     /**
-     * @brief   CubismOffscreenSurfaceの削除
+     * @brief   CubismRenderTargetの削除
      */
-    void DestroyOffscreenSurface();
+    void DestroyRenderTarget();
 
     /**
      * @brief   カラーバッファメンバーへのアクセッサ
      */
     id <MTLTexture> GetColorBuffer() const;
+
+    /**
+     * @brief   深度バッファメンバーへのアクセッサ
+     */
+    id <MTLTexture> GetDepthBuffer() const;
 
     /**
      * @brief   カラー設定
@@ -71,21 +91,30 @@ public:
     MTLRenderPassDescriptor* GetRenderPassDescriptor() const;
 
     /**
+    * @brief 指定したカラーアタッチメントのロードアクションを設定する
+    *
+    * @param  action 設定するロードアクション
+    * @param  setColorAttachmentIndex 対象のカラーアタッチメントインデックス
+    */
+    void SetColorAttachmentLoadAction(MTLLoadAction action, csmUint32 setColorAttachmentIndex = 0);
+
+    /**
      * @brief   MTLPixelFormat指定
      */
     void SetMTLPixelFormat(MTLPixelFormat pixelFormat);
 
 private:
     id <MTLTexture>  _colorBuffer; ///レンダーテクスチャ
+    id <MTLTexture>  _depthBuffer; ///深度用テクスチャ
     MTLRenderPassDescriptor *_renderPassDescriptor;
     csmUint32   _bufferWidth;           ///< Create時に指定された幅
     csmUint32   _bufferHeight;          ///< Create時に指定された高さ
     MTLViewport _viewPort;
     MTLPixelFormat _pixelFormat;
-    float _clearColorR;
-    float _clearColorG;
-    float _clearColorB;
-    float _clearColorA;
+    csmFloat32 _clearColorR;
+    csmFloat32 _clearColorG;
+    csmFloat32 _clearColorB;
+    csmFloat32 _clearColorA;
 };
 
 }}}}

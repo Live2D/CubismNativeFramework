@@ -188,6 +188,7 @@ public:
     {
         // csmVector<T>をフレンドクラスとする
         friend class csmVector;
+        friend class csmVectorSort;
 
     public:
         /**
@@ -298,6 +299,7 @@ public:
     {
         // csmVector<T>をフレンドクラスとする
         friend class csmVector;
+        friend class csmVectorSort;
 
     public:
         /**

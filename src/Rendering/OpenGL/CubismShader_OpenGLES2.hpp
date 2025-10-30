@@ -78,7 +78,7 @@ public:
      * @param[in]   model                 ->  描画対象のモデル
      * @param[in]   index                 ->  描画対象のメッシュのインデックス
      */
-    void SetupShaderProgramForDraw(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index);
+    void SetupShaderProgramForDrawable(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index);
 
     /**
      * @brief   マスク用のシェーダプログラムの一連のセットアップを実行する
@@ -89,7 +89,84 @@ public:
      */
     void SetupShaderProgramForMask(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index);
 
+    /**
+     * @brief   オフスクリーンからのシェーダプログラムの一連のセットアップを実行する
+     *
+     * @param[in]   renderer              ->  レンダラー
+     */
+    void SetupShaderProgramForOffscreenRenderTarget(CubismRenderer_OpenGLES2* renderer);
+
+    /**
+     * @brief   オフスクリーンからのシェーダプログラムの一連のセットアップを実行する
+     *
+     * @param[in]   renderer              ->  レンダラー
+     * @param[in]   model               ->  描画対象のモデル
+     * @param[in]   offscreen            ->  描画対象のオフスクリーン
+     */
+    void SetupShaderProgramForOffscreen(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const CubismRenderTarget_OpenGLES2* offscreen);
+
+    /**
+     * @brief   シェーダを使って描画対象をコピーする
+     *
+     * @param[in]   texture               ->  テクスチャ
+     * @param[in]   srcColor               ->  ソースカラーのブレンド係数
+     * @param[in]   dstColor               ->  デスティネーションカラーのブレンド係数
+     * @param[in]   srcAlpha               ->  ソースアルファのブレンド係数
+     * @param[in]   dstAlpha               ->  デスティネーションアルファのブレンド係数
+     */
+    void CopyTexture(
+        GLint texture,
+        csmInt32 srcColor = GL_ONE,
+        csmInt32 dstColor = GL_ZERO,
+        csmInt32 srcAlpha = GL_ONE,
+        csmInt32 dstAlpha = GL_ZERO,
+        CubismRenderer::CubismTextureColor baseColor = CubismRenderer::CubismTextureColor()
+    );
+
 private:
+    enum MaskType
+    {
+        MaskType_None,
+        MaskType_Masked,
+        MaskType_MaskedInverted,
+        MaskType_PremultipliedAlpha,
+        MaskType_MaskedPremultipliedAlpha,
+        MaskType_MaskedInvertedPremultipliedAlpha,
+    };
+
+    enum ColorBlendMode
+    {
+        ColorBlendMode_None = -1,
+        ColorBlendMode_Nomal,
+        ColorBlendMode_Add,
+        ColorBlendMode_AddGlow,
+        ColorBlendMode_Darken,
+        ColorBlendMode_Multiply,
+        ColorBlendMode_ColorBurn,
+        ColorBlendMode_LinearBurn,
+        ColorBlendMode_Lighten,
+        ColorBlendMode_Screen,
+        ColorBlendMode_ColorDodge,
+        ColorBlendMode_Overlay,
+        ColorBlendMode_SoftLight,
+        ColorBlendMode_HardLight,
+        ColorBlendMode_LinearLight,
+        ColorBlendMode_Hue,
+        ColorBlendMode_Color,
+        ColorBlendMode_Count,
+    };
+
+    enum AlphaBlendMode
+    {
+        AlphaBlendMode_None = -1,
+        AlphaBlendMode_Over,
+        AlphaBlendMode_Atop,
+        AlphaBlendMode_Out,
+        AlphaBlendMode_ConjointOver,
+        AlphaBlendMode_DisjointOver,
+        AlphaBlendMode_Count,
+    };
+
     /**
     * @bref    シェーダープログラムとシェーダ変数のアドレスを保持する構造体
     *
@@ -103,11 +180,29 @@ private:
         GLint UniformClipMatrixLocation;    ///< シェーダプログラムに渡す変数のアドレス(ClipMatrix)
         GLint SamplerTexture0Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture0)
         GLint SamplerTexture1Location;      ///< シェーダプログラムに渡す変数のアドレス(Texture1)
+        GLint SamplerBlendTextureLocation;  ///< シェーダプログラムに渡す変数のアドレス(BlendTexture)
         GLint UniformBaseColorLocation;     ///< シェーダプログラムに渡す変数のアドレス(BaseColor)
         GLint UniformMultiplyColorLocation; ///< シェーダプログラムに渡す変数のアドレス(MultiplyColor)
         GLint UniformScreenColorLocation;   ///< シェーダプログラムに渡す変数のアドレス(ScreenColor)
         GLint UnifromChannelFlagLocation;   ///< シェーダプログラムに渡す変数のアドレス(ChannelFlag)
     };
+    /**
+     * @brief   CubismShaderSetを設定する
+     *
+     * @param[in]   shaderSets   ->  シェーダの設定
+     * @param[in]   maskType     ->  マスクの種類
+     * @param[in]   isBlendMode  ->  ブレンドモードを使用するか
+     */
+    static void SetShaderSet(CubismShaderSet& shaderSets, MaskType maskType, csmBool isBlendMode = false);
+
+    /**
+     * @brief   どのシェーダーを利用するかを取得する
+     *
+     * @param[in]   blendMode  ->  ブレンドモード
+     *
+     * @return  使用するシェーダの値を返す
+     */
+    static csmInt32 GetShaderNamesBegin(const csmBlendMode blendMode);
 
     /**
      * @brief   privateなコンストラクタ
@@ -132,12 +227,14 @@ private:
     /**
      * @brief   ファイルからシェーダプログラムをロードし、シェーダーオブジェクトの番号を返す。
      *
-     * @param[in]   vertShaderSrc   ->  頂点シェーダのファイルパス
-     * @param[in]   fragShaderSrc   ->  フラグメントシェーダのファイルパス
+     * @param[in]   vertShaderSrc    ->  頂点シェーダのファイルパス
+     * @param[in]   fragShaderSrc    ->  フラグメントシェーダのファイルパス
+     * @param[in]   colorBlendMode   ->  ブレンドカラーモード
+     * @param[in]   alphaBlendMode ->  オーバーラップカラーモード
      *
      * @return  シェーダーオブジェクトの番号
      */
-    GLuint LoadShaderProgramFromFile(const csmChar* vertShaderPath, const csmChar* fragShaderPath);
+    GLuint LoadShaderProgramFromFile(const csmChar* vertShaderPath, const csmChar* fragShaderPath, csmInt32 colorBlendMode = ColorBlendMode_None, csmInt32 alphaBlendMode = AlphaBlendMode_None);
 
     /**
      * @brief   シェーダプログラムをロードしてアドレス返す。

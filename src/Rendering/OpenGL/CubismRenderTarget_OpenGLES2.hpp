@@ -7,11 +7,7 @@
 
 #pragma once
 
-#include "CubismFramework.hpp"
-#include "Type/csmVector.hpp"
-#include "Type/csmRectF.hpp"
-#include "Type/csmMap.hpp"
-#include <float.h>
+#include "Rendering/CubismRenderTarget.hpp"
 
 #ifdef CSM_TARGET_ANDROID_ES2
 #include <jni.h>
@@ -49,11 +45,24 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismOffscreenSurface_OpenGLES2
+class CubismRenderTarget_OpenGLES2 : public CubismRenderTarget<CubismRenderTarget_OpenGLES2>
 {
 public:
+#if !defined(CSM_TARGET_ANDROID_ES2) && !defined(CSM_TARGET_IPHONE_ES2)
+    /**
+     * @brief   バッファーの内容をコピーする
+     *
+     * @param   src   バッファーのコピー元
+     * @param   dst   バッファーのコピー先
+     */
+    static void CopyBuffer(const CubismRenderTarget_OpenGLES2& src, const CubismRenderTarget_OpenGLES2& dst);
+#endif
 
-    CubismOffscreenSurface_OpenGLES2();
+    /**
+     * @brief   コンストラクタ
+     *
+     */
+    CubismRenderTarget_OpenGLES2();
 
     /**
      * @brief   指定の描画ターゲットに向けて描画開始
@@ -71,6 +80,7 @@ public:
     /**
      * @brief   レンダリングターゲットのクリア
      *           呼ぶ場合はBeginDrawの後で呼ぶこと
+     *
      * @param   r   赤(0.0~1.0)
      * @param   g   緑(0.0~1.0)
      * @param   b   青(0.0~1.0)
@@ -79,17 +89,18 @@ public:
     void Clear(float r, float g, float b, float a);
 
     /**
-     *  @brief  CubismOffscreenSurface作成
+     *  @brief  CubismRenderTarget作成
+     *
      *  @param  displayBufferWidth     作成するバッファ幅
      *  @param  displayBufferHeight    作成するバッファ高さ
      *  @param  colorBuffer            0以外の場合、ピクセル格納領域としてcolorBufferを使用する
      */
-    csmBool CreateOffscreenSurface(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, GLuint colorBuffer = 0);
+    csmBool CreateRenderTarget(csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, GLuint colorBuffer = 0);
 
     /**
-     * @brief   CubismOffscreenSurfaceの削除
+     * @brief   CubismRenderTargetの削除
      */
-    void DestroyOffscreenSurface();
+    void DestroyRenderTarget();
 
     /**
      * @brief   レンダーテクスチャメンバーへのアクセッサ
@@ -116,6 +127,11 @@ public:
      */
     csmBool IsValid() const;
 
+    /**
+     * @brief   旧フレームバッファの取得
+     */
+    GLint GetOldFBO() const;
+
 private:
     GLuint      _renderTexture;         ///< レンダリングターゲットとしてのアドレス
     GLuint      _colorBuffer;           ///< 描画の際使用するテクスチャとしてのアドレス
@@ -126,8 +142,6 @@ private:
     csmUint32   _bufferHeight;          ///< Create時に指定された高さ
     csmBool     _isColorBufferInherited;    ///< 引数によって設定されたカラーバッファか？
 };
-
-
 }}}}
 
 //------------ LIVE2D NAMESPACE ------------

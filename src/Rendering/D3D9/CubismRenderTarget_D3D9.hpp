@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "Rendering/CubismRenderTarget.hpp"
 #include "CubismNativeInclude_D3D9.hpp"
 
 #include "Math/CubismMatrix44.hpp"
@@ -18,11 +19,19 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismOffscreenSurface_D3D9
+    class CubismRenderTarget_D3D9 : public CubismRenderTarget<CubismRenderTarget_D3D9>
 {
 public:
+    /**
+     * @brief   バッファーの内容をコピーする
+     */
+    static void CopyBuffer(LPDIRECT3DDEVICE9 device, CubismRenderTarget_D3D9& src, CubismRenderTarget_D3D9& dst);
 
-    CubismOffscreenSurface_D3D9();
+    /**
+     * @brief   コンストラクタ
+     *
+     */
+    CubismRenderTarget_D3D9();
 
     /**
      * @brief   指定の描画ターゲットに向けて描画開始
@@ -49,17 +58,17 @@ public:
     void Clear(LPDIRECT3DDEVICE9 device, float r, float g, float b, float a);
 
     /**
-     *  @brief  CubismOffscreenSurface作成
+     *  @brief  CubismRenderTarget作成
      *  @param  device[in]                D3dデバイス
      *  @param  displayBufferWidth[in]     作成するバッファ幅
      *  @param  displayBufferHeight[in]    作成するバッファ高さ
      */
-    csmBool CreateOffscreenSurface(LPDIRECT3DDEVICE9 device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight);
+    csmBool CreateRenderTarget(LPDIRECT3DDEVICE9 device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight);
 
     /**
-     * @brief   CubismOffscreenSurfaceの削除
+     * @brief   CubismRenderTargetの削除
      */
-    void DestroyOffscreenSurface();
+    void DestroyRenderTarget();
 
     /**
      * @brief   テクスチャメンバーへのアクセッサ
@@ -92,7 +101,6 @@ private:
     csmUint32           _bufferWidth;       ///< Create時に指定されたサイズ
     csmUint32           _bufferHeight;      ///< Create時に指定されたサイズ
 };
-
 
 }}}}
 

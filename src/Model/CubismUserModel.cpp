@@ -256,6 +256,14 @@ void CubismUserModel::IsUpdating(csmBool v)
     _updating = v;
 }
 
+void CubismUserModel::SetRenderTargetSize(csmUint32 width, csmUint32 height)
+{
+    if (_renderer)
+    {
+        _renderer->SetRenderTargetSize(width, height);
+    }
+}
+
 void CubismUserModel::SetOpacity(csmFloat32 a)
 {
     _opacity = a;
@@ -271,13 +279,18 @@ CubismModel* CubismUserModel::GetModel() const
     return _model;
 }
 
-void CubismUserModel::CreateRenderer(csmInt32 maskBufferCount)
+Core::csmMocVersion CubismUserModel::GetMocVersionFromBuffer(const csmByte* buffer, csmSizeInt size)
+{
+    return CubismMoc::GetMocVersionFromBuffer(buffer, size);
+}
+
+void CubismUserModel::CreateRenderer(csmUint32 width, csmUint32 height, csmInt32 maskBufferCount)
 {
     if (_renderer)
     {
         DeleteRenderer();
     }
-    _renderer = Rendering::CubismRenderer::Create();
+    _renderer = Rendering::CubismRenderer::Create(width, height);
 
     _renderer->Initialize(_model, maskBufferCount);
 }

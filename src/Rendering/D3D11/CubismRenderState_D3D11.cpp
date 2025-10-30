@@ -6,19 +6,16 @@
  */
 
 #include "CubismRenderState_D3D11.hpp"
-#include "CubismShader_D3D11.hpp"
-#include "CubismRenderer_D3D11.hpp"
-#include "Type/csmVector.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-CubismRenderState_D3D11::CubismRenderState_D3D11()
+CubismRenderState_D3D11::CubismRenderState_D3D11(ID3D11Device* device)
 {
     //
     memset(_stored._valid, 0, sizeof(_stored._valid));
 
-    Create(CubismRenderer_D3D11::GetCurrentDevice());
+    Create(device);
 }
 
 CubismRenderState_D3D11::~CubismRenderState_D3D11()
@@ -77,7 +74,7 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
         return;
     }
 
-// Blend
+    // Blend
     ID3D11BlendState* state = NULL;
     D3D11_BLEND_DESC blendDesc;
     memset(&blendDesc, 0, sizeof(blendDesc));
@@ -123,6 +120,14 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateBlendState(&blendDesc, &state);
     _blendStateObjects.PushBack(state);
 
+    // 5.3ブレンドモード
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    device->CreateBlendState(&blendDesc, &state);
+    _blendStateObjects.PushBack(state);
+
     // マスク
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ZERO;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_COLOR;
@@ -131,8 +136,15 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     device->CreateBlendState(&blendDesc, &state);
     _blendStateObjects.PushBack(state);
 
+    // コピー
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+    device->CreateBlendState(&blendDesc, &state);
+    _blendStateObjects.PushBack(state);
 
-// ラスタライザ
+    // ラスタライザ
     ID3D11RasterizerState* rasterizer = NULL;
     D3D11_RASTERIZER_DESC rasterDesc;
     memset(&rasterDesc, 0, sizeof(rasterDesc));
@@ -198,6 +210,12 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     samplerDesc.MinLOD = -D3D11_FLOAT32_MAX;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
     samplerDesc.BorderColor[0] = samplerDesc.BorderColor[1] = samplerDesc.BorderColor[2] = samplerDesc.BorderColor[3] = 1.0f;
+    device->CreateSamplerState(&samplerDesc, &sampler);
+    _samplerState.PushBack(sampler);
+
+    // anisotropy
+    samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+    samplerDesc.MaxAnisotropy = 2;
     device->CreateSamplerState(&samplerDesc, &sampler);
     _samplerState.PushBack(sampler);
 }
@@ -358,27 +376,32 @@ void CubismRenderState_D3D11::SetZEnable(ID3D11DeviceContext* renderContext, Dep
 
 void CubismRenderState_D3D11::SetSampler(ID3D11DeviceContext* renderContext, Sampler sample, csmFloat32 anisotropy, ID3D11Device* device, csmBool force)
 {
-    if (!renderContext || sample<0 || Sampler_Max <= sample)
+    if (!renderContext || sample < 0 || Sampler_Max <= sample)
     {// パラメータ異常チェック
         return;
     }
 
     if (!_stored._valid[State_ZEnable] || force ||
-        _stored._sampler != sample)
+        _stored._sampler != sample || _stored._anisotropy != anisotropy)
     {
         if (anisotropy > 0.0f && sample == Sampler_Anisotropy && device != NULL)
         {
-            // Sampler
-            ID3D11SamplerState* sampler;
-            D3D11_SAMPLER_DESC samplerDesc;
-            memset(&samplerDesc, 0, sizeof(D3D11_SAMPLER_DESC));
-            renderContext->PSGetSamplers(0, 1, &sampler);
-            sampler->GetDesc(&samplerDesc);
-            samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-            samplerDesc.MaxAnisotropy = anisotropy;
+            ID3D11SamplerState* currentSampler = _samplerState[Sampler_Anisotropy];
+            if (currentSampler != NULL)
+            {
+                D3D11_SAMPLER_DESC samplerDesc;
+                currentSampler->GetDesc(&samplerDesc);
 
-            device->CreateSamplerState(&samplerDesc, &sampler);
-            _samplerState.PushBack(sampler);
+                // 異方性レベルが変更された場合のみサンプラーステートを新しく作り直す
+                if (samplerDesc.MaxAnisotropy != static_cast<UINT>(anisotropy))
+                {
+                    currentSampler->Release();
+                    samplerDesc.MaxAnisotropy = static_cast<UINT>(anisotropy);
+                    ID3D11SamplerState* newSampler;
+                    device->CreateSamplerState(&samplerDesc, &newSampler);
+                    _samplerState[Sampler_Anisotropy] = newSampler;
+                }
+            }
         }
 
         // 0番だけ使用している
@@ -386,6 +409,7 @@ void CubismRenderState_D3D11::SetSampler(ID3D11DeviceContext* renderContext, Sam
     }
 
     _stored._sampler = sample;
+    _stored._anisotropy = anisotropy;
 
     _stored._valid[State_Sampler] = true;
 }

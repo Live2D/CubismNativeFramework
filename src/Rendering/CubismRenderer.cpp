@@ -8,6 +8,7 @@
 #include "CubismRenderer.hpp"
 #include "CubismFramework.hpp"
 #include "Model/CubismModel.hpp"
+#include "Math/CubismMath.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
@@ -17,8 +18,10 @@ void CubismRenderer::Delete(CubismRenderer* renderer)
     CSM_DELETE_SELF(CubismRenderer, renderer);
 }
 
-CubismRenderer::CubismRenderer()
-    : _isCulling(false)
+CubismRenderer::CubismRenderer(csmUint32 width, csmUint32 height)
+    : _modelRenderTargetWidth(width)
+    , _modelRenderTargetHeight(height)
+    , _isCulling(false)
     , _isPremultipliedAlpha(false)
     , _anisotropy(0.0f)
     , _model(NULL)
@@ -39,11 +42,21 @@ void CubismRenderer::Initialize(Framework::CubismModel* model)
 void CubismRenderer::Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount)
 {
     _model = model;
+
+    // ブレンドモード使用時は必ず高精細にする
+    if (model->IsBlendModeEnabled())
+    {
+        UseHighPrecisionMask(true);
+        CubismLogInfo("This model uses a high-resolution mask because it operates in blend mode.");
+    }
 }
 
 void CubismRenderer::DrawModel()
 {
-    if (GetModel() == NULL) return;
+    if (GetModel() == NULL)
+    {
+        return;
+    }
 
     /**
      * DoDrawModelの描画前と描画後に以下の関数を呼んでください。
@@ -60,6 +73,12 @@ void CubismRenderer::DrawModel()
     RestoreProfile();
 }
 
+void CubismRenderer::SetRenderTargetSize(csmUint32 width, csmUint32 height)
+{
+    _modelRenderTargetWidth = width;
+    _modelRenderTargetHeight = height;
+}
+
 void CubismRenderer::SetMvpMatrix(CubismMatrix44* matrix4x4)
 {
     _mvpMatrix4x4.SetMatrix(matrix4x4->GetArray());
@@ -72,22 +91,10 @@ CubismMatrix44 CubismRenderer::GetMvpMatrix() const
 
 void CubismRenderer::SetModelColor(csmFloat32 red, csmFloat32 green, csmFloat32 blue, csmFloat32 alpha)
 {
-    if (red < 0.0f) red = 0.0f;
-    else if (red > 1.0f) red = 1.0f;
-
-    if (green < 0.0f) green = 0.0f;
-    else if (green > 1.0f) green = 1.0f;
-
-    if (blue < 0.0f) blue = 0.0f;
-    else if (blue > 1.0f) blue = 1.0f;
-
-    if (alpha < 0.0f) alpha = 0.0f;
-    else if (alpha > 1.0f) alpha = 1.0f;
-
-    _modelColor.R = red;
-    _modelColor.G = green;
-    _modelColor.B = blue;
-    _modelColor.A = alpha;
+    _modelColor.R = CubismMath::ClampF(red, 0.0f, 1.0f);
+    _modelColor.G = CubismMath::ClampF(green, 0.0f, 1.0f);
+    _modelColor.B = CubismMath::ClampF(blue, 0.0f, 1.0f);
+    _modelColor.A = CubismMath::ClampF(alpha, 0.0f, 1.0f);
 }
 
 CubismRenderer::CubismTextureColor CubismRenderer::GetModelColor() const
@@ -170,6 +177,7 @@ CubismClippingContext::CubismClippingContext(const csmInt32* clippingDrawableInd
     _layoutBounds = CSM_NEW csmRectF();
 
     _clippedDrawableIndexList = CSM_NEW csmVector<csmInt32>();
+    _clippedOffscreenIndexList = CSM_NEW csmVector<csmInt32>();
 }
 
 CubismClippingContext::~CubismClippingContext()
@@ -191,11 +199,22 @@ CubismClippingContext::~CubismClippingContext()
         CSM_DELETE(_clippedDrawableIndexList);
         _clippedDrawableIndexList = NULL;
     }
+
+    if (_clippedOffscreenIndexList != NULL)
+    {
+        CSM_DELETE(_clippedOffscreenIndexList);
+        _clippedOffscreenIndexList = NULL;
+    }
 }
 
 void CubismClippingContext::AddClippedDrawable(csmInt32 drawableIndex)
 {
     _clippedDrawableIndexList->PushBack(drawableIndex);
+}
+
+void CubismClippingContext::AddClippedOffscreen(csmInt32 offscreenIndex)
+{
+    _clippedOffscreenIndexList->PushBack(offscreenIndex);
 }
 
 }}}}
