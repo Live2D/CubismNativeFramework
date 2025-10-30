@@ -20,7 +20,7 @@ class CubismModel;
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
 /**
- * @brief   モデル描画を処理するレンダラ<br>
+ * @brief   モデル描画を処理するレンダラ
  *           サブクラスに環境依存の描画命令を記述する
  */
 class CubismRenderer
@@ -45,6 +45,7 @@ public:
         CubismBlendMode_Additive = 1,        ///< 加算
         CubismBlendMode_Multiplicative = 2,  ///< 乗算
         CubismBlendMode_Mask = 3,            ///< マスク
+        CubismBlendMode_Copy = 4,            ///< コピー
     };
 
     /**
@@ -86,43 +87,6 @@ public:
         csmFloat32 B;   ///< 青チャンネル
         csmFloat32 A;   ///< αチャンネル
 
-    };
-
-    /**
-    * @brief エイリアスの描画対象のソート結果を管理するための構造体
-    */
-    struct CubismDrawableSortItem
-    {
-        /**
-         * @brief   コンストラクタ
-         */
-        CubismDrawableSortItem()
-            : ObjectIndex(0)
-            , ObjectType(0)
-            , RenderOrder(0)
-        {
-        }
-
-        /**
-         * @brief   コンストラクタ
-         */
-        CubismDrawableSortItem(csmInt32 objectIndex, csmInt32 objectType, csmInt32 renderOrder)
-            : ObjectIndex(objectIndex)
-            , ObjectType(objectType)
-            , RenderOrder(renderOrder)
-        {
-        }
-
-        /**
-         * @brief   デストラクタ
-         */
-        virtual ~CubismDrawableSortItem()
-        {
-        }
-
-        csmInt32 ObjectIndex;
-        csmInt32 ObjectType;
-        csmInt32 RenderOrder;
     };
 
     /**

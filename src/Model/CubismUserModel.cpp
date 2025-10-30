@@ -279,6 +279,11 @@ CubismModel* CubismUserModel::GetModel() const
     return _model;
 }
 
+Core::csmMocVersion CubismUserModel::GetMocVersionFromBuffer(const csmByte* buffer, csmSizeInt size)
+{
+    return CubismMoc::GetMocVersionFromBuffer(buffer, size);
+}
+
 void CubismUserModel::CreateRenderer(csmUint32 width, csmUint32 height, csmInt32 maskBufferCount)
 {
     if (_renderer)

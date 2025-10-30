@@ -183,14 +183,21 @@ class CubismRenderer_OpenGLES2 : public CubismRenderer
 
 public:
     /**
-     * @brief    レンダラの初期化処理を実行する<br>
+     * @brief    レンダラの初期化処理を実行する
      *           引数に渡したモデルからレンダラの初期化処理に必要な情報を取り出すことができる
      *
      * @param[in]  model -> モデルのインスタンス
      */
-    void Initialize(Framework::CubismModel* model);
+    void Initialize(Framework::CubismModel* model) override;
 
-    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount);
+    /**
+     * @brief   レンダラの初期化処理を実行する
+     *           引数に渡したモデルからレンダラの初期化処理に必要な情報を取り出すことができる
+     *
+     * @param[in]  model           -> モデルのインスタンス
+     * @param[in]  maskBufferCount -> マスクの分割数
+     */
+    void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount) override;
 
     /**
      * @bref オフスクリーンの親を探して設定する
@@ -321,7 +328,7 @@ protected:
     virtual void DoDrawModel() override;
 
     /**
-     * @brief   描画オブジェクト（アートメッシュ、エイリアス、オフスクリーン）を描画するループ処理
+     * @brief   描画オブジェクト（アートメッシュ、オフスクリーン）を描画するループ処理
      *
      * @param[in]   lastFBO        ->  モデル描画直前のフレームバッファ
      * @param[in]   lastViewport   ->  モデル描画直前のビューポート
@@ -430,12 +437,12 @@ private:
     /**
      * @brief   モデル描画直前のOpenGLES2のステートを保持する
      */
-    virtual void SaveProfile();
+    void SaveProfile() override;
 
     /**
      * @brief   モデル描画直前のOpenGLES2のステートを保持する
      */
-    virtual void RestoreProfile();
+    void RestoreProfile() override;
 
     /**
      * @brief   モデル描画直前のオフスクリーン設定

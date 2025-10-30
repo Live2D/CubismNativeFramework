@@ -1,3 +1,10 @@
+/**
+ * Copyright(c) Live2D Inc. All rights reserved.
+ *
+ * Use of this source code is governed by the Live2D Open Software license
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ */
+
 float4x4 projectMatrix;
 float4x4 clipMatrix;
 float4 baseColor;
@@ -6,6 +13,7 @@ float4 screenColor;
 float4 channelFlag;
 texture mainTexture;
 texture maskTexture;
+float4 screenSize;
 
 sampler mainSampler = sampler_state {
     texture = <mainTexture>;
@@ -20,18 +28,28 @@ struct VS_IN {
 };
 
 struct VS_OUT {
-    float4 Position : POSITION0;
+    float4 position : POSITION0;
     float2 uv : TEXCOORD0;
     float4 clipPosition : TEXCOORD1;
+    float2 blendUv : TEXCOORD2;
 };
+
+float2 AlignPixel(float2 uv) {
+    if (screenSize.x > 0.0f && screenSize.y > 0.0f)
+    {
+        uv += float2(0.5f / screenSize.x, 0.5f / screenSize.y);
+    }
+    return uv;
+}
 
 // Setup mask shader
 VS_OUT VertSetupMask(VS_IN In) {
     VS_OUT Out = (VS_OUT)0;
-    Out.Position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
+    Out.position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
     Out.clipPosition = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
     Out.uv.x = In.uv.x;
-    Out.uv.y = 1.0f - +In.uv.y;
+    Out.uv.y = 1.0f - In.uv.y;
+    Out.uv = AlignPixel(Out.uv);
     return Out;
 }
 
@@ -48,19 +66,21 @@ float4 PixelSetupMask(VS_OUT In) : COLOR0 {
 // normal
 VS_OUT VertNormal(VS_IN In) {
     VS_OUT Out = (VS_OUT)0;
-    Out.Position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
+    Out.position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
     Out.uv.x = In.uv.x;
-    Out.uv.y = 1.0f - +In.uv.y;
+    Out.uv.y = 1.0f - In.uv.y;
+    Out.uv = AlignPixel(Out.uv);
     return Out;
 }
 
 // masked
 VS_OUT VertMasked(VS_IN In) {
     VS_OUT Out = (VS_OUT)0;
-    Out.Position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
+    Out.position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);
     Out.clipPosition = mul(float4(In.pos, 0.0f, 1.0f), clipMatrix);
     Out.uv.x = In.uv.x;
     Out.uv.y = 1.0f - In.uv.y;
+    Out.uv = AlignPixel(Out.uv);
     return Out;
 }
 
@@ -149,14 +169,14 @@ technique ShaderNames_Normal {
     }
 }
 
-technique ShaderNames_NormalMasked {
+technique ShaderNames_Masked {
     pass p0 {
         VertexShader = compile vs_2_0 VertMasked();
         PixelShader = compile ps_2_0 PixelMasked();
     }
 }
 
-technique ShaderNames_NormalMaskedInverted {
+technique ShaderNames_MaskedInverted {
     pass p0 {
         VertexShader = compile vs_2_0 VertMasked();
         PixelShader = compile ps_2_0 PixelMaskedInverted();
@@ -170,14 +190,14 @@ technique ShaderNames_NormalPremultipliedAlpha {
     }
 }
 
-technique ShaderNames_NormalMaskedPremultipliedAlpha {
+technique ShaderNames_MaskedPremultipliedAlpha {
     pass p0 {
         VertexShader = compile vs_2_0 VertMasked();
         PixelShader = compile ps_2_0 PixelMaskedPremult();
     }
 }
 
-technique ShaderNames_NormalMaskedInvertedPremultipliedAlpha {
+technique ShaderNames_MaskedInvertedPremultipliedAlpha {
     pass p0 {
         VertexShader = compile vs_2_0 VertMasked();
         PixelShader = compile ps_2_0 PixelMaskedInvertedPremult();

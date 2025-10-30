@@ -8,21 +8,17 @@
 #pragma once
 
 #include "CubismNativeInclude_D3D9.hpp"
-
 #include "Type/csmVector.hpp"
-#include "Type/csmMap.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-class CubismRenderer_D3D9;
-
 /**
  * @brief   CubismD3D9内部で設定するステートのうち、途中で変更する可能性のあるものを管理。
- *          CubismRenderer_D3D9がシングルトンとして管理。
  */
 class CubismRenderState_D3D9
 {
+    friend class DeviceInfo_D3D9;
     friend class CubismRenderer_D3D9;
 public:
     enum
@@ -213,7 +209,14 @@ public:
     void SetTextureFilter(LPDIRECT3DDEVICE9 device, csmInt32 stage, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy = 1.0f, csmBool force = false);
 
 private:
+    /**
+     * @brief   コンストラクタ
+     */
     CubismRenderState_D3D9();
+
+    /**
+     * @brief   ディストラクタ
+     */
     ~CubismRenderState_D3D9();
 
     /**

@@ -73,23 +73,23 @@ public:
     void SetupShader(LPDIRECT3DDEVICE9 pD3dDevice);
 
 private:
+    /**
+     * @brief   シェーダプログラムをロード
+     *
+     * @param[in]   pD3dDevice      使用デバイス
+     * @param[in]   shaderSrc       シェーダソースコード
+     * @param[in]   effectPtr       シェーダエフェクトのポインタ
+     *
+     * @return  成功時はtrue、失敗時はfalse
+     */
+    static csmBool LoadShaderProgram(LPDIRECT3DDEVICE9 pD3dDevice, const csmString& shaderSrc, ID3DXEffect** effectPtr);
 
     /**
      * @brief   シェーダプログラムを初期化する
      */
     void GenerateShaders(LPDIRECT3DDEVICE9 pD3dDevice);
 
-    /**
-     * @brief   シェーダプログラムをロード
-     *
-     * @param[in]   pD3dDevice      使用デバイス
-     *
-     * @return  成功時はtrue、失敗時はfalse
-     */
-    Csm::csmBool LoadShaderProgram(LPDIRECT3DDEVICE9 pD3dDevice);
 
-
-    csmVector<csmChar> _shaderSrc; ///< シェーダーソースコード
     ID3DXEffect*                    _shaderEffect; ///< CubismD3dでは一つのシェーダで内部テクニックの変更をする
     IDirect3DVertexDeclaration9*    _vertexFormat; ///< 描画で使用する型宣言
 };

@@ -8,21 +8,17 @@
 #pragma once
 
 #include "CubismNativeInclude_D3D11.hpp"
-
 #include "Type/csmVector.hpp"
-#include "Type/csmMap.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-class CubismRenderer_D3D11;
-
 /**
  * @brief  CubismDX11内部で設定するステートのうち、途中で変更する可能性のあるものを管理。
- *          CubismRenderer_D3D11がシングルトンとして管理。
  */
 class CubismRenderState_D3D11
 {
+    friend class DeviceInfo_D3D11;
     friend class CubismRenderer_D3D11;
 public:
 
@@ -42,10 +38,12 @@ public:
     {
         Blend_Origin,
         Blend_Zero,
-        Blend_Normal,
-        Blend_Add,
-        Blend_Mult,
-        Blend_Mask,
+        Blend_Normal,          ///< 通常でブレンド
+        Blend_Add,             ///< 加算でブレンド
+        Blend_Mult,            ///< 乗算でブレンド
+        Blend_ColorAlphaBlend, ///< ブレンドモードを利用したブレンド
+        Blend_Mask,            ///< マスク用のブレンド
+        Blend_Copy,            ///< レンダーターゲットをコピーする用のブレンド
         Blend_Max,
     };
 
@@ -201,7 +199,16 @@ public:
     void SetSampler(ID3D11DeviceContext* renderContext, Sampler sample, csmFloat32 anisotropy = 0.0f, ID3D11Device* device = NULL, csmBool force = false);
 
 private:
-    CubismRenderState_D3D11();
+    /**
+     * @brief   コンストラクタ
+     *
+     * @param[in]   device       -> 使用デバイス
+     */
+    CubismRenderState_D3D11(ID3D11Device* device);
+
+    /**
+     * @brief   ディストラクタ
+     */
     ~CubismRenderState_D3D11();
 
     /**

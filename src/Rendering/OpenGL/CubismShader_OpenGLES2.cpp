@@ -539,7 +539,7 @@ void CubismShader_OpenGLES2::GenerateShaders()
                 // クリッピング、PremultipliedAlpha
                 SetShaderSet(*_shaderSets[offset++], MaskType_MaskedPremultipliedAlpha, true);
                 // クリッピング・反転、PremultipliedAlpha
-                SetShaderSet(*_shaderSets[offset++], MaskType_MaskedPremultipliedAlpha, true);
+                SetShaderSet(*_shaderSets[offset++], MaskType_MaskedInvertedPremultipliedAlpha, true);
             }
         }
     }

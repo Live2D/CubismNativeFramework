@@ -762,10 +762,7 @@ const csmInt32* CubismModel::GetOffscreenOwnerIndices() const
 const CubismIdHandle CubismModel::GetOffscreenOwnerId(csmUint32 offscreenIndex) const
 {
     const csmUint32 ownerIndex = GetOffscreenOwnerIndices()[offscreenIndex];
-
-     return  CubismFramework::GetIdManager()->GetId(Core::csmGetPartIds(_model)[ownerIndex]);
-
-    return NULL;
+    return CubismFramework::GetIdManager()->GetId(Core::csmGetPartIds(_model)[ownerIndex]);
 }
 
 csmInt32 CubismModel::GetDrawableCount() const

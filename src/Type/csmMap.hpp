@@ -102,15 +102,7 @@ public:
      */
     void AppendKey(_KeyT& key)
     {
-        csmInt32 findIndex = -1;
-        for (csmInt32 i = 0; i < _size; i++)
-        {
-            if (_keyValues[i].First == key)
-            {
-                findIndex = i;
-                break;
-            }
-        }
+        csmInt32 findIndex = FindIndex(key);
 
         // 同じkeyが既に作られている場合は何もしない
         if (findIndex != -1)
@@ -120,7 +112,8 @@ public:
         }
 
         // 新しくKey/Valueのペアを作る
-        PrepareCapacity(_size + 1, false); //１つ以上入る隙間を作る
+        // キャパシティを超えたら現在のキャパシティの2倍で確保しておく
+        PrepareCapacity(_size + 1, false);
         // 新しいkey/valueのインデックスは _size
 
         void* addr = &_keyValues[_size];
@@ -152,15 +145,7 @@ public:
      */
     _ValT& operator[](_KeyT key)
     {
-        csmInt32 found = -1;
-        for (csmInt32 i = 0; i < _size; i++)
-        {
-            if (_keyValues[i].First == key)
-            {
-                found = i;
-                break;
-            }
-        }
+        csmInt32 found = FindIndex(key);
         if (found >= 0)
         {
             return _keyValues[found].Second;
@@ -179,22 +164,17 @@ public:
      */
     const _ValT& operator[](_KeyT key) const
     {
-        csmInt32 found = -1;
-        for (csmInt32 i = 0; i < _size; i++)
-        {
-            if (_keyValues[i].First == key)
-            {
-                found = i;
-                break;
-            }
-        }
+        csmInt32 found = FindIndex(key);
         if (found >= 0)
         {
             return _keyValues[found].Second;
         }
         else
         {
-            if (!_dummyValuePtr) _dummyValuePtr = CSM_NEW _ValT();
+            if (_dummyValuePtr == NULL)
+            {
+                _dummyValuePtr = CSM_NEW _ValT();
+            }
             return *_dummyValuePtr;
         }
     }
@@ -231,9 +211,10 @@ public:
 
     /**
      * @brief   コンテナのキャパシティを確保する
+     *          fitToSize は AppendKey でキャパシティをまとめて確保するためのフラグ
      *
      * @param[in]   newSize     -> 新たなキャパシティ。引数の値が現在のサイズ未満の場合は何もしない。
-     * @param[in]   fitToSize   ->  trueなら指定したサイズに合わせる。falseならサイズを2倍確保しておく。
+     * @param[in]   fitToSize   ->  trueなら新たなキャパシティのサイズに合わせる。falseならサイズを2倍確保しておく。
      */
     void PrepareCapacity(csmInt32 newSize, csmBool fitToSize);
 
@@ -499,11 +480,19 @@ public:
     const iterator Erase(const iterator& ite)
     {
         int index = ite._index;
-        if (index < 0 || _size <= index) return ite; // 削除範囲外
+        if (index < 0 || _size <= index)
+        {
+            return ite; // 削除範囲外
+        }
+
+        // 削除する位置を開放する
+        _keyValues[index].~csmPair<_KeyT, _ValT>();
 
         // 削除(メモリをシフトする)、最後の一つを削除する場合はmove不要
         if (index < _size - 1)
+        {
             memmove(&(_keyValues[index]), &(_keyValues[index + 1]), sizeof(csmPair<_KeyT, _ValT>) * (_size - index - 1));
+        }
         --_size;
 
         iterator ite2(this, index); // 終了
@@ -519,15 +508,54 @@ public:
     const const_iterator Erase(const const_iterator& ite)
     {
         csmInt32 index = ite._index;
-        if (index < 0 || _size <= index) return ite; // 削除範囲外
+        if (index < 0 || _size <= index)
+        {
+            return ite; // 削除範囲外
+        }
+
+        // 削除する位置を開放する
+        _keyValues[index].~csmPair<_KeyT, _ValT>();
 
         // 削除(メモリをシフトする)、最後の一つを削除する場合はmove不要
         if (index < _size - 1)
+        {
             memmove(&(_keyValues[index]), &(_keyValues[index + 1]), sizeof(csmPair<_KeyT, _ValT>) * (_size - index - 1));
+        }
         --_size;
 
         const_iterator ite2(this, index); // 終了
         return ite2;
+    }
+
+    /**
+     * @brief   コンテナから要素を削除する
+     *          引数に取ったキーを持つ要素を削除する
+     *
+     * @param[in]   key ->  削除するキー
+     *
+     * @return  削除に成功したらtrue、失敗したらfalseを返す
+     */
+    csmBool Erase(const _KeyT& key)
+    {
+        // キーからインデックスを探す
+        const csmInt32 index = FindIndex(key);
+
+        if (index == -1)
+        {
+            return false;
+        }
+
+        // 削除する位置を開放する
+        _keyValues[index].~csmPair<_KeyT, _ValT>();
+
+        // 削除(メモリをシフトする)、最後の一つを削除する場合はmove不要
+        if (index < _size - 1)
+        {
+            memmove(&(_keyValues[index]), &(_keyValues[index + 1]), sizeof(csmPair<_KeyT, _ValT>) * (_size - index - 1));
+        }
+        --_size;
+
+        return true;
     }
 
     /**
@@ -562,11 +590,35 @@ public:
      */
     void DumpAsInt()
     {
-        for (csmInt32 i = 0; i < _size; i++) CubismLogDebug("%d ,", _keyValues[i]);
+        for (csmInt32 i = 0; i < _size; i++)
+        {
+            CubismLogDebug("%d ,", _keyValues[i]);
+        }
         CubismLogDebug("\n");
     }
 
 private:
+    /**
+     * @brief   キーに対応した添え字を特定する
+     *
+     * @param[in]   key ->  削除するキー
+     *
+     * @return  キーに対応した添え字、見つからなければ-1を返す
+     */
+    csmInt32 FindIndex(const _KeyT& key) const
+    {
+        // キーからインデックスを探して見つかれば添え字を見つからなければ-1を返す
+        for (csmInt32 i = 0; i < _size; ++i)
+        {
+            if (_keyValues[i].First == key)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     static const csmInt32 DefaultSize = 10;  ///< コンテナ初期化のデフォルトサイズ
 
     csmPair<_KeyT, _ValT>* _keyValues;      ///< Key-Valueペアの配列
@@ -606,7 +658,7 @@ csmMap<_KeyT, _ValT>::csmMap(csmInt32 size)
         memset(_keyValues, 0, size * sizeof(csmPair<_KeyT, _ValT>));
 
         _capacity = size;
-        _size = size;
+        _size = 0;
     }
 }
 
@@ -630,7 +682,10 @@ void csmMap<_KeyT, _ValT>::PrepareCapacity(csmInt32 newSize, csmBool fitToSize)
     {
         if (_capacity == 0)
         {
-            if (!fitToSize && newSize < DefaultSize) newSize = DefaultSize;
+            if (!fitToSize && newSize < DefaultSize)
+            {
+                newSize = DefaultSize;
+            }
 
             _keyValues = static_cast<csmPair<_KeyT, _ValT> *>(CSM_MALLOC(sizeof(csmPair<_KeyT, _ValT>) * newSize));
 
@@ -640,7 +695,10 @@ void csmMap<_KeyT, _ValT>::PrepareCapacity(csmInt32 newSize, csmBool fitToSize)
         }
         else
         {
-            if (!fitToSize && newSize < _capacity * 2) newSize = _capacity * 2; // 指定サイズに合わせる必要がない場合は、２倍に広げる
+            if (!fitToSize && newSize < _capacity * 2)
+            {
+                newSize = _capacity * 2; // 指定サイズに合わせる必要がない場合は、２倍に広げる
+            }
 
             csmInt32 tmp_capacity = newSize;
             csmPair<_KeyT, _ValT>* tmp = static_cast<csmPair<_KeyT, _ValT> *>(CSM_MALLOC(sizeof(csmPair<_KeyT, _ValT>) * tmp_capacity));
@@ -661,8 +719,12 @@ void csmMap<_KeyT, _ValT>::PrepareCapacity(csmInt32 newSize, csmBool fitToSize)
 template<class _KeyT, class _ValT>
 void csmMap<_KeyT, _ValT>::Clear()
 {
-    if (_dummyValuePtr) CSM_DELETE(_dummyValuePtr);
-    for (csmInt32 i = 0; i < _size; i++)
+    if (_dummyValuePtr != NULL)
+    {
+        CSM_DELETE(_dummyValuePtr);
+    }
+
+    for (csmInt32 i = 0; i < _size; ++i)
     {
         _keyValues[i].~csmPair<_KeyT, _ValT>();
     }

@@ -193,6 +193,16 @@ public:
     CubismModel*            GetModel() const;
 
     /**
+     * Returns the version of the unload MOC file.
+     *
+     * @param buffer Buffer where the MOC3 file is loaded
+     * @param size Number of bytes in the buffer
+     *
+     * @return Version
+     */
+    static Core::csmMocVersion GetMocVersionFromBuffer(const csmByte* buffer, csmSizeInt size);
+
+    /**
      * Returns the renderer.
      *
      * @return Instance of the renderer

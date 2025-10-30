@@ -14,8 +14,6 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 void CubismShader_D3D9::ReleaseShaderProgram()
 {
-    _shaderSrc.Clear();
-
     if(_vertexFormat)
     {
         _vertexFormat->Release();
@@ -53,6 +51,7 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
 
     // シェーダーソースコードが記述されているファイルを読み込み
     const csmChar* frameworkShaderPath = "FrameworkShaders/CubismEffect.fx";
+    const csmChar* frameworkBlendShaderPath = "FrameworkShaders/CubismBlendMode.fx";
     csmLoadFileFunction fileLoader = Csm::CubismFramework::GetLoadFileFunction();
     csmReleaseBytesFunction bytesReleaser = Csm::CubismFramework::GetReleaseBytesFunction();
 
@@ -68,31 +67,16 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
         return;
     }
 
-    csmSizeInt shaderSize;
-    csmByte* shaderSrc = fileLoader(frameworkShaderPath, &shaderSize);
-    if (shaderSrc == NULL)
-    {
-        CubismLogError("Failed to load shader");
-        return;
-    }
-    csmString shaderString = csmString(reinterpret_cast<const csmChar*>(shaderSrc), shaderSize);
-
-    _shaderSrc.Clear();
-    for (csmInt32 i = 0; i < shaderString.GetLength(); i++)
-    {
-        _shaderSrc.PushBack(shaderString.GetRawString()[i]);
-    }
+    csmSizeInt effectShaderSize;
+    csmByte* effectShaderSrc = fileLoader(frameworkShaderPath, &effectShaderSize);
+    csmString shaderString = csmString(reinterpret_cast<const csmChar*>(effectShaderSrc), effectShaderSize);
+    csmSizeInt blendShaderSize;
+    csmByte* blendShaderSrc = fileLoader(frameworkBlendShaderPath, &blendShaderSize);
+    shaderString += csmString(reinterpret_cast<const csmChar*>(blendShaderSrc), blendShaderSize);
 
     // ファイル読み込みで確保したバイト列を開放
-    bytesReleaser(shaderSrc);
-
-    //
-    if(!LoadShaderProgram(device))
-    {
-        CubismLogError("CreateShader failed");
-        CSM_ASSERT(0);
-    }
-
+    bytesReleaser(effectShaderSrc);
+    bytesReleaser(blendShaderSrc);
 
     // この描画で使用する頂点フォーマット
     D3DVERTEXELEMENT9 elems[] = {
@@ -100,20 +84,31 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
         { 0, sizeof(float) * 2, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
         D3DDECL_END()
     };
-    if (device->CreateVertexDeclaration(elems, &_vertexFormat))
+
+    // シェーダーを読み込む
+    if (!LoadShaderProgram(device, shaderString, &_shaderEffect))
+    {
+        CubismLogError("CreateShader failed");
+        CSM_ASSERT(0);
+    }
+    else if (device->CreateVertexDeclaration(elems, &_vertexFormat))
     {
         CubismLogError("CreateVertexDeclaration failed");
         CSM_ASSERT(0);
     }
 }
 
-Csm::csmBool CubismShader_D3D9::LoadShaderProgram(LPDIRECT3DDEVICE9 device)
+csmBool CubismShader_D3D9::LoadShaderProgram(LPDIRECT3DDEVICE9 device, const csmString& shaderSrc, ID3DXEffect** effectPtr)
 {
-    if (!device) return false;
+    if (!device)
+    {
+        return false;
+    }
 
     ID3DXBuffer* error = NULL;
-    if (FAILED(D3DXCreateEffect(device, _shaderSrc.GetPtr(), _shaderSrc.GetSize(), 0, 0, 0, 0, &_shaderEffect, &error)))
+    if (FAILED(D3DXCreateEffect(device, shaderSrc.GetRawString(), shaderSrc.GetLength(), 0, 0, 0, 0, effectPtr, &error)))
     {
+        CubismLogError("Shader compile error : %s", static_cast<csmChar*>(error->GetBufferPointer()));
         return false;
     }
 

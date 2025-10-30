@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [5-r.5-beta.2] - 2025-10-30
+
+### Added
+
+* Add support for Blend modes and Offscreen rendering.
+  * In `5-r.5-beta.2`, the D3D9, D3D11 and Metal renderers have also been added.
+* Add `GetMocVersionFromBuffer()`function.
+  * Support for retrieving MOC version from unsupported new MOC3 files.
+
+### Changed
+
+* Rename CubismOffscreenSurface_D3D9 class to CubismRenderTarget_D3D9.
+* Rename CubismOffscreenSurface_D3D11 class to CubismRenderTarget_D3D11.
+* Rename CubismOffscreenSurface_Metal class to CubismRenderTarget_Metal.
+* Change to the implementation now enables support for multiple devices instead of a single one.
+  * In Metal, the `CubismRenderingInstanceSingleton_Metal` class has been removed.
+
+### Fixed
+
+* Fix by removing unnecessary comments and unused structs.
+* Fix the application crashing when shader files could not be loaded.
+* Fix warnings occurs during build on OpenGL-Android.
+* Fix D3D11 anisotropic filtering not working correctly.
+* Fix to correct pixel alignment for all shaders on D3D9.
+* Fix incorrect mask type selection on OpenGL, selecting `MaskTypeMaskedInvertedPremultipliedAlpha` instead of `MaskTypeMaskedPremultipliedAlpha`.
+
+
 ## [5-r.5-beta.1] - 2025-08-26
 
 ### Added
@@ -490,6 +517,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.1...5-r.5-beta.2
 [5-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4.1...5-r.5-beta.1
 [5-r.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4...5-r.4.1
 [5-r.4]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.3...5-r.4

@@ -1,9 +1,9 @@
-/*
-See LICENSE folder for this sample’s licensing information.
-
-Abstract:
-Metal shaders used for this sample
-*/
+/**
+ * Copyright(c) Live2D Inc. All rights reserved.
+ *
+ * Use of this source code is governed by the Live2D Open Software license
+ * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
+ */
 
 #include <metal_stdlib>
 #include <simd/simd.h>
@@ -103,6 +103,35 @@ VertShaderSrcMasked(uint vertexID [[ vertex_id ]],
     out.texCoord.y = 1.0 - out.texCoord.y;
 
     return out;
+}
+
+vertex NormalRasterizerData
+VertShaderSrcCopy(uint vertexID [[ vertex_id ]],
+              constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
+              constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]]
+             )
+{
+    NormalRasterizerData out;
+    float2 vert = vertexArray[vertexID];
+    float2 uv = uvArray[vertexID];
+
+    float4 pos = float4(vert.x, vert.y, 0.0, 1.0);
+    out.position = pos;
+    out.texCoord = uv;
+
+    return out;
+}
+
+fragment float4
+FragShaderSrcCopy(NormalRasterizerData in [[stage_in]],
+              texture2d<float> texture [[ texture(0) ]],
+              sampler smp [[sampler(0)]],
+              constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]]
+            )
+{
+    float4 texColor = texture.sample(smp, in.texCoord) * uniforms.baseColor;
+
+    return texColor;
 }
 
 ////----- フラグメントシェーダプログラム -----

@@ -4,19 +4,17 @@
 
 # お知らせ
 
-## [制限事項] Cubism 5 SDK for Native R5 beta1 の動作環境について (2025-08-26)
+## [制限事項] Cubism 5 SDK for Native R5 beta2 の動作環境について (2025-10-30 更新)
 
-Cubism 5 SDK for Native R5 beta1 は、以下のプラットフォームにてビルド動作確認をしております。
+Cubism 5 SDK for Native R5 beta2 について、Vulkan環境は**ビルドができません**ので、あらかじめご了承ください。
+Vulkan環境は今後のアップデートにてCubism 5.3新機能も含め対応を予定しています。 
+その他の環境については対応しております。
 
-- OpenGL
-  - Windows
-  - macOS
-  - iOS
-  - Android
+## [注意事項] Cubism 5 SDK for Native R5 beta2 Metal環境のパフォーマンスについて (2025-10-30)
 
-それ以外の環境では**ビルドができません**ので、あらかじめご了承ください。
-ビルド未対応のレンダラ及びプラットフォームの動作については Cubism 5 SDK for Native R5 beta2 以降の対応を予定しています。 
-
+Cubism 5 SDK for Native R5 beta2 Metal環境にてモデルを描画した際、iOS 26、iPadOS 26 及び macOS 26 環境においてパフォーマンスが劣化する場合がございます。
+本件はコマンドエンコーダー（ `MTLRenderCommandEncoder` 及び `MTLBlitCommandEncoder` ）のオーバーヘッドによるものと考えておりますが、
+今後のアップデートにてFrameworkの改修や、最新のMetalバージョンへ移行することも含めて調査し、対応を検討してまいります。
 
 ---
 
