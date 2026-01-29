@@ -9,16 +9,18 @@
 
 #include <MetalKit/MetalKit.h>
 #include "CubismFramework.hpp"
-#include "CubismRenderer_Metal.hpp"
+#include "Model/CubismModel.hpp"
 #include "CubismCommandBuffer_Metal.hpp"
 #include "Type/csmVector.hpp"
 #include "Shaders/MetalShaderTypes.h"
+#include "CubismOffscreenRenderTarget_Metal.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
 // 前方宣言
 class CubismRenderer_Metal;
+class CubismClippingContext_Metal;
 
 /**
  * @brief   Metal用のシェーダプログラムを生成・破棄するクラス
@@ -84,7 +86,7 @@ public:
      * @param[in]   blendTexture          ->  ブレンド対象のテクスチャ
      */
     void SetupShaderProgramForOffscreen(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
-                                , CubismRenderer_Metal* renderer, const CubismModel& model, const CubismRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture);
+                                , CubismRenderer_Metal* renderer, const CubismModel& model, const CubismOffscreenRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture);
     /**
      * @brief   シェーダを使って描画対象をコピーする
      *

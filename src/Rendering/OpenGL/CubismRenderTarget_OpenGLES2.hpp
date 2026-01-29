@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Rendering/CubismRenderTarget.hpp"
+#include "CubismFramework.hpp"
 
 #ifdef CSM_TARGET_ANDROID_ES2
 #include <jni.h>
@@ -41,11 +41,11 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-
 /**
- * @brief  オフスクリーン描画用構造体
+ * @brief   モデル描画を処理するレンダラ<br>
+ *           サブクラスに環境依存の描画命令を記述する
  */
-class CubismRenderTarget_OpenGLES2 : public CubismRenderTarget<CubismRenderTarget_OpenGLES2>
+class CubismRenderTarget_OpenGLES2
 {
 public:
 #if !defined(CSM_TARGET_ANDROID_ES2) && !defined(CSM_TARGET_IPHONE_ES2)

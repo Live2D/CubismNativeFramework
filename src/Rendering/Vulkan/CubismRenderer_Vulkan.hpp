@@ -11,7 +11,8 @@
 #include "../CubismClippingManager.hpp"
 #include <vulkan/vulkan.h>
 #include "CubismFramework.hpp"
-#include "CubismOffscreenSurface_Vulkan.hpp"
+#include "CubismRenderTarget_Vulkan.hpp"
+#include "CubismOffscreenRenderTarget_Vulkan.hpp"
 #include "CubismClass_Vulkan.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmMap.hpp"
@@ -51,7 +52,7 @@ class CubismClippingContext_Vulkan;
  * @brief  クリッピングマスクの処理を実行するクラス
  */
 class CubismClippingManager_Vulkan : public CubismClippingManager<
-            CubismClippingContext_Vulkan, CubismOffscreenSurface_Vulkan>
+            CubismClippingContext_Vulkan, CubismRenderTarget_Vulkan>
 {
 public:
     /**
@@ -61,9 +62,12 @@ public:
      * @param[in]   commandBuffer  ->  コマンドバッファ
      * @param[in]   updateCommandBuffer  ->  更新用コマンドバッファ
      * @param[in]   renderer       ->  レンダラのインスタンス
+     * @param[in]   commandBufferCurrent       -> スワップチェインに使用中のバッファインデックス
+     * @param[in]   drawableObjectType  ->  描画オブジェクトのタイプ
      */
     void SetupClippingContext(CubismModel& model, VkCommandBuffer commandBuffer, VkCommandBuffer updateCommandBuffer,
-                              CubismRenderer_Vulkan* renderer, csmInt32 offscreenCurrent);
+                              CubismRenderer_Vulkan* renderer, csmInt32 commandBufferCurrent,
+                              CubismRenderer::DrawableObjectType drawableObjectType);
 };
 
 /**
@@ -80,7 +84,7 @@ public:
      *
      */
     CubismClippingContext_Vulkan(
-        CubismClippingManager<CubismClippingContext_Vulkan, CubismOffscreenSurface_Vulkan>* manager, CubismModel& model,
+        CubismClippingManager<CubismClippingContext_Vulkan, CubismRenderTarget_Vulkan>* manager, CubismModel& model,
         const csmInt32* clippingDrawableIndices, csmInt32 clipCount);
 
     /**
@@ -93,49 +97,141 @@ public:
      *
      * @return  クリッピングマネージャのインスタンス
      */
-    CubismClippingManager<CubismClippingContext_Vulkan, CubismOffscreenSurface_Vulkan>* GetClippingManager();
+    CubismClippingManager<CubismClippingContext_Vulkan, CubismRenderTarget_Vulkan>* GetClippingManager();
 
-    CubismClippingManager<CubismClippingContext_Vulkan, CubismOffscreenSurface_Vulkan>* _owner;
+    CubismClippingManager<CubismClippingContext_Vulkan, CubismRenderTarget_Vulkan>* _owner;
     ///< このマスクを管理しているマネージャのインスタンス
 };
 
 enum ShaderNames
 {
+#define CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(NAME) \
+    CSM_CREATE_SHADER_NAMES(NAME ## Over), \
+    CSM_CREATE_SHADER_NAMES(NAME ## Atop), \
+    CSM_CREATE_SHADER_NAMES(NAME ## Out), \
+    CSM_CREATE_SHADER_NAMES(NAME ## ConjointOver), \
+    CSM_CREATE_SHADER_NAMES(NAME ## DisjointOver)
+
+#define CSM_CREATE_SHADER_NAMES(NAME) \
+    ShaderNames_ ## NAME, \
+    ShaderNames_ ## NAME ## Masked, \
+    ShaderNames_ ## NAME ## MaskedInverted, \
+    ShaderNames_ ## NAME ## PremultipliedAlpha, \
+    ShaderNames_ ## NAME ## MaskedPremultipliedAlpha, \
+    ShaderNames_ ## NAME ## MaskedInvertedPremultipliedAlpha
+
+    // Copy
+    ShaderNames_Copy,
+
     // SetupMask
     ShaderNames_SetupMask,
 
+    // Normal
+    CSM_CREATE_SHADER_NAMES(Normal),
+    // Add
+    CSM_CREATE_SHADER_NAMES(Add),
+    // Mult
+    CSM_CREATE_SHADER_NAMES(Mult),
+
     //Normal
-    ShaderNames_Normal,
-    ShaderNames_NormalMasked,
-    ShaderNames_NormalMaskedInverted,
-    ShaderNames_NormalPremultipliedAlpha,
-    ShaderNames_NormalMaskedPremultipliedAlpha,
-    ShaderNames_NormalMaskedInvertedPremultipliedAlpha,
+    CSM_CREATE_SHADER_NAMES(NormalAtop),
+    CSM_CREATE_SHADER_NAMES(NormalOut),
+    CSM_CREATE_SHADER_NAMES(NormalConjointOver),
+    CSM_CREATE_SHADER_NAMES(NormalDisjointOver),
+    // 加算
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Add),
+    // 加算(発光)
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(AddGlow),
+    // 比較(暗)
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Darken),
+    // 乗算
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Multiply),
+    // 焼き込みカラー
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(ColorBurn),
+    // 焼き込み(リニア)
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(LinearBurn),
+    // 比較(明)
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Lighten),
+    // スクリーン
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Screen),
+    // 覆い焼きカラー
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(ColorDodge),
+    // オーバーレイ
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Overlay),
+    // ソフトライト
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(SoftLight),
+    // ハードライト
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(HardLight),
+    // リニアライト
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(LinearLight),
+    // 色相
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Hue),
+    // カラー
+    CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Color),
 
-    //Add
-    ShaderNames_Add,
-    ShaderNames_AddMasked,
-    ShaderNames_AddMaskedInverted,
-    ShaderNames_AddPremultipliedAlpha,
-    ShaderNames_AddMaskedPremultipliedAlpha,
-    ShaderNames_AddMaskedPremultipliedAlphaInverted,
+    // ブレンドモードの組み合わせ数 = 加算(5.2以前) + 乗算(5.2以前) + (通常 + 加算 + 加算(発光) + 比較(暗) + 乗算 + 焼き込みカラー + 焼き込み(リニア) + 比較(明) + スクリーン + 覆い焼きカラー + オーバーレイ + ソフトライト + ハードライト + リニアライト + 色相 + カラー) * (over + atop + out + conjoint over + disjoint over)
+    // シェーダの数 = コピー用 + マスク生成用 + (通常 + 加算 + 乗算 + ブレンドモードの組み合わせ数) * (マスク無 + マスク有 + マスク有反転 + マスク無の乗算済アルファ対応版 + マスク有の乗算済アルファ対応版 + マスク有反転の乗算済アルファ対応版)
+    ShaderNames_ShaderCount,
 
-    //Mult
-    ShaderNames_Mult,
-    ShaderNames_MultMasked,
-    ShaderNames_MultMaskedInverted,
-    ShaderNames_MultPremultipliedAlpha,
-    ShaderNames_MultMaskedPremultipliedAlpha,
-    ShaderNames_MultMaskedPremultipliedAlphaInverted,
+#undef CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES
+#undef CSM_CREATE_SHADER_NAMES
 };
 
-enum Blend
+enum CompatibleBlend
 {
     Blend_Normal,
     Blend_Add,
     Blend_Mult,
     Blend_Mask
 };
+
+enum MaskType
+{
+    MaskType_None,
+    MaskType_Masked,
+    MaskType_MaskedInverted,
+    MaskType_PremultipliedAlpha,
+    MaskType_MaskedPremultipliedAlpha,
+    MaskType_MaskedInvertedPremultipliedAlpha,
+};
+
+enum ColorBlendMode
+{
+    ColorBlendMode_None = -1,
+    ColorBlendMode_Normal,
+    ColorBlendMode_Add,
+    ColorBlendMode_AddGlow,
+    ColorBlendMode_Darken,
+    ColorBlendMode_Multiply,
+    ColorBlendMode_ColorBurn,
+    ColorBlendMode_LinearBurn,
+    ColorBlendMode_Lighten,
+    ColorBlendMode_Screen,
+    ColorBlendMode_ColorDodge,
+    ColorBlendMode_Overlay,
+    ColorBlendMode_SoftLight,
+    ColorBlendMode_HardLight,
+    ColorBlendMode_LinearLight,
+    ColorBlendMode_Hue,
+    ColorBlendMode_Color,
+    ColorBlendMode_Count,
+};
+
+enum AlphaBlendMode
+{
+    AlphaBlendMode_None = -1,
+    AlphaBlendMode_Over,
+    AlphaBlendMode_Atop,
+    AlphaBlendMode_Out,
+    AlphaBlendMode_ConjointOver,
+    AlphaBlendMode_DisjointOver,
+    AlphaBlendMode_Count,
+};
+
+/**
+ * @brief   どのシェーダーを利用するかを取得する
+ */
+csmInt32 GetShaderNamesBegin(const csmBlendMode blendMode);
 
 /**
  * @brief   頂点情報を保持する構造体
@@ -195,7 +291,7 @@ public:
          * @param[in]   device        ->  論理デバイス
          * @param[in]   filename      ->  ファイル名
          */
-        VkShaderModule CreateShaderModule(VkDevice device, std::string filename);
+        VkShaderModule CreateShaderModule(VkDevice device, csmString filename);
 
         /**
          * @brief   パイプラインを作成する
@@ -203,9 +299,15 @@ public:
          * @param[in]   vertFileName        ->  Vertexシェーダーのファイル
          * @param[in]   fragFileName        ->  Fragmentシェーダーのファイル
          * @param[in]   descriptorSetLayout ->  ディスクリプタセットレイアウト
+         * @param[in]   colorBlendMode      ->  ブレンドカラーモード
+         * @param[in]   alphaBlendMode      ->  オーバーラップカラーモード
+         *
+         * @return     シェーダーの作成に成功: true 失敗: false
          */
-        bool CreateGraphicsPipeline(std::string vertFileName, std::string fragFileName,
-                                    VkDescriptorSetLayout descriptorSetLayout);
+        csmBool CreateGraphicsPipeline(csmString vertFileName, csmString fragFileName,
+                                    VkDescriptorSetLayout descriptorSetLayout,
+                                    csmUint32 shaderName,
+                                    csmInt32 colorBlendMode = ColorBlendMode_None, csmInt32 alphaBlendMode = AlphaBlendMode_None);
         void Release();
         VkPipeline GetPipeline(csmInt32 index)
         {
@@ -221,9 +323,22 @@ public:
     /**
      * @brief   シェーダーごとにPipelineResourceのインスタンスを作成する
      *
-     * @param[in]   descriptorSetLayout ->  ディスクリプタセットレイアウト
+     * @param[in]   descriptorSetLayout ->  ディスクリプタセットレイアウト(DrawableとOffscreen用)
+     * @param[in]   copyDescriptorSetLayout ->  ディスクリプタセットレイアウト(Copy用)
      */
-    void CreatePipelines(VkDescriptorSetLayout descriptorSetLayout);
+    void CreatePipelines(VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSetLayout copyDescriptorSetLayout);
+
+    /**
+     * @brief   PipelineResourceのインスタンスを作成する
+     *
+     * @param[in]   shaderName ->  シェーダー名
+     * @param[in]   vertShaderFileName ->  Vertexシェーダーファイル名
+     * @param[in]   fragShaderFileName ->  Fragmentシェーダーファイル名
+     * @param[in]   descriptorSetLayout ->  ディスクリプタセットレイアウト
+     * @param[in]   colorBlendMode      ->  ブレンドカラーモード
+     * @param[in]   alphaBlendMode      ->  オーバーラップカラーモード
+     */
+    void CreatePipelineResource(csmUint32 const& shaderName, csmString const& vertShaderFileName, csmString const& fragShaderFileName, VkDescriptorSetLayout const& descriptorSetLayout, csmInt32 const& colorBlendMode=ColorBlendMode_None, csmInt32 const& alphaBlendMode=AlphaBlendMode_None);
 
     /**
      * @brief   指定したシェーダーのグラフィックスパイプラインを取得する
@@ -306,18 +421,30 @@ class CubismRenderer_Vulkan : public CubismRenderer
      */
     struct Descriptor
     {
+        Descriptor()
+            : descriptorSet(VK_NULL_HANDLE)
+            , isDescriptorSetUpdated(false)
+            , descriptorSetMasked(VK_NULL_HANDLE)
+            , isDescriptorSetMaskedUpdated(false)
+            , descriptorSetForMask(VK_NULL_HANDLE)
+            , isDescriptorSetForMaskUpdated(false)
+        {}
+
         CubismBufferVulkan uniformBuffer; ///< ユニフォームバッファ
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE; ///< ディスクリプタセット
-        bool isDescriptorSetUpdated = false; ///< ディスクリプタセットが更新されたか
-        VkDescriptorSet descriptorSetMasked = VK_NULL_HANDLE; ///< マスクされる描画対象用のディスクリプタセット
-        bool isDescriptorSetMaskedUpdated = false; ///< マスクされる描画対象用のディスクリプタセットが更新されたか
+        VkDescriptorSet descriptorSet; ///< ディスクリプタセット
+        csmBool isDescriptorSetUpdated; ///< ディスクリプタセットが更新されたか
+        VkDescriptorSet descriptorSetMasked; ///< マスクされる描画対象用のディスクリプタセット
+        csmBool isDescriptorSetMaskedUpdated; ///< マスクされる描画対象用のディスクリプタセットが更新されたか
+        CubismBufferVulkan uniformBufferMask; ///< マスク生成時用のユニフォームバッファ
+        VkDescriptorSet descriptorSetForMask; ///< マスク生成時用のディスクリプタセット
+        csmBool isDescriptorSetForMaskUpdated; ///< マスク生成時用のディスクリプタセットが更新されたか
     };
 
 protected:
     /**
      * @brief   コンストラクタ
      */
-    CubismRenderer_Vulkan();
+    CubismRenderer_Vulkan(csmUint32 width, csmUint32 height);
 
     /**
      * @brief   デストラクタ
@@ -438,6 +565,14 @@ public:
     void Initialize(Framework::CubismModel* model, csmInt32 maskBufferCount) override;
 
     /**
+     * @bref オフスクリーンの親を探して設定する
+     *
+     * @param model -> モデルのインスタンス
+     * @param offscreenCount -> オフスクリーンの数
+     */
+    void SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount);
+
+    /**
      * @brief   頂点バッファを更新する。
      * @param[in]   drawAssign    -> 描画インデックス
      * @param[in]   vcount        -> 頂点数
@@ -470,7 +605,29 @@ public:
      * @param[in]   textureIndex  -> テクスチャインデックス
      * @param[in]   isMasked      -> 描画対象がマスクされるか
      */
-    void UpdateDescriptorSet(Descriptor& descriptor, csmUint32 textureIndex, bool isMasked);
+    void UpdateDescriptorSet(Descriptor& descriptor, csmUint32 textureIndex, csmBool isMasked);
+
+    /**
+     * @brief  マスク生成時用ディスクリプタセットを更新する
+     * @param[in]   descriptor    -> 1つのシェーダーが使用するディスクリプタセットとUBO
+     * @param[in]   textureIndex  -> テクスチャインデックス
+     */
+    void UpdateDescriptorSetForMask(Descriptor& descriptor, csmUint32 textureIndex);
+
+    /**
+     * @brief  オフスクリーン用ディスクリプタセットを更新する
+     * @param[in]   descriptor    -> 1つのシェーダーが使用するディスクリプタセットとUBO
+     * @param[in]   offscreen     -> 描画対象のオフスクリーン
+     * @param[in]   isMasked      -> 描画対象がマスクされるか
+     */
+    void UpdateDescriptorSetForOffscreen(Descriptor& descriptor, CubismOffscreenRenderTarget_Vulkan* offscreen, csmBool isMasked);
+
+    /**
+     * @brief  コピー用ディスクリプタセットを更新する
+     * @param[in]   descriptor      -> 1つのシェーダーが使用するディスクリプタセット
+     * @param[in]   srcBuffer        -> コピー元
+     */
+    void UpdateDescriptorSetForCopy(Descriptor& descriptor, const CubismRenderTarget_Vulkan* srcBuffer);
 
     /**
      * @brief   メッシュ描画を実行する
@@ -479,7 +636,7 @@ public:
      * @param[in]   index                 ->  描画オブジェクトのインデックス
      * @param[in]   cmdBuffer             ->  フレームバッファ関連のコマンドバッファ
      */
-    void ExecuteDrawForDraw(const CubismModel& model, const csmInt32 index, VkCommandBuffer& cmdBuffer);
+    void ExecuteDrawForDrawable(const CubismModel& model, const csmInt32 index, VkCommandBuffer& cmdBuffer);
 
     /**
      * @brief   マスク描画を実行する
@@ -489,6 +646,23 @@ public:
      * @param[in]   cmdBuffer             ->  フレームバッファ関連のコマンドバッファ
      */
     void ExecuteDrawForMask(const CubismModel& model, const csmInt32 index, VkCommandBuffer& cmdBuffer);
+
+    /**
+     * @brief   オフスクリーン描画を実行する
+     *
+     * @param[in]   model                 ->  描画対象のモデル
+     * @param[in]   offscreen             ->  描画対象
+     * @param[in]   cmdBuffer             ->  フレームバッファ関連のコマンドバッファ
+     */
+    void ExecuteDrawForOffscreen(const CubismModel& model, CubismOffscreenRenderTarget_Vulkan* offscreen, VkCommandBuffer& cmdBuffer);
+
+    /**
+     * @brief   オフスクリーンからのコピーを実行する
+     *
+     * @param[in]   srcBuffer             ->  コピー元
+     * @param[in]   cmdBuffer             ->  フレームバッファ関連のコマンドバッファ
+     */
+    void ExecuteDrawForRenderTarget(const CubismRenderTarget_Vulkan* srcBuffer, VkCommandBuffer& cmdBuffer);
 
     /**
      * @brief   [オーバーライド]<br>
@@ -507,7 +681,7 @@ public:
      * @param[in]   drawCommandBuffer       ->  コマンドバッファ
      * @param[in]   isResume                ->  レンダリング再開かのフラグ
      */
-    void BeginRendering(VkCommandBuffer drawCommandBuffer, bool isResume);
+    void BeginRendering(VkCommandBuffer drawCommandBuffer, csmBool isResume);
 
     /**
      * @brief   レンダリング終了
@@ -515,6 +689,21 @@ public:
      * @param[in]   drawCommandBuffer       ->  コマンドバッファ
      */
     void EndRendering(VkCommandBuffer drawCommandBuffer);
+
+    /**
+     * @brief   MOCバージョンによって異なる対象へのレンダリング開始
+     *
+     * @param[in]   drawCommandBuffer       ->  コマンドバッファ
+     * @param[in]   isResume                ->  レンダリング再開かのフラグ
+     */
+    void BeginRenderTarget(VkCommandBuffer drawCommandBuffer, csmBool isResume);
+
+    /**
+     * @brief   MOCバージョンによって異なる対象へのレンダリング終了
+     *
+     * @param[in]   drawCommandBuffer       ->  コマンドバッファ
+     */
+    void EndRenderTarget(VkCommandBuffer drawCommandBuffer);
 
     /**
      * @brief   モデルを描画する実際の処理
@@ -537,6 +726,16 @@ public:
      * @brief   モデル描画直前のステートを保持する
      */
     void RestoreProfile() override {}
+
+    /**
+     * @brief   モデル描画直前のオフスクリーン設定
+     */
+    void BeforeDrawModelRenderTarget() override;
+
+    /**
+     * @brief   モデル描画後のオフスクリーン設定
+     */
+    void AfterDrawModelRenderTarget() override;
 
     /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストをセットする。
@@ -564,7 +763,7 @@ public:
      *
      * @return  画面上に描画するクリッピングコンテキスト
      */
-    CubismClippingContext_Vulkan* GetClippingContextBufferForDraw() const;
+    CubismClippingContext_Vulkan* GetClippingContextBufferForDrawable() const;
 
     /**
      * @brief   テクスチャマネージャーで作成したものをバインドする
@@ -591,6 +790,14 @@ public:
     CubismVector2 GetClippingMaskBufferSize() const;
 
     /**
+     * @brief  モデル全体を描画する先のフレームバッファを取得する
+     *
+     * @return モデル全体を描画する先のフレームバッファへの参照
+     *
+     */
+    CubismRenderTarget_Vulkan* GetModelRenderTarget();
+
+    /**
      * @brief  クリッピングマスクのバッファを取得する
      *
      * @param[in] backbufferNum  -> バックバッファの番号
@@ -599,7 +806,7 @@ public:
      * @return クリッピングマスクのバッファへのポインタ
      *
      */
-    CubismOffscreenSurface_Vulkan* GetMaskBuffer(csmUint32 backbufferNum, csmInt32 offscreenIndex);
+    CubismRenderTarget_Vulkan* GetDrawableMaskBuffer(csmUint32 backbufferNum, csmInt32 offscreenIndex);
 
 private:
 
@@ -617,10 +824,11 @@ private:
     /**
      * @brief  頂点バッファとインデックスバッファをバインドする
      *
-     * @param[in]   index            ->  描画メッシュのインデックス
-     * @param[in]   cmdBuffer        ->  コマンドバッファ
+     * @param[in]   index                   ->  描画メッシュのインデックス
+     * @param[in]   cmdBuffer               ->  コマンドバッファ
+     * @param[in]   drawableObjectType      ->  描画オブジェクトの種類
      */
-    void BindVertexAndIndexBuffers(const csmInt32 index, VkCommandBuffer& cmdBuffer);
+    void BindVertexAndIndexBuffers(const csmInt32 index, VkCommandBuffer& cmdBuffer, DrawableObjectType drawableObjectType);
 
     /**
      * @brief  描画に使用するカラーチャンネルを設定
@@ -630,26 +838,176 @@ private:
      */
     void SetColorChannel(ModelUBO& ubo, CubismClippingContext_Vulkan* contextBuffer);
 
+    /**
+     * @brief  コピー用のシェーダーでオフスクリーンのテクスチャを描画する
+     *
+     * @param[in]   src                -> コピー元
+     * @param[in]   drawCommandBuffer  -> コマンドバッファ
+     */
+    void CopyRenderTarget(const CubismRenderTarget_Vulkan* src, VkCommandBuffer drawCommandBuffer);
+
+    /**
+     * @brief  描画オブジェクトのループ処理
+     *
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     * @param[in]   beginInfo             -> コマンド記録開始時の情報
+     */
+    void DrawObjectLoop(VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer, const VkCommandBufferBeginInfo& beginInfo);
+
+    /**
+     * @brief  描画オブジェクトの描画
+     *
+     * @param[in]   objectIndex           -> オブジェクトのインデックス
+     * @param[in]   objectType            -> オブジェクトの種類
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     * @param[in]   beginInfo             -> コマンド記録開始時の情報
+     */
+    void RenderObject(csmInt32 objectIndex, csmInt32 objectType, VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer, const VkCommandBufferBeginInfo& beginInfo);
+
+    /**
+     * @brief  Drawableの描画
+     *
+     * @param[in]   drawableIndex         -> Drawableのインデックス
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     * @param[in]   beginInfo             -> コマンド記録開始時の情報
+     */
+    void DrawDrawable(csmInt32 drawableIndex, VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer, const VkCommandBufferBeginInfo& beginInfo);
+
+    /**
+     * @brief  親オフスクリーンへの描画伝搬
+     *
+     * @param[in]   objectIndex           -> オブジェクトのインデックス
+     * @param[in]   objectType            -> オブジェクトの種類
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     * @param[in]   beginInfo             -> コマンド記録開始時の情報
+     */
+    void SubmitDrawToParentOffscreen(csmInt32 objectIndex, DrawableObjectType objectType,
+                                     VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer, const VkCommandBufferBeginInfo& beginInfo);
+
+    /**
+     * @brief  オフスクリーンの追加
+     *
+     * @param[in]   offscreenIndex        -> オフスクリーンのインデックス
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     * @param[in]   beginInfo             -> コマンド記録開始時の情報
+     */
+    void AddOffscreen(csmInt32 offscreenIndex, VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer, const VkCommandBufferBeginInfo& beginInfo);
+
+    /**
+     * @brief  オフスクリーンの描画
+     *
+     * @param[in]   currentOffscreen      -> 現在のオフスクリーン
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     * @param[in]   beginInfo             -> コマンド記録開始時の情報
+     */
+    void DrawOffscreen(CubismOffscreenRenderTarget_Vulkan* currentOffscreen,
+                       VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer, const VkCommandBufferBeginInfo& beginInfo);
+
+    /**
+     * @brief  オフスクリーンの描画処理（Vulkan版）
+     *
+     * @param[in]   model                 -> モデル
+     * @param[in]   offscreen             -> オフスクリーン
+     * @param[in]   clipContext           -> クリッピングコンテキスト
+     * @param[in]   updateCommandBuffer   -> 更新用コマンドバッファ
+     * @param[in]   drawCommandBuffer     -> 描画用コマンドバッファ
+     */
+    void DrawOffscreenVulkan(const CubismModel& model, CubismOffscreenRenderTarget_Vulkan* offscreen,
+                             CubismClippingContext_Vulkan* clipContext,
+                             VkCommandBuffer updateCommandBuffer, VkCommandBuffer drawCommandBuffer);
+
+    /**
+     * @brief  オフスクリーンの描画用クリッピングコンテキストをセットする
+     *
+     * @param[in]   clip                  -> クリッピングコンテキスト
+     */
+    void SetClippingContextBufferForOffscreen(CubismClippingContext_Vulkan* clip);
+
+    /**
+     * @brief   オフスクリーン描画用クリッピングコンテキストを取得する。
+     *
+     * @return  オフスクリーン描画用クリッピングコンテキスト
+     */
+    CubismClippingContext_Vulkan* GetClippingContextBufferForOffscreen() const;
+
+    /**
+     * @brief  オフスクリーン用マスクバッファを取得する
+     *
+     * @param[in]   backBufferNum         -> バックバッファの番号
+     * @param[in]   offscreenIndex        -> オフスクリーンのインデックス
+     *
+     * @return      オフスクリーン用マスクバッファ
+     */
+    CubismRenderTarget_Vulkan* GetOffscreenMaskBuffer(csmUint32 backBufferNum, csmInt32 offscreenIndex);
+
+    /**
+     * @brief  ブレンドモードで使用するテクスチャにメモリバリアを設定する
+     *
+     * @param[in]   drawCommandBuffer     -> コマンドバッファ
+     */
+    void SetBlendTextureBarrier(VkCommandBuffer drawCommandBuffer);
+
+    /**
+     * @brief  レンダーターゲット切り替え時に現在の描画を終了する
+     *
+     * @param[in]   commandBuffer      -> コマンドバッファ
+     * @param[in]   nextRenderTarget   -> 切り替え先のレンダーターゲット
+     */
+    void EnsurePreviousRenderFinished(VkCommandBuffer commandBuffer, const CubismRenderTarget_Vulkan* nextRenderTarget);
+
+    CubismClippingContext_Vulkan* _clippingContextBufferForOffscreen; ///< オフスクリーン用クリッピングコンテキスト
+    CubismOffscreenRenderTarget_Vulkan* _currentOffscreen; ///< 現在のオフスクリーン
+    CubismRenderTarget_Vulkan* _currentRenderTarget; ///< 現在のレンダーターゲット
+
     PFN_vkCmdSetCullModeEXT vkCmdSetCullModeEXT;
 
     CubismRenderer_Vulkan(const CubismRenderer_Vulkan&);
     CubismRenderer_Vulkan& operator=(const CubismRenderer_Vulkan&);
 
-    CubismClippingManager_Vulkan* _clippingManager; ///< クリッピングマスク管理オブジェクト
+    CubismClippingManager_Vulkan* _drawableClippingManager; ///< クリッピングマスク管理オブジェクト
     csmVector<csmInt32> _sortedDrawableIndexList; ///< 描画オブジェクトのインデックスを描画順に並べたリスト
     CubismClippingContext_Vulkan* _clippingContextBufferForMask; ///< マスクテクスチャに描画するためのクリッピングコンテキスト
     CubismClippingContext_Vulkan* _clippingContextBufferForDraw; ///< 画面上描画するためのクリッピングコンテキスト
 
+    csmVector<csmInt32> _sortedObjectsIndexList;                ///< 描画オブジェクトのインデックスを描画順に並べたリスト
+    csmVector<DrawableObjectType> _sortedObjectsTypeList;       ///< 描画オブジェクトの種別を描画順に並べたリスト
+
+    CubismClippingManager_Vulkan* _offscreenClippingManager; ///< オフスクリーン用クリッピングマスク管理オブジェクト
+    csmVector<CubismOffscreenRenderTarget_Vulkan> _offscreenList;     ///< モデルのオフスクリーン
+
     csmUint32 _commandBufferCurrent; ///< スワップチェーン用に使用中のバッファインデックス
 
-    csmVector<csmVector<CubismOffscreenSurface_Vulkan>> _offscreenFrameBuffers; ///< マスク描画用のフレームバッファ
+    csmVector<csmVector<CubismRenderTarget_Vulkan>> _drawableMaskBuffers; ///< Drawableのマスク描画用のフレームバッファ
+    csmVector<csmVector<CubismRenderTarget_Vulkan>> _offscreenMaskBuffers; ///< オフスクリーン機能マスク描画用のフレームバッファ
+    csmVector<CubismRenderTarget_Vulkan> _modelRenderTargets; ///< モデル全体を描画する先のフレームバッファ
     csmVector<csmVector<CubismBufferVulkan>> _vertexBuffers; ///< 頂点バッファ
     csmVector<csmVector<CubismBufferVulkan>> _stagingBuffers; ///< 頂点バッファを更新する際に使うステージングバッファ
     csmVector<csmVector<CubismBufferVulkan>> _indexBuffers; ///< インデックスバッファ
 
+    csmVector<csmVector<CubismBufferVulkan>> _offscreenVertexBuffers; ///< オフスクリーン用頂点バッファ
+    csmVector<csmVector<CubismBufferVulkan>> _offscreenStagingBuffers; ///< オフスクリーン用頂点バッファを更新する際に使うステージングバッファ
+    csmVector<csmVector<CubismBufferVulkan>> _offscreenIndexBuffers; ///< オフスクリーン用インデックスバッファ
+
+    csmVector<CubismBufferVulkan> _copyVertexBuffer;
+    csmVector<CubismBufferVulkan> _copyStagingBuffer;
+    csmVector<CubismBufferVulkan> _copyIndexBuffer;
+
     VkDescriptorPool _descriptorPool; ///< ディスクリプタプール
     VkDescriptorSetLayout _descriptorSetLayout; ///< ディスクリプタセットのレイアウト
     csmVector<csmVector<Descriptor>> _descriptorSets; ///< ディスクリプタ管理オブジェクト
+
+    VkDescriptorPool _offscreenDescriptorPool; ///< オフスクリーン用ディスクリプタプール
+    csmVector<csmVector<Descriptor>> _offscreenDescriptorSets; ///< オフスクリーン用ディスクリプタ管理オブジェクト
+
+    VkDescriptorPool _copyDescriptorPool; ///< コピー用ディスクリプタプール
+    VkDescriptorSetLayout _copyDescriptorSetLayout; ///< コピー用ディスクリプタセットのレイアウト
+    csmVector<Descriptor> _copyDescriptorSets; ///< コピー用ディスクリプタ管理オブジェクト
 
     csmVector<CubismImageVulkan> _textures; ///< モデルが使うテクスチャ
     CubismImageVulkan _depthImage; ///< オフスクリーンの色情報を保持する深度画像
@@ -658,6 +1016,8 @@ private:
     csmVector<VkSemaphore> _updateFinishedSemaphores; ///< セマフォ
     csmVector<VkCommandBuffer> _updateCommandBuffers; ///< 更新用コマンドバッファ
     csmVector<VkCommandBuffer> _drawCommandBuffers; ///< 描画用コマンドバッファ
+
+    csmBool _isClearedModelRenderTarget; ///< レンダーターゲットをクリアしたか
 };
 }}}}
 

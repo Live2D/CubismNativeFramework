@@ -10,23 +10,61 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-void CubismRenderTarget_Metal::CopyBuffer(CubismRenderTarget_Metal &src, CubismRenderTarget_Metal &dst, id <MTLBlitCommandEncoder> blitEncoder)
+void CubismRenderTarget_Metal::CopyBuffer(CubismRenderTarget_Metal &src, CubismRenderTarget_Metal &dst, id<MTLCommandBuffer> commandBuffer)
 {
-    [blitEncoder copyFromTexture:src.GetColorBuffer() toTexture:dst.GetColorBuffer()];
+    id<MTLBlitCommandEncoder> blitCommandEncoder = [commandBuffer blitCommandEncoder];
+    [blitCommandEncoder copyFromTexture:src.GetColorBuffer() toTexture:dst.GetColorBuffer()];
+    [blitCommandEncoder endEncoding];
 }
 
 CubismRenderTarget_Metal::CubismRenderTarget_Metal()
-    : _colorBuffer(NULL)
-    , _depthBuffer(NULL)
-    , _renderPassDescriptor(NULL)
+    : _colorBuffer(nil)
+    , _depthBuffer(nil)
+    , _commandEncoder(nil)
+    , _renderPassDescriptor(nil)
     , _bufferWidth(0)
     , _bufferHeight(0)
     , _pixelFormat(MTLPixelFormatRGBA8Unorm)
-    , _clearColorR(1.0f)
-    , _clearColorG(1.0f)
-    , _clearColorB(1.0f)
-    , _clearColorA(1.0f)
+    , _clearColorR(0.0f)
+    , _clearColorG(0.0f)
+    , _clearColorB(0.0f)
+    , _clearColorA(0.0f)
 {
+}
+
+void CubismRenderTarget_Metal::BeginDraw(id<MTLCommandBuffer> commandBuffer)
+{
+    if (_commandEncoder == nil)
+    {
+        _commandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:_renderPassDescriptor];
+    }
+}
+
+void CubismRenderTarget_Metal::EndDraw()
+{
+    if (_commandEncoder != nil)
+    {
+      [_commandEncoder endEncoding];
+      _commandEncoder = nil;
+      // 次回BeginDrawを呼び出すときに以前書き込んだ内容を呼び出すようにする
+      _renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+    }
+}
+
+void CubismRenderTarget_Metal::Clear(float r, float g, float b, float a)
+{
+    if (_commandEncoder != nil)
+    {
+        // BeginDraw後に設定が変更されることを防ぐ
+        return;
+    }
+
+    _clearColorR = r;
+    _clearColorG = g;
+    _clearColorB = b;
+    _clearColorA = a;
+    _renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(_clearColorR, _clearColorG, _clearColorB, _clearColorA);
+    _renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 }
 
 csmBool CubismRenderTarget_Metal::CreateRenderTarget(id<MTLDevice> device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer, id <MTLTexture> depthBuffer)
@@ -76,7 +114,7 @@ csmBool CubismRenderTarget_Metal::CreateRenderTarget(id<MTLDevice> device, csmUi
             _viewPort = {0.0, 0.0, static_cast<double>(_bufferWidth), static_cast<double>(_bufferHeight), 0.0, 1.0};
         }
 
-        if(depthBuffer == NULL)
+        if(depthBuffer == nil)
         {
             MTLTextureDescriptor *depthTexDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:displayBufferWidth height:displayBufferHeight mipmapped:false];
             depthTexDescriptor.usage = MTLTextureUsageRenderTarget;
@@ -109,22 +147,22 @@ csmBool CubismRenderTarget_Metal::CreateRenderTarget(id<MTLDevice> device, csmUi
 
 void CubismRenderTarget_Metal::DestroyRenderTarget()
 {
-    if (_colorBuffer != NULL)
+    if (_colorBuffer != nil)
     {
         [_colorBuffer release];
-        _colorBuffer = NULL;
+        _colorBuffer = nil;
     }
 
-    if(_depthBuffer != NULL)
+    if(_depthBuffer != nil)
     {
         [_depthBuffer release];
-        _depthBuffer = NULL;
+        _depthBuffer = nil;
     }
 
-    if (_renderPassDescriptor != NULL)
+    if (_renderPassDescriptor != nil)
     {
         [_renderPassDescriptor release];
-        _renderPassDescriptor = NULL;
+        _renderPassDescriptor = nil;
     }
 }
 
@@ -138,12 +176,9 @@ id <MTLTexture> CubismRenderTarget_Metal::GetDepthBuffer() const
     return _depthBuffer;
 }
 
-void CubismRenderTarget_Metal::SetClearColor(float r, float g, float b, float a)
+id <MTLRenderCommandEncoder> CubismRenderTarget_Metal::GetCommandEncoder() const
 {
-    _clearColorR = r;
-    _clearColorG = g;
-    _clearColorB = b;
-    _clearColorA = a;
+    return _commandEncoder;
 }
 
 csmUint32 CubismRenderTarget_Metal::GetBufferWidth() const
@@ -169,11 +204,6 @@ const MTLViewport* CubismRenderTarget_Metal::GetViewport() const
 MTLRenderPassDescriptor* CubismRenderTarget_Metal::GetRenderPassDescriptor() const
 {
     return _renderPassDescriptor;
-}
-
-void CubismRenderTarget_Metal::SetColorAttachmentLoadAction(MTLLoadAction action, csmUint32 setColorAttachmentIndex)
-{
-    _renderPassDescriptor.colorAttachments[setColorAttachmentIndex].loadAction = action;
 }
 
 void CubismRenderTarget_Metal::SetMTLPixelFormat(MTLPixelFormat pixelFormat)

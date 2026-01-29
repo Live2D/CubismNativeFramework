@@ -8,17 +8,12 @@
 #pragma once
 
 #include "CubismNativeInclude_D3D9.hpp"
-
-#include "../CubismRenderer.hpp"
 #include "CubismType_D3D9.hpp"
+#include "Type/csmString.hpp"
 #include "CubismFramework.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
-
-//  前方宣言
-class CubismRenderer_D3D9;
-class CubismClippingContext_D3D9;
 
 /**
  * @bref    DX9シェーダエフェクト

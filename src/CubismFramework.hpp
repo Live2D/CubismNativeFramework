@@ -44,7 +44,7 @@ class CubismAllocationAlignedTag
 { };
 
 static CubismAllocationTag GlobalTag;
-static CubismAllocationAlignedTag GloabalAlignedTag;
+static CubismAllocationAlignedTag GlobalAlignedTag;
 
 }}}
 
@@ -107,9 +107,9 @@ void CsmDelete(T* address)
 #define CSM_DELETE_SELF(type, obj)       do { if (!obj){ break; } obj->~type(); operator delete(obj, Live2D::Cubism::Framework::GlobalTag); } while(0)
 #define CSM_DELETE(obj)                  CsmDelete(obj)
 #define CSM_MALLOC(size)                 Live2D::Cubism::Framework::CubismFramework::Allocate(size)
-#define CSM_MALLOC_ALLIGNED(size, align) Live2D::Cubism::Framework::CubismFramework::AllocateAligned(size, align)
+#define CSM_MALLOC_ALIGNED(size, align) Live2D::Cubism::Framework::CubismFramework::AllocateAligned(size, align)
 #define CSM_FREE(ptr)                    Live2D::Cubism::Framework::CubismFramework::Deallocate(ptr)
-#define CSM_FREE_ALLIGNED(ptr)           Live2D::Cubism::Framework::CubismFramework::DeallocateAligned(ptr)
+#define CSM_FREE_ALIGNED(ptr)           Live2D::Cubism::Framework::CubismFramework::DeallocateAligned(ptr)
 
 #endif
 

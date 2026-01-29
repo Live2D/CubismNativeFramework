@@ -17,7 +17,9 @@
 #include "Math/CubismVector2.hpp"
 #include "Type/csmMap.hpp"
 #include "Rendering/D3D9/CubismRenderTarget_D3D9.hpp"
+#include "CubismShader_D3D9.hpp"
 #include "CubismRenderState_D3D9.hpp"
+#include "CubismDeviceInfo_D3D9.hpp"
 #include "CubismType_D3D9.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
@@ -25,79 +27,12 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 
 //  前方宣言
 class CubismRenderer_D3D9;
-class CubismShader_D3D9;
 class CubismClippingContext_D3D9;
 
 /**
  * @brief D3DXMATRIXに変換
  */
 D3DXMATRIX ConvertToD3DX(CubismMatrix44& mtx);
-
-/**
- * @brief デバイスに紐づいているデータの使用箇所の数とデータを管理するクラス
- */
-class DeviceInfo_D3D9
-{
-public:
-    /**
-     * @brief    レンダラを作成するための各種設定
-     * 　　　　　モデルロード前に毎回設定されている必要あり
-     *
-     * @param[in]   bufferSetNum -> 1パーツに付き作成するバッファ数
-     * @param[in]   device       -> 使用デバイス
-     */
-    static void SetConstantSettings(csmUint32 bufferSetNum, LPDIRECT3DDEVICE9 device);
-
-    /**
-     * @brief   デバイスに紐づいているデータを取得し使用数をカウントする
-     *
-     * @param[in]   device         -> 使用デバイス
-     *
-     * @return デバイスに紐づいているデータを返す
-     */
-    static DeviceInfo_D3D9& AcquireInfo(LPDIRECT3DDEVICE9 device);
-
-    /**
-     * @brief   デバイスに紐づいているデータの使用数を減らす
-     *
-     * @param[in]   device         -> 使用デバイス
-     */
-    static void ReleaseInfo(LPDIRECT3DDEVICE9 device);
-
-    /**
-     * @brief   デバイスに紐づいているデータの全削除
-     */
-    static void DeleteAllInfo();
-
-    /**
-     * @brief   コンストラクタ
-     */
-    DeviceInfo_D3D9();
-
-    /**
-     * @brief   ディストラクタ
-     */
-    ~DeviceInfo_D3D9();
-
-    /**
-     * @brief   シェーダーを取得する
-     *
-     * @return シェーダーを返す
-     */
-    CubismShader_D3D9* GetShader() const;
-
-    /**
-     * @brief   レンダーステートを取得する
-     *
-     * @return レンダーステートを返す
-     */
-    CubismRenderState_D3D9* GetRenderState() const;
-
-private:
-    csmUint32 _useCount;       ///< 使用箇所の数
-    CubismShader_D3D9* _shader; ///< シェーダ
-    CubismRenderState_D3D9* _renderState;   ///< レンダーステート
-};
 
 /**
  * @brief  クリッピングマスクの処理を実行するクラス
@@ -165,6 +100,15 @@ class CubismRenderer_D3D9 : public CubismRenderer
     friend class CubismShader_D3D9;
 
 public:
+    /**
+     * @brief    レンダラを作成するための各種設定
+     * 　　　　　モデルロード前に毎回設定されている必要あり
+     *
+     * @param[in]   bufferSetNum -> 1パーツに付き作成するバッファ数
+     * @param[in]   device       -> 使用デバイス
+     */
+    static void SetConstantSettings(csmUint32 bufferSetNum, LPDIRECT3DDEVICE9 device);
+
     /**
      * @brief    デバイスを設定する
      *
@@ -318,7 +262,7 @@ public:
      *
      * @return 現在のオフスクリーンのフレームバッファを返す
      */
-    CubismRenderTarget_D3D9* GetCurrentOffscreen() const;
+    CubismOffscreenRenderTarget_D3D9* GetCurrentOffscreen() const;
 
 protected:
     /**
@@ -387,7 +331,7 @@ protected:
      *
      * @param[in]   currentOffscreen ->  描画対象のオフスクリーン
      */
-    void DrawOffscreen(CubismRenderTarget_D3D9* offscreen);
+    void DrawOffscreen(CubismOffscreenRenderTarget_D3D9* offscreen);
 
     /**
      * @brief   描画オブジェクト（アートメッシュ）を描画する。<br>
@@ -404,7 +348,7 @@ protected:
      * @param[in]   model       ->  描画対象のモデル
      * @param[in]   offscreen ->  描画対象のオフスクリーン
      */
-    void DrawOffscreenDX9(const CubismModel& model, CubismRenderTarget_D3D9* offscreen);
+    void DrawOffscreenDX9(const CubismModel& model, CubismOffscreenRenderTarget_D3D9* offscreen);
 
     /**
      * @brief  描画用に使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行
@@ -420,7 +364,7 @@ protected:
      * @param[in]   model           ->  描画対象のモデル
      * @param[in]   offscreen       ->  描画すべき対象
      */
-    void ExecuteDrawForOffscreen(const CubismModel& model, CubismRenderTarget_D3D9* offscreen);
+    void ExecuteDrawForOffscreen(const CubismModel& model, CubismOffscreenRenderTarget_D3D9* offscreen);
 
     /**
      * @brief  マスク作成用に使用するシェーダの設定・コンスタントバッファの設定などを行い、描画を実行
@@ -437,11 +381,6 @@ protected:
     void ExecuteDrawForRenderTarget();
 
 private:
-    /**
-     * @brief   レンダラが保持する静的なリソースを解放する
-     */
-    static void DoStaticRelease();
-
     // Prevention of copy Constructor
     CubismRenderer_D3D9(const CubismRenderer_D3D9&);
 
@@ -619,7 +558,7 @@ private:
      * @param[in]   offscreen       ->  描画すべき対象のオフスクリーン
      * @param[in]   shaderEffect    -> シェーダーエフェクト
      */
-    void SetExecutionTexturesForOffscreen(const CubismModel& model, const CubismRenderTarget_D3D9* offscreen, ID3DXEffect* shaderEffect);
+    void SetExecutionTexturesForOffscreen(const CubismModel& model, const CubismOffscreenRenderTarget_D3D9* offscreen, ID3DXEffect* shaderEffect);
 
     /**
      * @brief  描画に使用するカラーチャンネルを設定
@@ -646,8 +585,7 @@ private:
     void DrawIndexedPrimiteveWithSetup(const CubismModel& model, const csmInt32 index);
 
     LPDIRECT3DDEVICE9 _device;   ///< 使用デバイス。モデルロード前に設定されている必要あり。
-    CubismShader_D3D9* _shader;     ///< シェーダ
-    CubismRenderState_D3D9* _renderState;   ///< レンダーステート
+    CubismDeviceInfo_D3D9* _deviceInfo; ///< デバイスに紐づいている情報
     csmUint32 _drawableNum;         ///< _vertexBuffers, _indexBuffersの確保数
 
     /**
@@ -678,8 +616,8 @@ private:
     CubismClippingContext_D3D9* _clippingContextBufferForDrawable;   ///< 画面上描画するためのクリッピングコンテキスト
     CubismClippingContext_D3D9* _clippingContextBufferForOffscreen;  ///< 画面上描画するためのクリッピングコンテキスト
 
-    csmVector<CubismRenderTarget_D3D9> _offscreenList; ///< モデルのオフスクリーン
-    CubismRenderTarget_D3D9* _currentOffscreen;        ///< 現在のオフスクリーンのフレームバッファ
+    csmVector<CubismOffscreenRenderTarget_D3D9> _offscreenList; ///< モデルのオフスクリーン
+    CubismOffscreenRenderTarget_D3D9* _currentOffscreen;        ///< 現在のオフスクリーンのフレームバッファ
 };
 
 }}}}

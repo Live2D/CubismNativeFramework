@@ -8,9 +8,8 @@
 #pragma once
 
 #include "CubismNativeInclude_D3D11.hpp"
-
-#include "../CubismRenderer.hpp"
 #include "CubismType_D3D11.hpp"
+#include "Type/csmString.hpp"
 #include "CubismFramework.hpp"
 #include "Type/csmVector.hpp"
 
@@ -88,10 +87,6 @@ namespace Live2D { namespace Cubism { namespace Framework {
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
-
-//  前方宣言
-class CubismRenderer_D3D11;
-class CubismClippingContext;
 
 /**
  * @bref    D3D11シェーダ管理

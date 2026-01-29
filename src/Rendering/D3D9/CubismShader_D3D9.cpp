@@ -6,7 +6,6 @@
  */
 
 #include "CubismShader_D3D9.hpp"
-
 #include "CubismRenderer_D3D9.hpp"
 
 //------------ LIVE2D NAMESPACE ------------

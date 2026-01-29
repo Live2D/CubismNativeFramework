@@ -5,7 +5,7 @@
  * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
-#version
+#version 100
 #extension GL_NV_shader_framebuffer_fetch : enable
 
 precision highp float;

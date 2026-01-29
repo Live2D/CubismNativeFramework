@@ -13,12 +13,6 @@
 #include <Windows.h>
 #endif
 
-#define CSM_FRAGMENT_SHADER_FP_PRECISION_HIGH "highp"
-#define CSM_FRAGMENT_SHADER_FP_PRECISION_MID "mediump"
-#define CSM_FRAGMENT_SHADER_FP_PRECISION_LOW "lowp"
-
-#define CSM_FRAGMENT_SHADER_FP_PRECISION CSM_FRAGMENT_SHADER_FP_PRECISION_HIGH
-
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
@@ -582,7 +576,7 @@ void CubismShader_OpenGLES2::SetupShaderProgramForDrawable(CubismRenderer_OpenGL
         // 以前のオフスクリーンのテクスチャを取得
         // HACK: ES でCopy用の ShaderProgram に切り替わるのでここで処理を行う。
         blendTexture = renderer->GetCurrentOffscreen() != NULL ?
-            renderer->CopyRenderTarget(*renderer->GetCurrentOffscreen())->GetColorBuffer() :
+            renderer->CopyRenderTarget(*renderer->GetCurrentOffscreen()->GetRenderTarget())->GetColorBuffer() :
             renderer->CopyOffscreenRenderTarget()->GetColorBuffer();
         break;
     case ShaderNames_Normal:
@@ -748,7 +742,7 @@ void CubismShader_OpenGLES2::CopyTexture(GLint texture, csmInt32 srcColor, csmIn
     glBlendFuncSeparate(srcColor, dstColor, srcAlpha, dstAlpha);
 }
 
-void CubismShader_OpenGLES2::SetupShaderProgramForOffscreen(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const CubismRenderTarget_OpenGLES2* offscreen)
+void CubismShader_OpenGLES2::SetupShaderProgramForOffscreen(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const CubismOffscreenRenderTarget_OpenGLES2* offscreen)
 {
     if (_shaderSets.GetSize() == 0)
     {
@@ -787,7 +781,7 @@ void CubismShader_OpenGLES2::SetupShaderProgramForOffscreen(CubismRenderer_OpenG
         // 以前のオフスクリーンのテクスチャを取得
         // HACK: ES でCopy用の ShaderProgram に切り替わるのでここで処理を行う。
         blendTexture = offscreen->GetOldOffscreen() != NULL ?
-            renderer->CopyRenderTarget(*offscreen->GetOldOffscreen())->GetColorBuffer() :
+            renderer->CopyRenderTarget(*offscreen->GetOldOffscreen()->GetRenderTarget())->GetColorBuffer() :
             renderer->CopyOffscreenRenderTarget()->GetColorBuffer();
         break;
     case ShaderNames_Normal:
@@ -815,7 +809,7 @@ void CubismShader_OpenGLES2::SetupShaderProgramForOffscreen(CubismRenderer_OpenG
 
     // オフスクリーンのテクスチャ設定
     glActiveTexture(GL_TEXTURE0);
-    GLuint tex = offscreen->GetColorBuffer();
+    GLuint tex = offscreen->GetRenderTarget()->GetColorBuffer();
     glBindTexture(GL_TEXTURE_2D, tex);
     glUniform1i(shaderSet->SamplerTexture0Location, 0);
 

@@ -22,7 +22,6 @@ namespace
 {
     csmUint32 s_bufferSetNum = 0;           ///< 作成コンテキストの数。モデルロード前に設定されている必要あり。
     ID3D11Device* s_device = NULL;          ///< 使用デバイス。モデルロード前に設定されている必要あり。
-    csmMap<ID3D11Device*, DeviceInfo_D3D11> s_deviceInfoList; ///< デバイスに紐づいているデータの管理
 
     const csmFloat32 ModelRenderTargetVertices[] = {
         //  x,     y,     u,     v
@@ -189,84 +188,6 @@ DirectX::XMMATRIX ConvertToD3DX(CubismMatrix44& mtx)
 }
 
 /*********************************************************************************************************************
-*                                      DeviceInfo_D3D11
-********************************************************************************************************************/
-void DeviceInfo_D3D11::SetConstantSettings(csmUint32 bufferSetNum, ID3D11Device* device)
-{
-    if (bufferSetNum == 0 || device == NULL)
-    {
-        return;
-    }
-
-    s_bufferSetNum = bufferSetNum;
-    s_device = device;
-}
-
-DeviceInfo_D3D11& DeviceInfo_D3D11::AcquireInfo(ID3D11Device* device)
-{
-    if (!s_deviceInfoList.IsExist(device))
-    {
-        s_deviceInfoList[device]._shader = CSM_NEW CubismShader_D3D11();
-        s_deviceInfoList[device]._renderState = CSM_NEW CubismRenderState_D3D11(device);
-    }
-
-    ++(s_deviceInfoList[device]._useCount);
-    return s_deviceInfoList[device];
-}
-
-void DeviceInfo_D3D11::ReleaseInfo(ID3D11Device* device)
-{
-    if (s_deviceInfoList.IsExist(device))
-    {
-        if (0 < s_deviceInfoList[device]._useCount)
-        {
-            --(s_deviceInfoList[device]._useCount);
-            // 使用しなくなったら削除する
-            if (s_deviceInfoList[device]._useCount == 0)
-            {
-                s_deviceInfoList.Erase(device);
-            }
-        }
-    }
-}
-
-void DeviceInfo_D3D11::DeleteAllInfo()
-{
-    s_deviceInfoList.Clear();
-}
-
-DeviceInfo_D3D11::DeviceInfo_D3D11()
-    : _useCount(0)
-    , _shader(NULL)
-    , _renderState(NULL)
-{
-}
-
-DeviceInfo_D3D11::~DeviceInfo_D3D11()
-{
-    if (_shader != NULL)
-    {
-        CSM_DELETE_SELF(CubismShader_D3D11, _shader);
-        _shader = NULL;
-    }
-    if (_renderState != NULL)
-    {
-        CSM_DELETE_SELF(CubismRenderState_D3D11, _renderState);
-        _renderState = NULL;
-    }
-}
-
-CubismShader_D3D11* DeviceInfo_D3D11::GetShader() const
-{
-    return _shader;
-}
-
-CubismRenderState_D3D11* DeviceInfo_D3D11::GetRenderState() const
-{
-    return _renderState;
-}
-
-/*********************************************************************************************************************
 *                                      CubismClippingManager_D3D11
 ********************************************************************************************************************/
 void CubismClippingManager_D3D11::SetupClippingContext(ID3D11Device* device, ID3D11DeviceContext* context, CubismRenderState_D3D11* renderState, CubismModel& model, CubismRenderer_D3D11* renderer, csmInt32 currentRenderTarget, CubismRenderer::DrawableObjectType drawableObjectType)
@@ -280,16 +201,7 @@ void CubismClippingManager_D3D11::SetupClippingContext(ID3D11Device* device, ID3
         CubismClippingContext_D3D11* cc = _clippingContextListForMask[clipIndex];
 
         // このクリップを利用する描画オブジェクト群全体を囲む矩形を計算
-        switch (drawableObjectType)
-        {
-        case CubismRenderer::DrawableObjectType_Drawable:
-        default:
-            CalcClippedDrawableTotalBounds(model, cc);
-            break;
-        case CubismRenderer::DrawableObjectType_Offscreen:
-            CalcClippedOffscreenTotalBounds(model, cc);
-            break;
-        }
+        CalcClippedTotalBounds(model, cc, drawableObjectType);
 
         if (cc->_isUsing)
         {
@@ -394,7 +306,7 @@ void CubismClippingManager_D3D11::SetupClippingContext(ID3D11Device* device, ID3
         csmFloat32 scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
 
         // マスク生成時に使う行列を求める
-        createMatrixForMask(isRightHanded, layoutBoundsOnTex01, scaleX, scaleY);
+        CreateMatrixForMask(isRightHanded, layoutBoundsOnTex01, scaleX, scaleY);
 
         clipContext->_matrixForMask.SetMatrix(_tmpMatrixForMask.GetArray());
         clipContext->_matrixForDraw.SetMatrix(_tmpMatrixForDraw.GetArray());
@@ -470,7 +382,17 @@ CubismRenderer* CubismRenderer::Create(csmUint32 width, csmUint32 height)
 
 void CubismRenderer::StaticRelease()
 {
-    CubismRenderer_D3D11::DoStaticRelease();
+}
+
+void CubismRenderer_D3D11::SetConstantSettings(csmUint32 bufferSetNum, ID3D11Device* device)
+{
+    if (bufferSetNum == 0 || device == NULL)
+    {
+        return;
+    }
+
+    s_bufferSetNum = bufferSetNum;
+    s_device = device;
 }
 
 void CubismRenderer_D3D11::SetDefaultRenderState(csmUint32 width, csmUint32 height)
@@ -479,12 +401,12 @@ void CubismRenderer_D3D11::SetDefaultRenderState(csmUint32 width, csmUint32 heig
     CSM_ASSERT(_context != NULL);
 
     // Zは無効 描画順で制御
-    _renderState->SetZEnable(_context,
+    _deviceInfo->GetRenderState()->SetZEnable(_context,
         CubismRenderState_D3D11::Depth_Disable,
         0);
 
     // ビューポート
-    _renderState->SetViewport(_context,
+    _deviceInfo->GetRenderState()->SetViewport(_context,
         0.0f,
         0.0f,
         static_cast<float>(width),
@@ -495,9 +417,8 @@ void CubismRenderer_D3D11::SetDefaultRenderState(csmUint32 width, csmUint32 heig
 CubismRenderer_D3D11::CubismRenderer_D3D11(csmUint32 width, csmUint32 height)
     : CubismRenderer(width, height)
     , _device(NULL)
-    , _shader(NULL)
+    , _deviceInfo(NULL)
     , _context(NULL)
-    , _renderState(NULL)
     , _vertexBuffers(NULL)
     , _indexBuffers(NULL)
     , _constantBuffers(NULL)
@@ -552,15 +473,6 @@ CubismRenderer_D3D11::~CubismRenderer_D3D11()
         _offscreenMasks.Clear();
     }
 
-    for (csmInt32 i = 0; i < _offscreenList.GetSize(); ++i)
-    {
-        if (_offscreenList[i].IsValid())
-        {
-            _offscreenList[i].DestroyRenderTarget();
-        }
-    }
-    _offscreenList.Clear();
-
     ReleaseCommandBuffer();
 
     if (_offscreenConstantBuffer)
@@ -593,15 +505,6 @@ CubismRenderer_D3D11::~CubismRenderer_D3D11()
 
     CSM_DELETE_SELF(CubismClippingManager_D3D11, _drawableClippingManager);
     CSM_DELETE_SELF(CubismClippingManager_D3D11, _offscreenClippingManager);
-
-    // レンダラーと紐づいているシェーダを削除
-    DeviceInfo_D3D11::ReleaseInfo(_device);
-}
-
-void CubismRenderer_D3D11::DoStaticRelease()
-{
-    // デバイスに紐づいているデータの削除
-    DeviceInfo_D3D11::DeleteAllInfo();
 }
 
 csmBool CubismRenderer_D3D11::OnDeviceChanged()
@@ -620,25 +523,13 @@ csmBool CubismRenderer_D3D11::OnDeviceChanged()
         return false;
     }
 
-    if (_device == NULL && _commandBufferNum == 0)
-    {
-        // 未設定時はそのまま設定する
-        _device = s_device;
-        const DeviceInfo_D3D11& deviceInfo = DeviceInfo_D3D11::AcquireInfo(s_device);
-        _shader = deviceInfo.GetShader();
-        _renderState = deviceInfo.GetRenderState();
-    }
-    else if (_device != s_device || _commandBufferNum != s_bufferSetNum)
+    const csmBool isInitialized = _device != NULL && _commandBufferNum != 0 && (_device != s_device || _commandBufferNum != s_bufferSetNum);
+
+    _device = s_device;
+    _deviceInfo = CubismDeviceInfo_D3D11::GetDeviceInfo(s_device);
+    if (isInitialized)
     {
         // 既に設定されている場合は設定を更新する
-        const DeviceInfo_D3D11& deviceInfo = DeviceInfo_D3D11::AcquireInfo(s_device);
-        ReleaseCommandBuffer();
-        DeviceInfo_D3D11::ReleaseInfo(_device);
-
-        _shader = deviceInfo.GetShader();
-        _renderState = deviceInfo.GetRenderState();
-        _device = s_device;
-
         Initialize(GetModel(), s_bufferSetNum);
     }
 
@@ -651,10 +542,10 @@ void CubismRenderer_D3D11::StartFrame(ID3D11DeviceContext* context)
     _context = context;
 
     // レンダーステートフレーム先頭処理
-    _renderState->StartFrame();
+    _deviceInfo->GetRenderState()->StartFrame();
 
     // シェーダ・頂点宣言
-    _shader->SetupShader(_device, _context);
+    _deviceInfo->GetShader()->SetupShader(_device, _context);
 }
 
 void CubismRenderer_D3D11::EndFrame()
@@ -701,9 +592,10 @@ void CubismRenderer_D3D11::Initialize(CubismModel* model, csmInt32 maskBufferCou
     if (model->IsUsingMasking())
     {
         _drawableClippingManager = CSM_NEW CubismClippingManager_D3D11();  //クリッピングマスク・バッファ前処理方式を初期化
-        _drawableClippingManager->InitializeForDrawable(
+        _drawableClippingManager->Initialize(
             *model,
-            maskBufferCount
+            maskBufferCount,
+            DrawableObjectType_Drawable
         );
 
         const csmInt32 bufferWidth = _drawableClippingManager->GetClippingMaskBufferSize().X;
@@ -728,9 +620,10 @@ void CubismRenderer_D3D11::Initialize(CubismModel* model, csmInt32 maskBufferCou
     if (model->IsUsingMaskingForOffscreen())
     {
         _offscreenClippingManager = CSM_NEW CubismClippingManager_D3D11();  //クリッピングマスク・バッファ前処理方式を初期化
-        _offscreenClippingManager->InitializeForOffscreen(
+        _offscreenClippingManager->Initialize(
             *model,
-            maskBufferCount
+            maskBufferCount,
+            DrawableObjectType_Offscreen
         );
 
         const csmInt32 bufferWidth = _offscreenClippingManager->GetClippingMaskBufferSize().X;
@@ -761,11 +654,10 @@ void CubismRenderer_D3D11::Initialize(CubismModel* model, csmInt32 maskBufferCou
     // オフスクリーンの数が0の場合は何もしない
     if (offscreenCount > 0)
     {
-        _offscreenList = csmVector<CubismRenderTarget_D3D11>(offscreenCount);
+        _offscreenList = csmVector<CubismOffscreenRenderTarget_D3D11>(offscreenCount);
         for (csmInt32 offscreenIndex = 0; offscreenIndex < offscreenCount; ++offscreenIndex)
         {
-            CubismRenderTarget_D3D11 renderTarget;
-            renderTarget.CreateRenderTarget(_device, _modelRenderTargetWidth, _modelRenderTargetHeight);
+            CubismOffscreenRenderTarget_D3D11 renderTarget;
             renderTarget.SetOffscreenIndex(offscreenIndex);
             _offscreenList.PushBack(renderTarget);
         }
@@ -874,7 +766,7 @@ void CubismRenderer_D3D11::Initialize(CubismModel* model, csmInt32 maskBufferCou
 
 void CubismRenderer_D3D11::SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount)
 {
-    CubismRenderTarget_D3D11* parentOffscreen;
+    CubismOffscreenRenderTarget_D3D11* parentOffscreen;
     for (csmInt32 offscreenIndex = 0; offscreenIndex < offscreenCount; ++offscreenIndex)
     {
         parentOffscreen = NULL;
@@ -1058,17 +950,17 @@ void CubismRenderer_D3D11::DoDrawModel()
 
         if (IsUsingHighPrecisionMask())
         {
-            _drawableClippingManager->SetupMatrixForDrawableHighPrecision(*GetModel(), true);
+            _drawableClippingManager->SetupMatrixForHighPrecision(*GetModel(), true, DrawableObjectType_Drawable);
         }
         else
         {
-            _drawableClippingManager->SetupClippingContext(_device, _context, _renderState, *GetModel(), this, _commandBufferCurrent, DrawableObjectType_Drawable);
+            _drawableClippingManager->SetupClippingContext(_device, _context, _deviceInfo->GetRenderState(), *GetModel(), this, _commandBufferCurrent, DrawableObjectType_Drawable);
         }
 
         if (!IsUsingHighPrecisionMask())
         {
             // ビューポートを元に戻す
-            _renderState->SetViewport(_context,
+            _deviceInfo->GetRenderState()->SetViewport(_context,
                 0.0f,
                 0.0f,
                 static_cast<float>(_modelRenderTargetWidth),
@@ -1092,17 +984,17 @@ void CubismRenderer_D3D11::DoDrawModel()
 
         if (IsUsingHighPrecisionMask())
         {
-            _offscreenClippingManager->SetupMatrixForOffscreenHighPrecision(*GetModel(), true, GetMvpMatrix());
+            _offscreenClippingManager->SetupMatrixForHighPrecision(*GetModel(), true, DrawableObjectType_Offscreen, GetMvpMatrix());
         }
         else
         {
-            _offscreenClippingManager->SetupClippingContext(_device, _context, _renderState, *GetModel(), this, _commandBufferCurrent, DrawableObjectType_Offscreen);
+            _offscreenClippingManager->SetupClippingContext(_device, _context, _deviceInfo->GetRenderState(), *GetModel(), this, _commandBufferCurrent, DrawableObjectType_Offscreen);
         }
 
         if (!IsUsingHighPrecisionMask())
         {
             // ビューポートを元に戻す
-            _renderState->SetViewport(_context,
+            _deviceInfo->GetRenderState()->SetViewport(_context,
                 0.0f,
                 0.0f,
                 static_cast<float>(_modelRenderTargetWidth),
@@ -1158,7 +1050,7 @@ void CubismRenderer_D3D11::DrawObjectLoop()
     // 残ったオフスクリーンを描画する
     while (_currentOffscreen != NULL)
     {
-        _currentOffscreen->EndDraw(_context);
+        _currentOffscreen->GetRenderTarget()->EndDraw(_context);
         DrawOffscreen(_currentOffscreen);
         _currentOffscreen = _currentOffscreen->GetParentPartOffscreen();
     }
@@ -1202,7 +1094,7 @@ void CubismRenderer_D3D11::DrawDrawable(csmInt32 drawableIndex)
     {
         if (clipContext->_isUsing) // 書くことになっていた
         {
-            _renderState->SetViewport(_context,
+            _deviceInfo->GetRenderState()->SetViewport(_context,
                 0,
                 0,
                 static_cast<FLOAT>(_drawableClippingManager->GetClippingMaskBufferSize().X),
@@ -1240,7 +1132,7 @@ void CubismRenderer_D3D11::DrawDrawable(csmInt32 drawableIndex)
                 SetClippingContextBufferForMask(NULL);
 
                 // ビューポートを元に戻す
-                _renderState->SetViewport(_context,
+                _deviceInfo->GetRenderState()->SetViewport(_context,
                     0.0f,
                     0.0f,
                     static_cast<float>(_modelRenderTargetWidth),
@@ -1286,7 +1178,7 @@ void CubismRenderer_D3D11::FlushOffscreenChainForDrawable(csmInt32 drawableIndex
         // オフスクリーンの子以降にDrawableが属していなければオフスクリーンを描画する
         if (canDrawOffscreen)
         {
-            _currentOffscreen->EndDraw(_context);
+            _currentOffscreen->GetRenderTarget()->EndDraw(_context);
             DrawOffscreen(_currentOffscreen);
             _currentOffscreen = _currentOffscreen->GetParentPartOffscreen();
         }
@@ -1299,14 +1191,14 @@ void CubismRenderer_D3D11::FlushOffscreenChainForDrawable(csmInt32 drawableIndex
 
 void CubismRenderer_D3D11::AddOffscreen(csmInt32 offscreenIndex)
 {
-    CubismRenderTarget_D3D11* offscreen = &_offscreenList[offscreenIndex];
+    CubismOffscreenRenderTarget_D3D11* offscreen = &_offscreenList[offscreenIndex];
 
     // 切り替えたいオフスクリーンが現在の子じゃないなら描画する
     while (_currentOffscreen != NULL)
     {
         if (_currentOffscreen != offscreen && _currentOffscreen != offscreen->GetParentPartOffscreen())
         {
-            _currentOffscreen->EndDraw(_context);
+            _currentOffscreen->GetRenderTarget()->EndDraw(_context);
             DrawOffscreen(_currentOffscreen);
             _currentOffscreen = _currentOffscreen->GetParentPartOffscreen();
         }
@@ -1316,28 +1208,23 @@ void CubismRenderer_D3D11::AddOffscreen(csmInt32 offscreenIndex)
         }
     }
 
-    // サイズが異なるなら新しいオフスクリーンレンダリングターゲットを作成
-    if (offscreen->GetBufferWidth() != _modelRenderTargetWidth ||
-        offscreen->GetBufferHeight() != _modelRenderTargetHeight)
-    {
-        offscreen->CreateRenderTarget(_device, _modelRenderTargetWidth, _modelRenderTargetHeight);
-    }
+    offscreen->SetOffscreenRenderTarget(_device, _deviceInfo->GetOffscreenManager(), _modelRenderTargetWidth, _modelRenderTargetHeight);
 
     // 別バッファに描画を開始
-    offscreen->BeginDraw(_context);
-    _renderState->SetViewport(_context,
+    offscreen->GetRenderTarget()->BeginDraw(_context);
+    _deviceInfo->GetRenderState()->SetViewport(_context,
         0,
         0,
         static_cast<float>(_modelRenderTargetWidth),
         static_cast<float>(_modelRenderTargetHeight),
         0.0f, 1.0f);
-    offscreen->Clear(_context, 0.0f, 0.0f, 0.0f, 0.0f);
+    offscreen->GetRenderTarget()->Clear(_context, 0.0f, 0.0f, 0.0f, 0.0f);
 
     // 現在のオフスクリーンレンダリングターゲットを設定
     _currentOffscreen = offscreen;
 }
 
-void CubismRenderer_D3D11::DrawOffscreen(CubismRenderTarget_D3D11* offscreen)
+void CubismRenderer_D3D11::DrawOffscreen(CubismOffscreenRenderTarget_D3D11* offscreen)
 {
     csmInt32 offscreenIndex = offscreen->GetOffscreenIndex();
     // クリッピングマスクをセットする
@@ -1349,7 +1236,7 @@ void CubismRenderer_D3D11::DrawOffscreen(CubismRenderTarget_D3D11* offscreen)
     {
         if (clipContext->_isUsing) // 書くことになっていた
         {
-            _renderState->SetViewport(_context,
+            _deviceInfo->GetRenderState()->SetViewport(_context,
                 0,
                 0,
                 static_cast<FLOAT>(_offscreenClippingManager->GetClippingMaskBufferSize().X),
@@ -1387,7 +1274,7 @@ void CubismRenderer_D3D11::DrawOffscreen(CubismRenderTarget_D3D11* offscreen)
                 SetClippingContextBufferForMask(NULL);
 
                 // ビューポートを元に戻す
-                _renderState->SetViewport(_context,
+                _deviceInfo->GetRenderState()->SetViewport(_context,
                     0.0f,
                     0.0f,
                     static_cast<float>(_modelRenderTargetWidth),
@@ -1408,13 +1295,8 @@ void CubismRenderer_D3D11::DrawOffscreen(CubismRenderTarget_D3D11* offscreen)
 
 void CubismRenderer_D3D11::ExecuteDrawForMask(const CubismModel& model, const csmInt32 index)
 {
-    if(_shader == NULL)
-    {
-        return;
-    }
-
     // マスク用ブレンドステート
-    _renderState->SetBlend(_context,
+    _deviceInfo->GetRenderState()->SetBlend(_context,
         CubismRenderState_D3D11::Blend_Mask,
         DirectX::XMFLOAT4(0, 0, 0, 0),
         0xffffffff);
@@ -1424,8 +1306,8 @@ void CubismRenderer_D3D11::ExecuteDrawForMask(const CubismModel& model, const cs
     SetSamplerAccordingToAnisotropy();
 
     // シェーダーセット
-    _context->VSSetShader(_shader->GetVertexShader(ShaderNames_SetupMask), NULL, 0);
-    _context->PSSetShader(_shader->GetPixelShader(ShaderNames_SetupMask), NULL, 0);
+    _context->VSSetShader(_deviceInfo->GetShader()->GetVertexShader(ShaderNames_SetupMask), NULL, 0);
+    _context->PSSetShader(_deviceInfo->GetShader()->GetPixelShader(ShaderNames_SetupMask), NULL, 0);
 
     // 定数バッファ
     {
@@ -1459,11 +1341,6 @@ void CubismRenderer_D3D11::ExecuteDrawForMask(const CubismModel& model, const cs
 
 void CubismRenderer_D3D11::ExecuteDrawForDrawable(const CubismModel& model, const csmInt32 index)
 {
-    if (_shader == NULL)
-    {
-        return;
-    }
-
     // ブレンドステート
     csmBool isBlendMode;
     const csmBlendMode blendMode = model.GetDrawableBlendModeType(index);
@@ -1530,13 +1407,8 @@ void CubismRenderer_D3D11::ExecuteDrawForDrawable(const CubismModel& model, cons
     DrawDrawableIndexed(model, index);
 }
 
-void CubismRenderer_D3D11::ExecuteDrawForOffscreen(const CubismModel& model, CubismRenderTarget_D3D11* offscreen)
+void CubismRenderer_D3D11::ExecuteDrawForOffscreen(const CubismModel& model, CubismOffscreenRenderTarget_D3D11* offscreen)
 {
-    if (_shader == NULL)
-    {
-        return;
-    }
-
     csmInt32 offscreenIndex = offscreen->GetOffscreenIndex();
 
     // ブレンドステート
@@ -1614,13 +1486,8 @@ void CubismRenderer_D3D11::DrawDrawableIndexed(const CubismModel& model, const c
 
 void CubismRenderer_D3D11::ExecuteDrawForRenderTarget()
 {
-    if (_shader == NULL)
-    {
-        return;
-    }
-
     // コピー用ブレンドステート
-    _renderState->SetBlend(_context,
+    _deviceInfo->GetRenderState()->SetBlend(_context,
         CubismRenderState_D3D11::Blend_Copy,
         DirectX::XMFLOAT4(0, 0, 0, 0),
         0xffffffff);
@@ -1631,8 +1498,8 @@ void CubismRenderer_D3D11::ExecuteDrawForRenderTarget()
     SetSamplerAccordingToAnisotropy();
 
     // シェーダーセット
-    _context->VSSetShader(_shader->GetVertexShader(ShaderNames_Copy), NULL, 0);
-    _context->PSSetShader(_shader->GetPixelShader(ShaderNames_Copy), NULL, 0);
+    _context->VSSetShader(_deviceInfo->GetShader()->GetVertexShader(ShaderNames_Copy), NULL, 0);
+    _context->PSSetShader(_deviceInfo->GetShader()->GetPixelShader(ShaderNames_Copy), NULL, 0);
 
     // 定数バッファ
     {
@@ -1696,7 +1563,7 @@ void CubismRenderer_D3D11::DrawMeshDX11(const CubismModel& model, const csmInt32
     }
 
     // 裏面描画の有効・無効
-    _renderState->SetCullMode(_context, (IsCulling() ? CubismRenderState_D3D11::Cull_Ccw : CubismRenderState_D3D11::Cull_None));
+    _deviceInfo->GetRenderState()->SetCullMode(_context, (IsCulling() ? CubismRenderState_D3D11::Cull_Ccw : CubismRenderState_D3D11::Cull_None));
 
     // 頂点バッファにコピー
     {
@@ -1721,7 +1588,7 @@ void CubismRenderer_D3D11::DrawMeshDX11(const CubismModel& model, const csmInt32
     SetClippingContextBufferForMask(NULL);
 }
 
-void CubismRenderer_D3D11::DrawOffscreenDX11(const CubismModel& model, CubismRenderTarget_D3D11* offscreen)
+void CubismRenderer_D3D11::DrawOffscreenDX11(const CubismModel& model, CubismOffscreenRenderTarget_D3D11* offscreen)
 {
     // デバイス未設定
     if (_device == NULL)
@@ -1730,10 +1597,11 @@ void CubismRenderer_D3D11::DrawOffscreenDX11(const CubismModel& model, CubismRen
     }
 
     // 裏面描画の有効・無効
-    _renderState->SetCullMode(_context, (IsCulling() ? CubismRenderState_D3D11::Cull_Ccw : CubismRenderState_D3D11::Cull_None));
+    _deviceInfo->GetRenderState()->SetCullMode(_context, (IsCulling() ? CubismRenderState_D3D11::Cull_Ccw : CubismRenderState_D3D11::Cull_None));
 
     ExecuteDrawForOffscreen(model, offscreen);
 
+    offscreen->StopUsingRenderTexture(_deviceInfo->GetOffscreenManager());
     SetClippingContextBufferForOffscreen(NULL);
     SetClippingContextBufferForMask(NULL);
 }
@@ -1745,7 +1613,7 @@ void CubismRenderer_D3D11::SaveProfile()
     CSM_ASSERT(_context != NULL);
 
     // 現在のレンダリングステートをPush
-    _renderState->SaveCurrentNativeState(_device, _context);
+    _deviceInfo->GetRenderState()->SaveCurrentNativeState(_device, _context);
 }
 
 void CubismRenderer_D3D11::RestoreProfile()
@@ -1755,7 +1623,7 @@ void CubismRenderer_D3D11::RestoreProfile()
     CSM_ASSERT(_context != NULL);
 
     // SaveCurrentNativeStateと対
-    _renderState->RestoreNativeState(_device, _context);
+    _deviceInfo->GetRenderState()->RestoreNativeState(_device, _context);
 }
 
 void CubismRenderer_D3D11::BeforeDrawModelRenderTarget()
@@ -1819,9 +1687,10 @@ void CubismRenderer_D3D11::SetDrawableClippingMaskBufferSize(csmFloat32 width, c
 
     _drawableClippingManager->SetClippingMaskBufferSize(width, height);
 
-    _drawableClippingManager->InitializeForDrawable(
+    _drawableClippingManager->Initialize(
         *GetModel(),
-        renderTextureCount
+        renderTextureCount,
+        DrawableObjectType_Drawable
     );
 }
 
@@ -1852,9 +1721,10 @@ void CubismRenderer_D3D11::SetOffscreenClippingMaskBufferSize(csmFloat32 width, 
 
     _offscreenClippingManager->SetClippingMaskBufferSize(width, height);
 
-    _offscreenClippingManager->InitializeForOffscreen(
+    _offscreenClippingManager->Initialize(
         *GetModel(),
-        renderTextureCount
+        renderTextureCount,
+        DrawableObjectType_Offscreen
     );
 }
 
@@ -1878,7 +1748,7 @@ CubismRenderTarget_D3D11* CubismRenderer_D3D11::GetOffscreenMaskBuffer(csmUint32
     return &_offscreenMasks[backbufferNum][index];
 }
 
-CubismRenderTarget_D3D11* CubismRenderer_D3D11::GetCurrentOffscreen() const
+CubismOffscreenRenderTarget_D3D11* CubismRenderer_D3D11::GetCurrentOffscreen() const
 {
     return _currentOffscreen;
 }
@@ -1962,21 +1832,21 @@ void CubismRenderer_D3D11::SetBlendState(const CubismBlendMode blendMode) const
     {
     case CubismBlendMode_Normal:
     default:
-        _renderState->SetBlend(_context,
+        _deviceInfo->GetRenderState()->SetBlend(_context,
             CubismRenderState_D3D11::Blend_Normal,
             DirectX::XMFLOAT4(0, 0, 0, 0),
             0xffffffff);
         break;
 
     case CubismBlendMode_Additive:
-        _renderState->SetBlend(_context,
+        _deviceInfo->GetRenderState()->SetBlend(_context,
             CubismRenderState_D3D11::Blend_Add,
             DirectX::XMFLOAT4(0, 0, 0, 0),
             0xffffffff);
         break;
 
     case CubismBlendMode_Multiplicative:
-        _renderState->SetBlend(_context,
+        _deviceInfo->GetRenderState()->SetBlend(_context,
             CubismRenderState_D3D11::Blend_Mult,
             DirectX::XMFLOAT4(0, 0, 0, 0),
             0xffffffff);
@@ -2002,7 +1872,7 @@ void CubismRenderer_D3D11::SetBlendMode(csmBlendMode blendMode, csmBool& isBlend
     }
     else
     {
-        _renderState->SetBlend(_context,
+        _deviceInfo->GetRenderState()->SetBlend(_context,
             CubismRenderState_D3D11::Blend_ColorAlphaBlend,
             DirectX::XMFLOAT4(0, 0, 0, 0),
             0xffffffff);
@@ -2021,8 +1891,8 @@ void CubismRenderer_D3D11::SetShaderForDrawable(const CubismModel& model, const 
     csmInt32 shaderNames = GetShaderNames(blendMode);
 
     shaderNames += offset;
-    _context->VSSetShader(_shader->GetVertexShader(shaderNames), NULL, 0);
-    _context->PSSetShader(_shader->GetPixelShader(shaderNames), NULL, 0);
+    _context->VSSetShader(_deviceInfo->GetShader()->GetVertexShader(shaderNames), NULL, 0);
+    _context->PSSetShader(_deviceInfo->GetShader()->GetPixelShader(shaderNames), NULL, 0);
 }
 
 void CubismRenderer_D3D11::SetShaderForOffscreen(const CubismModel& model, const csmInt32 index, csmBlendMode blendMode)
@@ -2035,8 +1905,8 @@ void CubismRenderer_D3D11::SetShaderForOffscreen(const CubismModel& model, const
     csmInt32 shaderNames = GetShaderNames(blendMode);
 
     shaderNames += offset;
-    _context->VSSetShader(_shader->GetVertexShader(shaderNames), NULL, 0);
-    _context->PSSetShader(_shader->GetPixelShader(shaderNames), NULL, 0);
+    _context->VSSetShader(_deviceInfo->GetShader()->GetVertexShader(shaderNames), NULL, 0);
+    _context->PSSetShader(_deviceInfo->GetShader()->GetPixelShader(shaderNames), NULL, 0);
 }
 
 void CubismRenderer_D3D11::SetTextureViewForDrawable(const CubismModel& model, const csmInt32 index, csmBool isBlendMode)
@@ -2048,23 +1918,23 @@ void CubismRenderer_D3D11::SetTextureViewForDrawable(const CubismModel& model, c
     ID3D11ShaderResourceView* maskView = (masked && drawing ? _drawableMasks[_commandBufferCurrent][GetClippingContextBufferForDrawable()->_bufferIndex].GetTextureView() : NULL);
     ID3D11ShaderResourceView* blendView = isBlendMode ?
                                               _currentOffscreen != NULL ?
-                                              CopyRenderTarget(*_currentOffscreen) :
+                                              CopyRenderTarget(*_currentOffscreen->GetRenderTarget()) :
                                               CopyModelRenderTarget() :
                                           NULL;
     ID3D11ShaderResourceView* const viewArray[3] = { textureView, maskView, blendView };
     _context->PSSetShaderResources(0, 3, viewArray);
 }
 
-void CubismRenderer_D3D11::SetTextureViewForOffscreen(const CubismModel& model, const CubismRenderTarget_D3D11* offscreen)
+void CubismRenderer_D3D11::SetTextureViewForOffscreen(const CubismModel& model, const CubismOffscreenRenderTarget_D3D11* offscreen)
 {
     const csmBool masked = GetClippingContextBufferForOffscreen() != NULL;
     const csmBool drawing = !IsGeneratingMask();
 
-    ID3D11ShaderResourceView* textureView = offscreen->GetTextureView();
+    ID3D11ShaderResourceView* textureView = offscreen->GetRenderTarget()->GetTextureView();
     int a = masked && drawing ? GetClippingContextBufferForOffscreen()->_bufferIndex : -1;
     ID3D11ShaderResourceView* maskView = (masked && drawing ? _offscreenMasks[_commandBufferCurrent][GetClippingContextBufferForOffscreen()->_bufferIndex].GetTextureView() : NULL);
     ID3D11ShaderResourceView* blendView = offscreen->GetParentPartOffscreen() != NULL ?
-        CopyRenderTarget(*offscreen->GetParentPartOffscreen()) :
+        CopyRenderTarget(*offscreen->GetParentPartOffscreen()->GetRenderTarget()) :
         CopyModelRenderTarget();
     ID3D11ShaderResourceView* const viewArray[3] = { textureView, maskView, blendView };
     _context->PSSetShaderResources(0, 3, viewArray);
@@ -2103,11 +1973,11 @@ void CubismRenderer_D3D11::SetSamplerAccordingToAnisotropy()
 {
     if (GetAnisotropy() >= 1.0f)
     {
-        _renderState->SetSampler(_context, CubismRenderState_D3D11::Sampler_Anisotropy, GetAnisotropy(), _device);
+        _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Anisotropy, GetAnisotropy(), _device);
     }
     else
     {
-        _renderState->SetSampler(_context, CubismRenderState_D3D11::Sampler_Normal);
+        _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Normal);
     }
 }
 

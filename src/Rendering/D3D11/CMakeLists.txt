@@ -1,6 +1,12 @@
 target_sources(${LIB_NAME}
   PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismDeviceInfo_D3D11.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismDeviceInfo_D3D11.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismNativeInclude_D3D11.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenManager_D3D11.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenManager_D3D11.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenRenderTarget_D3D11.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenRenderTarget_D3D11.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer_D3D11.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer_D3D11.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderState_D3D11.cpp

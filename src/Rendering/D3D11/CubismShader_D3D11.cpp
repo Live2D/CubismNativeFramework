@@ -6,7 +6,6 @@
  */
 
 #include "CubismShader_D3D11.hpp"
-
 #include "CubismRenderer_D3D11.hpp"
 #include <d3dcompiler.h>
 

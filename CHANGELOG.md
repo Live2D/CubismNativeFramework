@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5-r.5-beta.3] - 2026-01-29
+
+### Added
+
+* Add the classes `CubismOffscreenRenderTarget_XXX` and `CubismOffscreenManager_XXX`, as well as the interfaces `ICubismOffscreenRenderTarget` and `ICubismOffscreenManager`, in order to reuse `CubismRenderTarget_XXX` for Offscreen rendering.
+* Add support for Blend mode and Offscreen drawing in Vulkan.
+
+### Fixed
+
+* Fix an issue that caused performance degradation on Metal.
+* Fix clipping mask pre-processing by consolidating functions.
+* Fix unused macros in OpenGL.
+* Fix incomplete OpenGL shader issue.
+* Fix incorrect UV coordinates when using masks with D3D9 and D3D11.
+* Fix typos in `CubismFramework.hpp`.
+
 
 ## [5-r.5-beta.2] - 2025-10-30
 
@@ -517,6 +533,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.2...5-r.5-beta.3
 [5-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.1...5-r.5-beta.2
 [5-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4.1...5-r.5-beta.1
 [5-r.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4...5-r.4.1

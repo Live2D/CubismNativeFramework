@@ -21,7 +21,6 @@ namespace
     csmUint32 s_maskBufferCount = 0;         ///< マスクバッファの数。モデルロード前に毎回設定されている必要あり。
     id<MTLDevice> s_device = nil;         ///< 使用デバイス。モデルロード前に毎回設定されている必要あり。
     id<MTLDevice> s_InitializeClippingDevice = nil;  ///< CubismClippingManagerのinitializeForXXXを呼び出す前に設定しておくデバイス。
-    csmMap<id<MTLDevice>, DeviceInfo_Metal> s_deviceInfoList; ///< デバイスに紐づいているデータの管理
 
     const csmFloat32 modelRenderTargetVertexArray[] = {
         -1.0f, -1.0f,
@@ -48,73 +47,6 @@ namespace
 }
 
 /*********************************************************************************************************************
-*                                      DeviceInfo_Metal
-********************************************************************************************************************/
-void DeviceInfo_Metal::SetConstantSettings(id<MTLDevice> device, csmUint32 maskBufferCount)
-{
-    if (device == nil)
-    {
-        return;
-    }
-
-    s_maskBufferCount = maskBufferCount;
-    s_device = device;
-}
-
-DeviceInfo_Metal& DeviceInfo_Metal::AcquireInfo(id<MTLDevice> device)
-{
-    if (!s_deviceInfoList.IsExist(device))
-    {
-        s_deviceInfoList[device]._shader = CSM_NEW CubismShader_Metal();
-    }
-
-    ++(s_deviceInfoList[device]._useCount);
-    return s_deviceInfoList[device];
-}
-
-void DeviceInfo_Metal::ReleaseInfo(id<MTLDevice> device)
-{
-    if (s_deviceInfoList.IsExist(device))
-    {
-        if (0 < s_deviceInfoList[device]._useCount)
-        {
-            --(s_deviceInfoList[device]._useCount);
-            // 使用しなくなったら削除する
-            if (s_deviceInfoList[device]._useCount == 0)
-            {
-                s_deviceInfoList.Erase(device);
-            }
-        }
-    }
-}
-
-void DeviceInfo_Metal::DeleteAllInfo()
-{
-    s_deviceInfoList.Clear();
-}
-
-DeviceInfo_Metal::DeviceInfo_Metal()
-    : _useCount(0)
-    , _shader(NULL)
-{
-}
-
-DeviceInfo_Metal::~DeviceInfo_Metal()
-{
-    if (_shader != NULL)
-    {
-        CSM_DELETE_SELF(CubismShader_Metal, _shader);
-        _shader = NULL;
-    }
-}
-
-
-CubismShader_Metal* DeviceInfo_Metal::GetShader() const
-{
-    return _shader;
-}
-
-/*********************************************************************************************************************
 *                                      CubismClippingManager_Metal
 ********************************************************************************************************************/
 void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, CubismRenderer_Metal* renderer, CubismRenderTarget_Metal* lastColorBuffer, csmRectF lastViewport, CubismRenderer::DrawableObjectType drawableObjectType)
@@ -128,16 +60,7 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
         CubismClippingContext_Metal* cc = _clippingContextListForMask[clipIndex];
 
         // このクリップを利用する描画オブジェクト群全体を囲む矩形を計算
-        switch (drawableObjectType)
-        {
-        case CubismRenderer::DrawableObjectType_Drawable:
-        default:
-            CalcClippedDrawableTotalBounds(model, cc);
-            break;
-        case CubismRenderer::DrawableObjectType_Offscreen:
-            CalcClippedOffscreenTotalBounds(model, cc);
-            break;
-        }
+        CalcClippedTotalBounds(model, cc, drawableObjectType);
 
         if (cc->_isUsing)
         {
@@ -165,7 +88,10 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
         _currentMaskBuffer = renderer->GetOffscreenMaskBuffer(0);
         break;
     }
-    renderEncoder = renderer->PreDraw(renderer->_mtlCommandBuffer, _currentMaskBuffer->GetRenderPassDescriptor());
+    renderer->EndRenderTarget();
+    _currentMaskBuffer->Clear(1.0f, 1.0f, 1.0f, 1.0f);
+    _currentMaskBuffer->BeginDraw(renderer->_mtlCommandBuffer);
+    renderEncoder = _currentMaskBuffer->GetCommandEncoder();
 
     // 各マスクのレイアウトを決定していく
     SetupLayoutBounds(usingClipCount);
@@ -216,11 +142,13 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
         // 現在のレンダーテクスチャがclipContextのものと異なる場合
         if (_currentMaskBuffer != maskBuffer)
         {
+            _currentMaskBuffer->EndDraw();
             _currentMaskBuffer = maskBuffer;
-
-            [renderEncoder endEncoding];
             // マスク用RenderTextureをactiveにセット
-            renderEncoder = renderer->PreDraw(renderer->_mtlCommandBuffer, _currentMaskBuffer->GetRenderPassDescriptor());
+            _currentMaskBuffer->Clear(1.0f, 1.0f, 1.0f, 1.0f);
+            _currentMaskBuffer->BeginDraw(renderer->_mtlCommandBuffer);
+            renderEncoder = _currentMaskBuffer->GetCommandEncoder();
+            // マスク用RenderTextureをactiveにセット
         }
 
         // モデル座標上の矩形を、適宜マージンを付けて使う
@@ -233,7 +161,7 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
         csmFloat32 scaleY = layoutBoundsOnTex01->Height / _tmpBoundsOnModel.Height;
 
         // マスク生成時に使う行列を求める
-        createMatrixForMask(isRightHanded, layoutBoundsOnTex01, scaleX, scaleY);
+        CreateMatrixForMask(isRightHanded, layoutBoundsOnTex01, scaleX, scaleY);
 
         clipContext->_matrixForMask.SetMatrix(_tmpMatrixForMask.GetArray());
         clipContext->_matrixForDraw.SetMatrix(_tmpMatrixForDraw.GetArray());
@@ -297,7 +225,8 @@ void CubismClippingManager_Metal::SetupClippingContext(CubismModel& model, Cubis
     }
 
     // --- 後処理 ---
-    [renderEncoder endEncoding];
+    _currentMaskBuffer->EndDraw();
+    renderer->BeginRenderTarget();
     renderer->SetClippingContextBufferForMask(NULL);
 }
 
@@ -361,15 +290,26 @@ CubismRenderer* CubismRenderer::Create(csmUint32 width, csmUint32 height)
 
 void CubismRenderer::StaticRelease()
 {
-    CubismRenderer_Metal::DoStaticRelease();
+}
+
+void CubismRenderer_Metal::SetConstantSettings(id<MTLDevice> device, csmUint32 maskBufferCount)
+{
+    if (device == nil)
+    {
+        return;
+    }
+
+    s_maskBufferCount = maskBufferCount;
+    s_device = device;
 }
 
 CubismRenderer_Metal::CubismRenderer_Metal(csmUint32 width, csmUint32 height)
     : CubismRenderer(width, height)
     , _device(NULL)
     , _mtlCommandBuffer(NULL)
+    , _mtlCommandEncoder(NULL)
     , _renderPassDescriptor(NULL)
-    , _shader(NULL)
+    , _deviceInfo(NULL)
     , _drawableClippingManager(NULL)
     , _offscreenClippingManager(NULL)
     , _clippingContextBufferForMask(NULL)
@@ -432,20 +372,6 @@ CubismRenderer_Metal::~CubismRenderer_Metal()
         _modelRenderTargets[i].DestroyRenderTarget();
     }
     _modelRenderTargets.Clear();
-
-    for(csmUint32 i = 0; i < _offscreenList.GetSize(); ++i)
-    {
-        _offscreenList[i].DestroyRenderTarget();
-    }
-    _offscreenList.Clear();
-
-    // レンダラーと紐づいているシェーダを削除
-    DeviceInfo_Metal::ReleaseInfo(_device);
-}
-
-void CubismRenderer_Metal::DoStaticRelease()
-{
-    DeviceInfo_Metal::DeleteAllInfo();
 }
 
 void CubismRenderer_Metal::Initialize(CubismModel* model)
@@ -476,9 +402,10 @@ void CubismRenderer_Metal::Initialize(CubismModel* model, csmInt32 maskBufferCou
         // ubismClippingManager_Metal内にdeviceを渡す用
         s_InitializeClippingDevice = _device;
         _drawableClippingManager = CSM_NEW CubismClippingManager_Metal();  //クリッピングマスク・バッファ前処理方式を初期化
-        _drawableClippingManager->InitializeForDrawable(
+        _drawableClippingManager->Initialize(
             *model,
-            maskBufferCount
+            maskBufferCount,
+            DrawableObjectType_Drawable
         );
 
         _drawableMasks.Clear();
@@ -495,9 +422,10 @@ void CubismRenderer_Metal::Initialize(CubismModel* model, csmInt32 maskBufferCou
     if(model->IsUsingMaskingForOffscreen())
     {
         _offscreenClippingManager = CSM_NEW CubismClippingManager_Metal();  //クリッピングマスク・バッファ前処理方式を初期化
-        _offscreenClippingManager->InitializeForOffscreen(
+        _offscreenClippingManager->Initialize(
             *model,
-            maskBufferCount
+            maskBufferCount,
+            DrawableObjectType_Offscreen
         );
 
         _offscreenMasks.Clear();
@@ -520,7 +448,6 @@ void CubismRenderer_Metal::Initialize(CubismModel* model, csmInt32 maskBufferCou
         for(csmInt32 i = 0; i < createSize; i++)
         {
             CubismRenderTarget_Metal modelRenderTarget;
-            modelRenderTarget.SetClearColor(0, 0, 0, 0);
             modelRenderTarget.SetMTLPixelFormat(MTLPixelFormatBGRA8Unorm);
             modelRenderTarget.CreateRenderTarget(_device, _modelRenderTargetWidth, _modelRenderTargetHeight);
             _modelRenderTargets.PushBack(modelRenderTarget);
@@ -553,13 +480,10 @@ void CubismRenderer_Metal::Initialize(CubismModel* model, csmInt32 maskBufferCou
     // オフスクリーンの数が0の場合は何もしない
     if(offscreenCount > 0)
     {
-        _offscreenList = csmVector<CubismRenderTarget_Metal>(offscreenCount);
+        _offscreenList = csmVector<CubismOffscreenRenderTarget_Metal>(offscreenCount);
         for (csmInt32 offscreenIndex = 0; offscreenIndex < offscreenCount; ++offscreenIndex)
         {
-            CubismRenderTarget_Metal renderTarget;
-            renderTarget.SetClearColor(0, 0, 0, 0);
-            renderTarget.SetMTLPixelFormat(MTLPixelFormatBGRA8Unorm);
-            renderTarget.CreateRenderTarget(_device, _modelRenderTargetWidth, _modelRenderTargetHeight);
+            CubismOffscreenRenderTarget_Metal renderTarget;
             renderTarget.SetOffscreenIndex(offscreenIndex);
             _offscreenList.PushBack(renderTarget);
         }
@@ -590,7 +514,7 @@ void CubismRenderer_Metal::Initialize(CubismModel* model, csmInt32 maskBufferCou
 
 void CubismRenderer_Metal::SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount)
 {
-    CubismRenderTarget_Metal* parentOffscreen;
+    CubismOffscreenRenderTarget_Metal* parentOffscreen;
     for (csmInt32 offscreenIndex = 0; offscreenIndex < offscreenCount; ++offscreenIndex)
     {
         parentOffscreen = NULL;
@@ -640,21 +564,12 @@ csmBool CubismRenderer_Metal::OnDeviceChanged()
         return false;
     }
 
-    if (_device == NULL)
-    {
-        // 未設定時はそのまま設定する
-        _device = s_device;
-        _shader = DeviceInfo_Metal::AcquireInfo(s_device).GetShader();
-    }
-    else if (_device != s_device)
-    {
-        // 既に設定されている場合は設定を更新する
-        DeviceInfo_Metal deviceInfo = DeviceInfo_Metal::AcquireInfo(s_device);
-        DeviceInfo_Metal::ReleaseInfo(_device);
+    const csmBool isInitialized = _device != NULL && _device != s_device;
 
-        _device = s_device;
-        _shader = deviceInfo.GetShader();
-
+    _device = s_device;
+    _deviceInfo = CubismDeviceInfo_Metal::GetDeviceInfo(s_device);
+    if (isInitialized)
+    {
         Initialize(GetModel(), s_maskBufferCount);
     }
 
@@ -667,55 +582,118 @@ void CubismRenderer_Metal::StartFrame(id<MTLCommandBuffer> commandBuffer, MTLRen
     _renderPassDescriptor = renderPassDescriptor;
 }
 
-id <MTLRenderCommandEncoder> CubismRenderer_Metal::PreDraw(id <MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* drawableRenderDescriptor)
+void CubismRenderer_Metal::PreDraw()
 {
-    id <MTLRenderCommandEncoder> tmprenderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:drawableRenderDescriptor];
-    return tmprenderEncoder;
+    if (_mtlCommandEncoder == nil)
+    {
+        _mtlCommandEncoder = [_mtlCommandBuffer renderCommandEncoderWithDescriptor:_renderPassDescriptor];
+    }
 }
 
-void CubismRenderer_Metal::PostDraw(id <MTLRenderCommandEncoder> renderEncoder)
+void CubismRenderer_Metal::PostDraw()
 {
-    [renderEncoder endEncoding];
+    if (_mtlCommandEncoder != nil)
+    {
+        [_mtlCommandEncoder endEncoding];
+        _mtlCommandEncoder = nil;
+    }
+}
+
+void CubismRenderer_Metal::BeginRenderTarget(csmBool isClearEnabled)
+{
+    if (_mtlCommandEncoder != nil)
+    {
+        return;
+    }
+
+    if(IsBlendMode())
+    {
+        CubismRenderTarget_Metal* target = NULL;
+        if (_currentOffscreen != NULL)
+        {
+            target = _currentOffscreen->GetRenderTarget();
+        }
+        if (target == NULL)
+        {
+            target = &_modelRenderTargets[0];
+        }
+
+        if (isClearEnabled)
+        {
+            target->Clear(0.0f, 0.0f, 0.0f, 0.0f);
+        }
+        target->BeginDraw(_mtlCommandBuffer);
+        _mtlCommandEncoder = target->GetCommandEncoder();
+    }
+    else
+    {
+        PreDraw();
+    }
+}
+
+void CubismRenderer_Metal::EndRenderTarget()
+{
+    if(IsBlendMode())
+    {
+        if (_currentOffscreen == NULL)
+        {
+            _modelRenderTargets[0].EndDraw();
+        }
+        else
+        {
+            _currentOffscreen->GetRenderTarget()->EndDraw();
+        }
+        _mtlCommandEncoder = nil;
+    }
+    else
+    {
+        PostDraw();
+    }
 }
 
 void CubismRenderer_Metal::BeforeDrawModelRenderTarget()
 {
     if(_modelRenderTargets.GetSize() == 0)
     {
+        PreDraw();
         return;
     }
 
     // レンダーターゲットのクリア状況のリセット
-    _modelRenderTargets[0].SetColorAttachmentLoadAction(MTLLoadActionClear);
-    _isClearedModelRenderTarget = false;
+    _modelRenderTargets[0].Clear(0.0f, 0.0f, 0.0f, 0.0f);
+    _modelRenderTargets[0].BeginDraw(_mtlCommandBuffer);
+    _mtlCommandEncoder = _modelRenderTargets[0].GetCommandEncoder();
 }
 
 void CubismRenderer_Metal::AfterDrawModelRenderTarget()
 {
     if(_modelRenderTargets.GetSize() == 0)
     {
+      PostDraw();
         return;
     }
 
+    _modelRenderTargets[0].EndDraw();
+    _mtlCommandEncoder = nil;
+    PreDraw();
     _copyCommandBuffer->SetCommandBuffer(_mtlCommandBuffer);
-    id <MTLRenderCommandEncoder> renderEncoder = PreDraw(_mtlCommandBuffer, _renderPassDescriptor);
-    _shader->SetupShaderProgramForRenderTarget(_copyCommandBuffer, renderEncoder, this);
+    _deviceInfo->GetShader()->SetupShaderProgramForRenderTarget(_copyCommandBuffer, _mtlCommandEncoder, this);
     id <MTLRenderPipelineState> pipelineState = _copyCommandBuffer->GetCommandDraw()->GetRenderPipelineState();
-    [renderEncoder setRenderPipelineState:pipelineState];
-    [renderEncoder setVertexBuffer:_copyCommandBuffer->GetVertexBuffer() offset:0 atIndex:MetalVertexInputIndexVertices];
-    [renderEncoder setVertexBuffer:_copyCommandBuffer->GetUvBuffer() offset:0 atIndex:MetalVertexInputUVs];
-    [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+    [_mtlCommandEncoder setRenderPipelineState:pipelineState];
+    [_mtlCommandEncoder setVertexBuffer:_copyCommandBuffer->GetVertexBuffer() offset:0 atIndex:MetalVertexInputIndexVertices];
+    [_mtlCommandEncoder setVertexBuffer:_copyCommandBuffer->GetUvBuffer() offset:0 atIndex:MetalVertexInputUVs];
+    [_mtlCommandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                         indexCount:6
                         indexType:MTLIndexTypeUInt16
                         indexBuffer:_copyCommandBuffer->GetIndexBuffer()
                         indexBufferOffset:0];
-
-    PostDraw(renderEncoder);
+    PostDraw();
 }
 
 void CubismRenderer_Metal::DoDrawModel()
 {
     BeforeDrawModelRenderTarget();
+
     //------------ クリッピングマスク・バッファ前処理方式の場合 ------------
     if (_drawableClippingManager != NULL)
     {
@@ -735,7 +713,7 @@ void CubismRenderer_Metal::DoDrawModel()
 
         if (IsUsingHighPrecisionMask())
         {
-            _drawableClippingManager->SetupMatrixForDrawableHighPrecision(*GetModel(), false);
+            _drawableClippingManager->SetupMatrixForHighPrecision(*GetModel(), false, DrawableObjectType_Drawable);
         }
         else
         {
@@ -761,7 +739,7 @@ void CubismRenderer_Metal::DoDrawModel()
 
         if (IsUsingHighPrecisionMask())
         {
-            _offscreenClippingManager->SetupMatrixForOffscreenHighPrecision(*GetModel(), false, GetMvpMatrix());
+            _offscreenClippingManager->SetupMatrixForHighPrecision(*GetModel(), false, DrawableObjectType_Offscreen, GetMvpMatrix());
         }
         else
         {
@@ -816,6 +794,7 @@ void CubismRenderer_Metal::DrawObjectLoop()
         }
     }
 
+    // 描画
     for (csmInt32 i = 0; i < totalCount; ++i)
     {
         const csmInt32 objectIndex = _sortedObjectsIndexList[i];
@@ -858,26 +837,47 @@ csmBool CubismRenderer_Metal::IsBlendMode(CubismModel* model)
     return model->IsBlendModeEnabled();
 }
 
+csmBool CubismRenderer_Metal::IsBlendModeIndex(csmInt32 index, DrawableObjectType drawableObjectType)
+{
+    csmBlendMode blendMode;
+    switch (drawableObjectType)
+    {
+    case DrawableObjectType_Drawable:
+        blendMode = GetModel()->GetDrawableBlendModeType(index);
+        break;
+    case DrawableObjectType_Offscreen:
+        blendMode = GetModel()->GetOffscreenBlendModeType(index);
+        break;
+    default:
+        return false;
+    }
+
+    // ブレンドモードなのかチェックする
+    const csmInt32 colorBlendType = blendMode.GetColorBlendType();
+    const csmInt32 alphaBlendType = blendMode.GetAlphaBlendType();
+    if ((colorBlendType == Core::csmColorBlendType_Normal && alphaBlendType == Core::csmAlphaBlendType_Over) ||
+        colorBlendType == Core::csmColorBlendType_AddCompatible ||
+        colorBlendType == Core::csmColorBlendType_MultiplyCompatible)
+    {
+        // ブレンドモードじゃない
+        return false;
+    }
+
+    return true;
+}
+
 void CubismRenderer_Metal::DrawDrawable(csmInt32 drawableIndex)
 {
     // Drawableが表示状態でなければ処理をパスする
-    if (!GetModel()->GetDrawableDynamicFlagIsVisible(drawableIndex))
+    if (!GetModel()->GetDrawableDynamicFlagIsVisible(drawableIndex) ||
+        GetModel()->GetDrawableVertexIndexCount(drawableIndex) <= 0)
     {
-        if (IsBlendMode())
-        {
-            // Drawableを描画しなくてもレンダーターゲットの更新のため呼び出しておく
-            PostDraw(BeginRenderTarget());
-            if (_currentOffscreen != NULL)
-            {
-                _currentOffscreen->SetColorAttachmentLoadAction(MTLLoadActionLoad);
-            }
-        }
         return;
     }
 
     SubmitDrawToParentOffscreen(drawableIndex, DrawableObjectType_Drawable);
 
-    id<MTLRenderCommandEncoder> renderEncoder = BeginRenderTarget();
+    id<MTLTexture> blendTexture = nil;
 
     // クリッピングマスク
     CubismClippingContext_Metal* clipContext = (_drawableClippingManager != NULL)
@@ -890,12 +890,11 @@ void CubismRenderer_Metal::DrawDrawable(csmInt32 drawableIndex)
         MTLViewport clipVp = {0, 0, _drawableClippingManager->GetClippingMaskBufferSize().X, _drawableClippingManager->GetClippingMaskBufferSize().Y, 0.0, 1.0};
         if(clipContext->_isUsing) // 書くことになっていた
         {
-            if(renderEncoder != nil)
-            {
-                PostDraw(renderEncoder);
-            }
-            renderEncoder = PreDraw(_mtlCommandBuffer, _drawableMasks[clipContext->_bufferIndex].GetRenderPassDescriptor());
-            [renderEncoder setViewport:clipVp];
+            EndRenderTarget();
+            _drawableMasks[clipContext->_bufferIndex].Clear(1.0f, 1.0f, 1.0f, 1.0f);
+            _drawableMasks[clipContext->_bufferIndex].BeginDraw(_mtlCommandBuffer);
+            _mtlCommandEncoder = _drawableMasks[clipContext->_bufferIndex].GetCommandEncoder();
+            [_mtlCommandEncoder setViewport:clipVp];
         }
 
         {
@@ -938,18 +937,32 @@ void CubismRenderer_Metal::DrawDrawable(csmInt32 drawableIndex)
                 // チャンネルも切り替える必要がある(A,R,G,B)
                 SetClippingContextBufferForMask(clipContext);
 
-                DrawMeshMetal(clipContext->_clippingCommandBufferList->At(index),
-                            renderEncoder, *GetModel(), clipDrawIndex, NULL);
+                DrawMeshMetal(clipContext->_clippingCommandBufferList->At(index), _mtlCommandEncoder, *GetModel(), clipDrawIndex, NULL);
             }
         }
 
         {
             // --- 後処理 ---
-            PostDraw(renderEncoder);
-            renderEncoder = nil;
+            _drawableMasks[clipContext->_bufferIndex].EndDraw();
+            _mtlCommandEncoder = nil;
+            // レンダーターゲットの切り替えを減らしたいためマスク処理がある場合はついでにここでブレンドモードの判定を行なう
+            if (IsBlendModeIndex(drawableIndex, DrawableObjectType_Drawable))
+            {
+                blendTexture = _currentOffscreen != NULL ?
+                    CopyRenderTarget(*_currentOffscreen->GetRenderTarget())->GetColorBuffer() :
+                    CopyRenderTarget(_modelRenderTargets[0])->GetColorBuffer();
+            }
+            BeginRenderTarget();
         }
-
-        renderEncoder = BeginRenderTarget();
+    }
+    else if (IsBlendModeIndex(drawableIndex, DrawableObjectType_Drawable))
+    {
+        // レンダーターゲットの切り替えを減らしたいためマスク処理がない場合はここでブレンドモードの判定を行なう
+        EndRenderTarget();
+        blendTexture = _currentOffscreen != NULL ?
+            CopyRenderTarget(*_currentOffscreen->GetRenderTarget())->GetColorBuffer() :
+            CopyRenderTarget(_modelRenderTargets[0])->GetColorBuffer();
+        BeginRenderTarget();
     }
 
     CubismCommandBuffer_Metal::DrawCommandBuffer::DrawCommand* drawCommandDraw = _drawableDrawCommandBuffer[drawableIndex]->GetCommandDraw();
@@ -960,39 +973,7 @@ void CubismRenderer_Metal::DrawDrawable(csmInt32 drawableIndex)
 
     IsCulling(GetModel()->GetDrawableCulling(drawableIndex) != 0);
 
-    if (GetModel()->GetDrawableVertexIndexCount(drawableIndex) <= 0)
-    {
-        if(renderEncoder != nil)
-        {
-            PostDraw(renderEncoder);
-        }
-        return;
-    }
-
-    id<MTLTexture> blendTexture = nil;
-    if(IsBlendMode())
-    {
-        if(renderEncoder != nil)
-        {
-            PostDraw(renderEncoder);
-            renderEncoder = nil;
-        }
-        // ここで事前にバッファのコピーを行っておく
-        blendTexture = _currentOffscreen != NULL ?
-            CopyRenderTarget(*_currentOffscreen)->GetColorBuffer() :
-            CopyRenderTarget(_modelRenderTargets[0])->GetColorBuffer();
-        renderEncoder = BeginRenderTarget();
-    }
-
-    DrawMeshMetal(_drawableDrawCommandBuffer[drawableIndex], renderEncoder, *GetModel(), drawableIndex, blendTexture);
-
-    // 後処理
-    PostDraw(renderEncoder);
-
-    if (_currentOffscreen)
-    {
-        _currentOffscreen->SetColorAttachmentLoadAction(MTLLoadActionLoad);
-    }
+    DrawMeshMetal(_drawableDrawCommandBuffer[drawableIndex], _mtlCommandEncoder, *GetModel(), drawableIndex, blendTexture);
 }
 
 void CubismRenderer_Metal::SubmitDrawToParentOffscreen(csmInt32 objectIndex, DrawableObjectType objectType)
@@ -1077,32 +1058,31 @@ void CubismRenderer_Metal::AddOffscreen(csmInt32 offscreenIndex)
         }
     }
 
-    CubismRenderTarget_Metal* offscreen = &_offscreenList.At(offscreenIndex);
+    CubismOffscreenRenderTarget_Metal* offscreen = &_offscreenList.At(offscreenIndex);
 
-    // サイズが異なるなら新しいオフスクリーンレンダリングターゲットを作成
-    if (offscreen->GetBufferWidth() != _modelRenderTargetWidth ||
-        offscreen->GetBufferHeight() != _modelRenderTargetHeight)
-    {
-        offscreen->CreateRenderTarget(_device, _modelRenderTargetWidth, _modelRenderTargetHeight);
-    }
+    offscreen->SetOffscreenRenderTarget(_device, _deviceInfo->GetOffscreenManager(), _modelRenderTargetWidth, _modelRenderTargetHeight);
 
     // 現在のオフスクリーンレンダリングターゲットを設定
-    CubismRenderTarget_Metal* oldOffscreen = offscreen->GetParentPartOffscreen();
+    CubismOffscreenRenderTarget_Metal* oldOffscreen = offscreen->GetParentPartOffscreen();
     offscreen->SetOldOffscreen(oldOffscreen);
-    offscreen->SetColorAttachmentLoadAction(MTLLoadActionClear);
-    offscreen->SetClearColor(0, 0, 0, 0);
+    EndRenderTarget();
     _currentOffscreen = offscreen;
+    BeginRenderTarget(true);
 }
 
-void CubismRenderer_Metal::DrawOffscreen(CubismRenderTarget_Metal* currentOffscreen)
+void CubismRenderer_Metal::DrawOffscreen(CubismOffscreenRenderTarget_Metal* currentOffscreen)
 {
     // 親のオフスクリーン、またはモデル描画用ターゲットに描画する
-    CubismRenderTarget_Metal* parentOffscreen = currentOffscreen->GetOldOffscreen();
+    CubismOffscreenRenderTarget_Metal* parentOffscreen = currentOffscreen->GetOldOffscreen();
     _currentOffscreen = parentOffscreen; // 描画先を親に切り替え
 
     const csmInt32 offscreenIndex = currentOffscreen->GetOffscreenIndex();
 
-    id<MTLRenderCommandEncoder> renderEncoder = nil;
+    id<MTLTexture> blendTexture = nil;
+
+    // 確実に切り替える必要があるため閉じる
+    currentOffscreen->GetRenderTarget()->EndDraw();
+    _mtlCommandEncoder = nil;
 
     // クリッピングマスク
     CubismClippingContext_Metal* clipContext = (_offscreenClippingManager != NULL) ?
@@ -1115,12 +1095,10 @@ void CubismRenderer_Metal::DrawOffscreen(CubismRenderTarget_Metal* currentOffscr
         MTLViewport clipVp = {0, 0, _offscreenClippingManager->GetClippingMaskBufferSize().X, _offscreenClippingManager->GetClippingMaskBufferSize().Y, 0.0, 1.0};
         if (clipContext->_isUsing) // 書くことになっていた
         {
-            if(renderEncoder != nil)
-            {
-                PostDraw(renderEncoder);
-            }
-            renderEncoder = PreDraw(_mtlCommandBuffer, _offscreenMasks[clipContext->_bufferIndex].GetRenderPassDescriptor());
-            [renderEncoder setViewport:clipVp];
+            _offscreenMasks[clipContext->_bufferIndex].Clear(1.0f, 1.0f, 1.0f, 1.0f);
+            _offscreenMasks[clipContext->_bufferIndex].BeginDraw(_mtlCommandBuffer);
+            _mtlCommandEncoder = _offscreenMasks[clipContext->_bufferIndex].GetCommandEncoder();
+            [_mtlCommandEncoder setViewport:clipVp];
         }
 
         {
@@ -1162,73 +1140,47 @@ void CubismRenderer_Metal::DrawOffscreen(CubismRenderTarget_Metal* currentOffscr
                 // チャンネルも切り替える必要がある(A,R,G,B)
                 SetClippingContextBufferForMask(clipContext);
 
-                if(renderEncoder == nil)
-                {
-                    renderEncoder = BeginRenderTarget();
-                }
-                DrawMeshMetal(clipContext->_clippingCommandBufferList->At(index),
-                            renderEncoder, *GetModel(), clipDrawIndex, NULL);
+                DrawMeshMetal(clipContext->_clippingCommandBufferList->At(index), _mtlCommandEncoder, *GetModel(), clipDrawIndex, NULL);
             }
         }
 
         {
             // --- 後処理 ---
-            PostDraw(renderEncoder);
-            renderEncoder = nil;
+            _offscreenMasks[clipContext->_bufferIndex].EndDraw();
+            _mtlCommandEncoder = nil;
+            // レンダーターゲットの切り替えを減らしたいためマスク処理がある場合はついでにここでブレンドモードの判定を行なう
+            if (IsBlendModeIndex(offscreenIndex, DrawableObjectType_Offscreen))
+            {
+                blendTexture = parentOffscreen != NULL ?
+                    CopyRenderTarget(*parentOffscreen->GetRenderTarget())->GetColorBuffer() :
+                    CopyRenderTarget(_modelRenderTargets[0])->GetColorBuffer();
+            }
+            BeginRenderTarget();
         }
+    }
+    else
+    {
+        // オフスクリーンは絶対にレンダーターゲットを切り替える必要がある
+        if (IsBlendModeIndex(offscreenIndex, DrawableObjectType_Offscreen))
+        {
+            // レンダーターゲットの切り替えを減らしたいためマスク処理がない場合はここでブレンドモードの判定を行なう
+            blendTexture = parentOffscreen != NULL ?
+                CopyRenderTarget(*parentOffscreen->GetRenderTarget())->GetColorBuffer() :
+                CopyRenderTarget(_modelRenderTargets[0])->GetColorBuffer();
+        }
+        BeginRenderTarget();
     }
 
     // クリッピングマスクをセットする
     SetClippingContextBufferForOffscreen(clipContext);
     IsCulling(GetModel()->GetOffscreenCulling(offscreenIndex) != 0);
 
-    // ここで事前にバッファのコピーを行っておく
-    id<MTLTexture> blendTexture = parentOffscreen != NULL ?
-        CopyRenderTarget(*parentOffscreen)->GetColorBuffer() :
-        CopyRenderTarget(_modelRenderTargets[0])->GetColorBuffer();
-
-    if(renderEncoder == nil)
-    {
-        renderEncoder = BeginRenderTarget();
-    }
-
-    DrawOffscreenMetal(renderEncoder, *GetModel(), currentOffscreen, blendTexture);
-
-    PostDraw(renderEncoder);
-
-    if (_currentOffscreen)
-    {
-        _currentOffscreen->SetColorAttachmentLoadAction(MTLLoadActionLoad);
-    }
+    DrawOffscreenMetal(_mtlCommandEncoder, *GetModel(), currentOffscreen, blendTexture);
 
     // 後処理
+    currentOffscreen->StopUsingRenderTexture(_deviceInfo->GetOffscreenManager());
     SetClippingContextBufferForOffscreen(NULL);
     SetClippingContextBufferForMask(NULL);
-}
-
-id<MTLRenderCommandEncoder> CubismRenderer_Metal::BeginRenderTarget()
-{
-    if (_currentOffscreen != NULL)
-    {
-        return PreDraw(_mtlCommandBuffer, _currentOffscreen->GetRenderPassDescriptor());
-    }
-
-    if(IsBlendMode())
-    {
-        if (!_isClearedModelRenderTarget)
-        {
-            _isClearedModelRenderTarget = true;
-        }
-        else
-        {
-            _modelRenderTargets[0].SetColorAttachmentLoadAction(MTLLoadActionLoad);
-        }
-        return PreDraw(_mtlCommandBuffer, _modelRenderTargets[0].GetRenderPassDescriptor());
-    }
-    else
-    {
-        return PreDraw(_mtlCommandBuffer, _renderPassDescriptor);
-    }
 }
 
 void CubismRenderer_Metal::DrawMeshMetal(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer
@@ -1258,11 +1210,11 @@ void CubismRenderer_Metal::DrawMeshMetal(CubismCommandBuffer_Metal::DrawCommandB
     // シェーダーセット
     if (IsGeneratingMask())
     {
-        _shader->SetupShaderProgramForMask(drawCommandBuffer, renderEncoder, this, model, index);
+        _deviceInfo->GetShader()->SetupShaderProgramForMask(drawCommandBuffer, renderEncoder, this, model, index);
     }
     else
     {
-        _shader->SetupShaderProgramForDrawable(drawCommandBuffer, renderEncoder, this, model, index, blendTexture);
+        _deviceInfo->GetShader()->SetupShaderProgramForDrawable(drawCommandBuffer, renderEncoder, this, model, index, blendTexture);
     }
 
     // パイプライン状態オブジェクトを設定する
@@ -1282,7 +1234,7 @@ void CubismRenderer_Metal::DrawMeshMetal(CubismCommandBuffer_Metal::DrawCommandB
     SetClippingContextBufferForMask(NULL);
 }
 
-void CubismRenderer_Metal::DrawOffscreenMetal(id <MTLRenderCommandEncoder> renderEncoder, const CubismModel& model, CubismRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture)
+void CubismRenderer_Metal::DrawOffscreenMetal(id <MTLRenderCommandEncoder> renderEncoder, const CubismModel& model, CubismOffscreenRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture)
 {
     // 裏面描画の有効・無効
     if (IsCulling())
@@ -1298,7 +1250,7 @@ void CubismRenderer_Metal::DrawOffscreenMetal(id <MTLRenderCommandEncoder> rende
     [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
 
     // シェーダーセット
-    _shader->SetupShaderProgramForOffscreen(_offscreenDrawCommandBuffer, renderEncoder, this, model, offscreen, blendTexture);
+    _deviceInfo->GetShader()->SetupShaderProgramForOffscreen(_offscreenDrawCommandBuffer, renderEncoder, this, model, offscreen, blendTexture);
 
     id <MTLRenderPipelineState> pipelineState = _offscreenDrawCommandBuffer->GetCommandDraw()->GetRenderPipelineState();
     [renderEncoder setRenderPipelineState:pipelineState];
@@ -1367,9 +1319,10 @@ void CubismRenderer_Metal::SetDrawbleClippingMaskBufferSize(csmFloat32 width, cs
 
     _drawableClippingManager->SetClippingMaskBufferSize(width, height);
 
-    _drawableClippingManager->InitializeForDrawable(
+    _drawableClippingManager->Initialize(
         *GetModel(),
-        renderTextureCount
+        renderTextureCount,
+        DrawableObjectType_Drawable
     );
 }
 void CubismRenderer_Metal::SetOffscreenClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
@@ -1389,9 +1342,10 @@ void CubismRenderer_Metal::SetOffscreenClippingMaskBufferSize(csmFloat32 width, 
 
     _offscreenClippingManager->SetClippingMaskBufferSize(width, height);
 
-    _offscreenClippingManager->InitializeForOffscreen(
+    _offscreenClippingManager->Initialize(
         *GetModel(),
-        renderTextureCount
+        renderTextureCount,
+        DrawableObjectType_Offscreen
     );
 }
 
@@ -1430,7 +1384,7 @@ CubismRenderTarget_Metal* CubismRenderer_Metal::GetOffscreenMaskBuffer(csmInt32 
     return &_offscreenMasks[index];
 }
 
-CubismRenderTarget_Metal* CubismRenderer_Metal::GetCurrentOffscreen() const
+CubismOffscreenRenderTarget_Metal* CubismRenderer_Metal::GetCurrentOffscreen() const
 {
     return _currentOffscreen;
 }
@@ -1467,9 +1421,7 @@ CubismClippingContext_Metal* CubismRenderer_Metal::GetClippingContextBufferForOf
 
 CubismRenderTarget_Metal* CubismRenderer_Metal::CopyRenderTarget(CubismRenderTarget_Metal& srcBuffer)
 {
-    id<MTLBlitCommandEncoder> blit = [_mtlCommandBuffer blitCommandEncoder];
-    CubismRenderTarget_Metal::CopyBuffer(srcBuffer, _modelRenderTargets[1], blit);
-    [blit endEncoding];
+    CubismRenderTarget_Metal::CopyBuffer(srcBuffer, _modelRenderTargets[1], _mtlCommandBuffer );
     return &_modelRenderTargets[1];
 }
 
