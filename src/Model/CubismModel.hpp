@@ -312,7 +312,7 @@ public:
          * Constructor.
          *
          * @param objectIndex index of the object
-         * @param type type of the object (Drawable, Parts, or Alias)
+         * @param type type of the object (Drawable or Parts)
          */
         CubismModelObjectInfo(csmUint32 objectIndex, ObjectType type)
             : ObjectIndex(objectIndex)
@@ -327,7 +327,7 @@ public:
         {
         }
 
-        ObjectType ObjectType;  ///< Type of the object (Drawable, Parts, or Alias)
+        ObjectType ObjectType;  ///< Type of the object (Drawable or Parts)
         csmUint32 ObjectIndex;  ///< Index of the object
     };
 

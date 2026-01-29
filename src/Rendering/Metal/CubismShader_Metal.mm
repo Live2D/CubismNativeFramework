@@ -591,7 +591,7 @@ void CubismShader_Metal::CopyTexture(id<MTLTexture> texture, CubismCommandBuffer
 }
 
 void CubismShader_Metal::SetupShaderProgramForOffscreen(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
-                                , CubismRenderer_Metal* renderer, const CubismModel& model, const CubismRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture)
+                                , CubismRenderer_Metal* renderer, const CubismModel& model, const CubismOffscreenRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture)
 {
     // シェーダー生成
     if (_shaderSets.GetSize() == 0)
@@ -626,7 +626,7 @@ void CubismShader_Metal::SetupShaderProgramForOffscreen(CubismCommandBuffer_Meta
     }
 
     //テクスチャ設定
-    [renderEncoder setFragmentTexture:offscreen->GetColorBuffer() atIndex:0];
+    [renderEncoder setFragmentTexture:offscreen->GetRenderTarget()->GetColorBuffer() atIndex:0];
 
     // 頂点・テクスチャバッファの設定は呼び出し元(DrawOffscreenMetal)で行う
 

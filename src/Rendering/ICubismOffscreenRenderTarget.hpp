@@ -8,21 +8,23 @@
 #pragma once
 
 #include "CubismFramework.hpp"
-#include "Type/csmVector.hpp"
-#include "Type/csmRectF.hpp"
-#include "Type/csmMap.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
 /**
- * @brief   モデル描画を処理するレンダラ<br>
- *           サブクラスに環境依存の描画命令を記述する
+ * @brief  オフスクリーン用のレンダーターゲットを管理するクラス
+ * 　　　　テンプレートはそれぞれ継承先の子クラス、レンダーターゲットの型を指定する
  */
-template<class T>
-class CubismRenderTarget
+template<class T, class U>
+class ICubismOffscreenRenderTarget
 {
 public:
+    /**
+     * @brief   デストラクタ
+     */
+    virtual ~ICubismOffscreenRenderTarget();
+
     /**
      * @brief   オフスクリーンのIndexを設定
      */
@@ -61,16 +63,20 @@ public:
      */
     T* GetParentPartOffscreen() const;
 
+    /**
+     * @brief レンダーターゲットを取得する。
+     *
+     * @return レンダーターゲットを返す。
+     */
+    U* GetRenderTarget() const;
+
 protected:
     /**
      * @brief   コンストラクタ
      */
-    CubismRenderTarget();
+    ICubismOffscreenRenderTarget();
 
-    /**
-     * @brief   デストラクタ
-     */
-    virtual ~CubismRenderTarget();
+    U* _renderTarget;            ///< レンダーターゲット
 
 private:
     csmInt32 _offscreenIndex;   ///< _offscreensのIndex
@@ -78,51 +84,62 @@ private:
     T* _oldOffscreen;           ///< 以前のオフスクリーンレンダリングターゲット
 };
 
-template<class T>
-void CubismRenderTarget<T>::SetOffscreenIndex(csmInt32 const offscreenIndex)
+template<class T, class U>
+ICubismOffscreenRenderTarget<T, U>::~ICubismOffscreenRenderTarget()
+{
+}
+
+template<class T, class U>
+void ICubismOffscreenRenderTarget<T, U>::SetOffscreenIndex(csmInt32 const offscreenIndex)
 {
     _offscreenIndex = offscreenIndex;
 }
 
-template<class T>
-csmInt32 CubismRenderTarget<T>::GetOffscreenIndex() const
+template<class T, class U>
+csmInt32 ICubismOffscreenRenderTarget<T, U>::GetOffscreenIndex() const
 {
     return _offscreenIndex;
 }
 
-template<class T>
-void CubismRenderTarget<T>::SetOldOffscreen(T* oldOffscreen)
+template<class T, class U>
+void ICubismOffscreenRenderTarget<T, U>::SetOldOffscreen(T* oldOffscreen)
 {
     _oldOffscreen = oldOffscreen;
 }
 
-template<class T>
-T* CubismRenderTarget<T>::GetOldOffscreen() const
+template<class T, class U>
+T* ICubismOffscreenRenderTarget<T, U>::GetOldOffscreen() const
 {
     return _oldOffscreen;
 }
 
-template<class T>
-void CubismRenderTarget<T>::SetParentPartOffscreen(T* parentRenderTarget)
+template<class T, class U>
+void ICubismOffscreenRenderTarget<T, U>::SetParentPartOffscreen(T* parentRenderTarget)
 {
     _parentRenderTarget = parentRenderTarget;
 }
 
-template<class T>
-T* CubismRenderTarget<T>::GetParentPartOffscreen() const
+template<class T, class U>
+T* ICubismOffscreenRenderTarget<T, U>::GetParentPartOffscreen() const
 {
     return _parentRenderTarget;
 }
 
-template<class T>
-CubismRenderTarget<T>::CubismRenderTarget()
+template<class T, class U>
+U* ICubismOffscreenRenderTarget<T, U>::GetRenderTarget() const
+{
+    return _renderTarget;
+}
+
+template<class T, class U>
+ICubismOffscreenRenderTarget<T, U>::ICubismOffscreenRenderTarget()
+    : _renderTarget(nullptr)
+    , _offscreenIndex(-1)
+    , _parentRenderTarget(nullptr)
+    , _oldOffscreen(nullptr)
 {
 }
 
-template<class T>
-CubismRenderTarget<T>::~CubismRenderTarget()
-{
-}
 }}}}
 
 //------------ LIVE2D NAMESPACE ------------

@@ -6,7 +6,8 @@ target_sources(${LIB_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismClippingManager.tpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderer.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/CubismRenderTarget.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ICubismOffscreenManager.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ICubismOffscreenRenderTarget.hpp
 )
 
 # Add specified rendering directory.

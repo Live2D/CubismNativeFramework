@@ -7,9 +7,7 @@
 
 #pragma once
 
-#include "Rendering/CubismRenderTarget.hpp"
 #include "CubismNativeInclude_D3D9.hpp"
-
 #include "Math/CubismMatrix44.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
@@ -19,7 +17,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-    class CubismRenderTarget_D3D9 : public CubismRenderTarget<CubismRenderTarget_D3D9>
+    class CubismRenderTarget_D3D9
 {
 public:
     /**

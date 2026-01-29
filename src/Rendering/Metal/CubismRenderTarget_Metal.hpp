@@ -8,7 +8,7 @@
 #pragma once
 
 #include <MetalKit/MetalKit.h>
-#include "Rendering/CubismRenderTarget.hpp"
+#include "CubismFramework.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
@@ -16,7 +16,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismRenderTarget_Metal : public CubismRenderTarget<CubismRenderTarget_Metal>
+class CubismRenderTarget_Metal
 {
 public:
 
@@ -25,14 +25,38 @@ public:
     *
     * @param  src コピー元
     * @param  dst コピー先
-    * @param  blitEncoder MTLBlitCommandEncoder
+    * @param  commandBuffer コマンドバッファ
     */
-    static void CopyBuffer(CubismRenderTarget_Metal& src, CubismRenderTarget_Metal& dst, id <MTLBlitCommandEncoder> blitEncoder);
+    static void CopyBuffer(CubismRenderTarget_Metal& src, CubismRenderTarget_Metal& dst, id<MTLCommandBuffer> commandBuffer);
 
     /**
      * @brief   コンストラクタ
      */
     CubismRenderTarget_Metal();
+
+    /**
+     * @brief   指定の描画ターゲットに向けて描画開始
+     *
+     * @param  commandBuffer コマンドバッファ
+     */
+    void BeginDraw(id<MTLCommandBuffer> commandBuffer);
+
+    /**
+     * @brief   描画終了
+     *
+     */
+    void EndDraw();
+
+    /**
+     * @brief   レンダリングターゲットのクリア
+     *           呼ぶ場合はBeginDrawの前で呼ぶこと
+     *
+     * @param   r   赤(0.0~1.0)
+     * @param   g   緑(0.0~1.0)
+     * @param   b   青(0.0~1.0)
+     * @param   a   α(0.0~1.0)
+     */
+    void Clear(float r, float g, float b, float a);
 
     /**
      * @brief  CubismRenderTarget作成
@@ -43,7 +67,7 @@ public:
      * @param  depthBuffer            0以外の場合、深度納領域としてdepthBufferを使用する
      * @return 成功時はtrue、失敗時はfalse
      */
-    csmBool CreateRenderTarget(id<MTLDevice> device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer = NULL, id <MTLTexture> depthBuffer = NULL);
+    csmBool CreateRenderTarget(id<MTLDevice> device, csmUint32 displayBufferWidth, csmUint32 displayBufferHeight, id <MTLTexture> colorBuffer = nil, id <MTLTexture> depthBuffer = nil);
 
     /**
      * @brief   CubismRenderTargetの削除
@@ -61,9 +85,9 @@ public:
     id <MTLTexture> GetDepthBuffer() const;
 
     /**
-     * @brief   カラー設定
+     * @brief  コマンドエンコーダーを取得する
      */
-    void SetClearColor(float r, float g, float b, float a);
+    id <MTLRenderCommandEncoder> GetCommandEncoder() const;
 
     /**
      * @brief   バッファ幅取得
@@ -91,14 +115,6 @@ public:
     MTLRenderPassDescriptor* GetRenderPassDescriptor() const;
 
     /**
-    * @brief 指定したカラーアタッチメントのロードアクションを設定する
-    *
-    * @param  action 設定するロードアクション
-    * @param  setColorAttachmentIndex 対象のカラーアタッチメントインデックス
-    */
-    void SetColorAttachmentLoadAction(MTLLoadAction action, csmUint32 setColorAttachmentIndex = 0);
-
-    /**
      * @brief   MTLPixelFormat指定
      */
     void SetMTLPixelFormat(MTLPixelFormat pixelFormat);
@@ -106,6 +122,7 @@ public:
 private:
     id <MTLTexture>  _colorBuffer; ///レンダーテクスチャ
     id <MTLTexture>  _depthBuffer; ///深度用テクスチャ
+    id <MTLRenderCommandEncoder> _commandEncoder; // コマンドエンコーダー
     MTLRenderPassDescriptor *_renderPassDescriptor;
     csmUint32   _bufferWidth;           ///< Create時に指定された幅
     csmUint32   _bufferHeight;          ///< Create時に指定された高さ

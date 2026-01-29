@@ -11,6 +11,7 @@
 #include "../CubismClippingManager.hpp"
 #include "CubismFramework.hpp"
 #include "CubismRenderTarget_OpenGLES2.hpp"
+#include "CubismOffscreenRenderTarget_OpenGLES2.hpp"
 #include "CubismShader_OpenGLES2.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
@@ -305,7 +306,7 @@ public:
      *
      * @return 現在のオフスクリーンのフレームバッファを返す
      */
-    CubismRenderTarget_OpenGLES2* GetCurrentOffscreen() const;
+    CubismOffscreenRenderTarget_OpenGLES2* GetCurrentOffscreen() const;
 
 protected:
     /**
@@ -370,7 +371,7 @@ protected:
      *
      * @param[in]   currentOffscreen ->  描画対象のオフスクリーン
      */
-    void DrawOffscreen(CubismRenderTarget_OpenGLES2* currentOffscreen);
+    void DrawOffscreen(CubismOffscreenRenderTarget_OpenGLES2* currentOffscreen);
 
     /**
      * @brief    描画オブジェクト（アートメッシュ）を描画する。
@@ -386,7 +387,7 @@ protected:
      * @param[in]   model       ->  描画対象のモデル
      * @param[in]   offscreen ->  描画対象のオフスクリーン
      */
-    void DrawOffscreenOpenGL(const CubismModel& model, CubismRenderTarget_OpenGLES2* offscreen);
+    void DrawOffscreenOpenGL(const CubismModel& model, CubismOffscreenRenderTarget_OpenGLES2* offscreen);
 
 #ifdef CSM_TARGET_ANDROID_ES2
 public:
@@ -550,9 +551,9 @@ private:
     csmVector<CubismRenderTarget_OpenGLES2> _drawableMasks; ///< Drawableのマスク描画用のフレームバッファ
     csmVector<CubismRenderTarget_OpenGLES2> _offscreenMasks; ///< オフスクリーン機能マスク描画用のフレームバッファ
 
-    csmVector<CubismRenderTarget_OpenGLES2> _offscreenList; ///< モデルのオフスクリーン
+    csmVector<CubismOffscreenRenderTarget_OpenGLES2> _offscreenList; ///< モデルのオフスクリーン
     GLint _currentFBO; ///< 現在のフレームバッファオブジェクト
-    CubismRenderTarget_OpenGLES2* _currentOffscreen; ///< 現在のオフスクリーンのフレームバッファ
+    CubismOffscreenRenderTarget_OpenGLES2* _currentOffscreen; ///< 現在のオフスクリーンのフレームバッファ
 
     GLint _modelRootFBO; ///< モデル描画のルートフレームバッファ
 };

@@ -10,3 +10,4 @@ layout(binding = 0) uniform UBO
 
 layout(binding = 1) uniform sampler2D s_texture0;
 layout(binding = 2) uniform sampler2D s_texture1;
+layout(binding = 3) uniform sampler2D s_blendTexture;

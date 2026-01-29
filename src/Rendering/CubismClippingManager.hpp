@@ -48,17 +48,9 @@ public:
      *
      * @param[in]   model           ->  モデルのインスタンス
      * @param[in]   maskBufferCount ->  バッファの生成数
+     * @param[in]   drawableObjectType ->  処理するオブジェクトタイプ
      */
-    void InitializeForDrawable(CubismModel& model, const csmInt32 maskBufferCount);
-
-    /**
-     * @brief    マネージャの初期化処理<br>
-     *           クリッピングマスクを使うOffscreenオブジェクトの登録を行う
-     *
-     * @param[in]   model           ->  モデルのインスタンス
-     * @param[in]   maskBufferCount ->  バッファの生成数
-     */
-    void InitializeForOffscreen(CubismModel& model, const csmInt32 maskBufferCount);
+    void Initialize(CubismModel& model, const csmInt32 maskBufferCount, CubismRenderer::DrawableObjectType drawableObjectType);
 
     /**
      * @brief   既にマスクを作っているかを確認。<br>
@@ -76,16 +68,10 @@ public:
      *
      * @param[in]   model         ->  モデルのインスタンス
      * @param[in]   isRightHanded ->  処理が右手系であるか
+     * @param[in]   drawableObjectType ->  処理するオブジェクトタイプ
+     * @param[in]   mvp ->  MVP行列
      */
-    void SetupMatrixForDrawableHighPrecision(CubismModel& model, csmBool isRightHanded);
-
-    /**
-     * @brief   offscreenの高精細マスク処理用の行列を計算する
-     *
-     * @param[in]   model         ->  モデルのインスタンス
-     * @param[in]   isRightHanded ->  処理が右手系であるか
-     */
-    void SetupMatrixForOffscreenHighPrecision(CubismModel& model, csmBool isRightHanded, const CubismMatrix44& mvp);
+    void SetupMatrixForHighPrecision(CubismModel& model, csmBool isRightHanded, CubismRenderer::DrawableObjectType drawableObjectType, const CubismMatrix44& mvp = CubismMatrix44());
 
     /**
      * @brief   マスク作成・描画用の行列を作成する。
@@ -95,7 +81,7 @@ public:
      * @param[in]   scaleX               ->  描画オブジェクトの伸縮率
      * @param[in]   scaleY               ->  描画オブジェクトの伸縮率
      */
-    void createMatrixForMask(csmBool isRightHanded, csmRectF* layoutBoundsOnTex01, csmFloat32 scaleX, csmFloat32 scaleY);
+    void CreateMatrixForMask(csmBool isRightHanded, csmRectF* layoutBoundsOnTex01, csmFloat32 scaleX, csmFloat32 scaleY);
 
     /**
      * @brief   クリッピングコンテキストを配置するレイアウト。<br>
@@ -111,16 +97,9 @@ public:
      *
      * @param[in]   model            ->  モデルのインスタンス
      * @param[in]   clippingContext  ->  クリッピングマスクのコンテキスト
+     * @param[in]   drawableObjectType ->  処理するオブジェクトタイプ
      */
-    void CalcClippedDrawableTotalBounds(CubismModel& model, T_ClippingContext* clippingContext);
-
-    /**
-     * @brief   マスクされるoffscreenの描画オブジェクト群全体を囲む矩形(モデル座標系)を計算する
-     *
-     * @param[in]   model            ->  モデルのインスタンス
-     * @param[in]   clippingContext  ->  クリッピングマスクのコンテキスト
-     */
-    void CalcClippedOffscreenTotalBounds(CubismModel& model, T_ClippingContext* clippingContext);
+    void CalcClippedTotalBounds(CubismModel& model, T_ClippingContext* clippingContext, CubismRenderer::DrawableObjectType drawableObjectType);
 
     /**
      * @brief   offscreenに紐づいているpartの子のdrawableを格納先に格納する

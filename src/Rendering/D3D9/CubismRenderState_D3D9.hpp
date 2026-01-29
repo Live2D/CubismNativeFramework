@@ -18,7 +18,7 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
  */
 class CubismRenderState_D3D9
 {
-    friend class DeviceInfo_D3D9;
+    friend class CubismDeviceInfo_D3D9;
     friend class CubismRenderer_D3D9;
 public:
     enum
@@ -215,7 +215,7 @@ private:
     CubismRenderState_D3D9();
 
     /**
-     * @brief   ディストラクタ
+     * @brief   デストラクタ
      */
     ~CubismRenderState_D3D9();
 

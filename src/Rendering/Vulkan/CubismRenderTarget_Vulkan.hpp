@@ -15,22 +15,23 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 /**
  * @brief  オフスクリーン描画用構造体
  */
-class CubismOffscreenSurface_Vulkan
+class CubismRenderTarget_Vulkan
 {
 public:
-    CubismOffscreenSurface_Vulkan();
+    CubismRenderTarget_Vulkan();
 
     /**
-     * @brief   レンダリングターゲットのクリア
-     *           呼ぶ場合はBeginDrawの後で呼ぶこと
+     * @brief   レンダリングターゲットへの描画開始
      *
-     * @param[in]  commandBuffer   -> コマンドバッファ
-     * @param[in]   r              -> 赤(0.0~1.0)
-     * @param[in]   g              -> 緑(0.0~1.0)
-     * @param[in]   b              -> 青(0.0~1.0)
-     * @param[in]   a              -> α(0.0~1.0)
+     * @param[in]  commandBuffer     -> コマンドバッファ
+     * @param[in]   r                -> 赤(0.0~1.0)
+     * @param[in]   g                -> 緑(0.0~1.0)
+     * @param[in]   b                -> 青(0.0~1.0)
+     * @param[in]   a                -> α(0.0~1.0)
+     * @param[in]   isClear          -> レンダーターゲットをクリアするか
+     *
      */
-    void BeginDraw(VkCommandBuffer commandBuffer, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a);
+    void BeginDraw(VkCommandBuffer commandBuffer, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a, csmBool isClear);
 
     /**
      * @brief   描画終了
@@ -40,7 +41,7 @@ public:
     void EndDraw(VkCommandBuffer commandBuffer);
 
     /**
-     *  @brief  CubismOffscreenSurfaceを作成する。
+     *  @brief  CubismRenderTargetを作成する。
      *
      *  @param[in]  device                 -> 論理デバイス
      *  @param[in]  physicalDevice         -> 物理デバイス
@@ -49,18 +50,16 @@ public:
      *  @param[in]  surfaceFormat          -> サーフェスフォーマット
      *  @param[in]  depthFormat            -> 深度フォーマット
      */
-    void CreateOffscreenSurface(
+    void CreateRenderTarget(
         VkDevice device, VkPhysicalDevice physicalDevice,
         csmUint32 displayBufferWidth, csmUint32 displayBufferHeight,
         VkFormat surfaceFormat, VkFormat depthFormat
     );
 
     /**
-     * @brief   CubismOffscreenSurfaceの削除
-     *
-     *  @param[in]  device                 -> デバイス
+     * @brief   CubismRenderTargetの削除
      */
-    void DestroyOffscreenSurface(VkDevice device);
+    void DestroyRenderTarget();
 
     /**
      * @brief   イメージへのアクセッサ
@@ -90,13 +89,20 @@ public:
     /**
      * @brief   現在有効かどうかを返す
      */
-    bool IsValid() const;
+    csmBool IsValid() const;
+
+    /**
+     * @brief   レンダリングパスがアクティブかどうかを返す
+     */
+    csmBool IsRendering() const;
 
 private:
+    VkDevice _device; ///< 論理デバイス
     csmUint32 _bufferWidth; ///< オフスクリーンの横幅
     csmUint32 _bufferHeight; ///< オフスクリーンの縦幅
-    CubismImageVulkan* _colorImage = VK_NULL_HANDLE; ///< カラーバッファ
-    CubismImageVulkan* _depthImage = VK_NULL_HANDLE; ///< 深度バッファ
+    CubismImageVulkan* _colorImage; ///< カラーバッファ
+    CubismImageVulkan* _depthImage; ///< 深度バッファ
+    csmBool _isRendering; ///< レンダリングパスがアクティブかどうか
 };
 }}}}
 

@@ -181,6 +181,24 @@ public:
     }
 
     /**
+     * @brief   一番最初の要素を返す
+     *
+     */
+    T& Front()
+    {
+        return _ptr[0];
+    }
+
+    /**
+     * @brief   一番最後の要素を返す
+     *
+     */
+    T& Back()
+    {
+        return _size > 0 ? _ptr[_size - 1] : _ptr[0];
+    }
+
+    /**
      * @brief   csmVector<T>のイテレータ
      *
      */

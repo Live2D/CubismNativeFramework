@@ -5,24 +5,35 @@
  * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
-#include "CubismOffscreenSurface_Vulkan.hpp"
+#include "CubismRenderTarget_Vulkan.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
-CubismOffscreenSurface_Vulkan::CubismOffscreenSurface_Vulkan()
+
+CubismRenderTarget_Vulkan::CubismRenderTarget_Vulkan()
     : _bufferWidth(0)
     , _bufferHeight(0)
+    , _device(VK_NULL_HANDLE)
+    , _colorImage(VK_NULL_HANDLE)
+    , _depthImage(VK_NULL_HANDLE)
+    , _isRendering(false)
 { }
 
-void CubismOffscreenSurface_Vulkan::BeginDraw(VkCommandBuffer commandBuffer, csmFloat32 r, csmFloat32 g, csmFloat32 b,
-                                            csmFloat32 a)
+void CubismRenderTarget_Vulkan::BeginDraw(VkCommandBuffer commandBuffer, csmFloat32 r, csmFloat32 g, csmFloat32 b,
+                                            csmFloat32 a, csmBool isClear)
 {
+    // レンダリングパスがアクティブの場合はスキップ
+    if (_isRendering)
+    {
+        return;
+    }
+
     _colorImage->SetImageLayout(commandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1, VK_IMAGE_ASPECT_COLOR_BIT);
     VkRenderingAttachmentInfoKHR colorAttachment{};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
     colorAttachment.imageView = _colorImage->GetView();
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.loadOp = isClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.clearValue = {{r, g, b, a}};
     _depthImage->SetImageLayout(commandBuffer, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
@@ -47,23 +58,33 @@ void CubismOffscreenSurface_Vulkan::BeginDraw(VkCommandBuffer commandBuffer, csm
     renderingInfo.pDepthAttachment = &depthStencilAttachment;
 
     vkCmdBeginRendering(commandBuffer, &renderingInfo);
+    _isRendering = true;
 }
 
-void CubismOffscreenSurface_Vulkan::EndDraw(VkCommandBuffer commandBuffer)
+void CubismRenderTarget_Vulkan::EndDraw(VkCommandBuffer commandBuffer)
 {
+    // レンダリングパスがアクティブでない場合はスキップ
+    if (!_isRendering)
+    {
+        return;
+    }
+
+    _isRendering = false;
+
     vkCmdEndRendering(commandBuffer);
 
     // レイアウト変更
     VkImageMemoryBarrier memoryBarrier{};
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     memoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     memoryBarrier.image = _colorImage->GetImage();
     memoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
     vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &memoryBarrier);
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &memoryBarrier);
     _colorImage->SetCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -75,11 +96,14 @@ void CubismOffscreenSurface_Vulkan::EndDraw(VkCommandBuffer commandBuffer)
     _depthImage->SetCurrentLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-void CubismOffscreenSurface_Vulkan::CreateOffscreenSurface(
+void CubismRenderTarget_Vulkan::CreateRenderTarget(
     VkDevice device, VkPhysicalDevice physicalDevice,
     csmUint32 displayBufferWidth, csmUint32 displayBufferHeight,
     VkFormat surfaceFormat, VkFormat depthFormat)
 {
+    // デバイスを保持
+    _device = device;
+
     _colorImage = CSM_NEW CubismImageVulkan;
     _colorImage->CreateImage(device, physicalDevice, displayBufferWidth, displayBufferHeight,
                              1, surfaceFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -98,48 +122,49 @@ void CubismOffscreenSurface_Vulkan::CreateOffscreenSurface(
     _bufferHeight = displayBufferHeight;
 }
 
-void CubismOffscreenSurface_Vulkan::DestroyOffscreenSurface(VkDevice device)
+void CubismRenderTarget_Vulkan::DestroyRenderTarget()
 {
     if (_colorImage != VK_NULL_HANDLE)
     {
-        _colorImage->Destroy(device);
+        _colorImage->Destroy(_device);
         CSM_DELETE(_colorImage);
         _colorImage = VK_NULL_HANDLE;
     }
     if (_depthImage != VK_NULL_HANDLE)
     {
-        _depthImage->Destroy(device);
+        _depthImage->Destroy(_device);
         CSM_DELETE(_depthImage);
         _depthImage = VK_NULL_HANDLE;
     }
+    _device = VK_NULL_HANDLE;
 }
 
-VkImage CubismOffscreenSurface_Vulkan::GetTextureImage() const
+VkImage CubismRenderTarget_Vulkan::GetTextureImage() const
 {
     return _colorImage->GetImage();
 }
 
-VkImageView CubismOffscreenSurface_Vulkan::GetTextureView() const
+VkImageView CubismRenderTarget_Vulkan::GetTextureView() const
 {
     return _colorImage->GetView();
 }
 
-VkSampler CubismOffscreenSurface_Vulkan::GetTextureSampler() const
+VkSampler CubismRenderTarget_Vulkan::GetTextureSampler() const
 {
     return _colorImage->GetSampler();
 }
 
-csmUint32 CubismOffscreenSurface_Vulkan::GetBufferWidth() const
+csmUint32 CubismRenderTarget_Vulkan::GetBufferWidth() const
 {
     return _bufferWidth;
 }
 
-csmUint32 CubismOffscreenSurface_Vulkan::GetBufferHeight() const
+csmUint32 CubismRenderTarget_Vulkan::GetBufferHeight() const
 {
     return _bufferHeight;
 }
 
-csmBool CubismOffscreenSurface_Vulkan::IsValid() const
+csmBool CubismRenderTarget_Vulkan::IsValid() const
 {
     if (_colorImage == VK_NULL_HANDLE || _depthImage == VK_NULL_HANDLE)
     {
@@ -147,6 +172,11 @@ csmBool CubismOffscreenSurface_Vulkan::IsValid() const
     }
 
     return true;
+}
+
+csmBool CubismRenderTarget_Vulkan::IsRendering() const
+{
+    return _isRendering;
 }
 }}}}
 

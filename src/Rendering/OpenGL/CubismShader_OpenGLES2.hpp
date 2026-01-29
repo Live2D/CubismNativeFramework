@@ -9,6 +9,7 @@
 
 #include "CubismFramework.hpp"
 #include "CubismRenderer_OpenGLES2.hpp"
+#include "CubismOffscreenRenderTarget_OpenGLES2.hpp"
 
 #ifdef CSM_TARGET_ANDROID_ES2
 #include <jni.h>
@@ -103,7 +104,7 @@ public:
      * @param[in]   model               ->  描画対象のモデル
      * @param[in]   offscreen            ->  描画対象のオフスクリーン
      */
-    void SetupShaderProgramForOffscreen(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const CubismRenderTarget_OpenGLES2* offscreen);
+    void SetupShaderProgramForOffscreen(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const CubismOffscreenRenderTarget_OpenGLES2* offscreen);
 
     /**
      * @brief   シェーダを使って描画対象をコピーする

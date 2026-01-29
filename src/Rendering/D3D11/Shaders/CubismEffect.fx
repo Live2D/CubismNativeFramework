@@ -100,7 +100,9 @@ float4 PixelMasked(VS_OUT In) : SV_Target {
     texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);
     float4 color = texColor * baseColor;
     color.xyz *= color.w;
-    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;
+    float2 maskUv = In.clipPosition.xy / In.clipPosition.w;
+    maskUv.y = 1.0f + maskUv.y;
+    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color = color * maskVal;
     return color;
@@ -113,7 +115,9 @@ float4 PixelMaskedInverted(VS_OUT In) : SV_Target {
     texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);
     float4 color = texColor * baseColor;
     color.xyz *= color.w;
-    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;
+    float2 maskUv = In.clipPosition.xy / In.clipPosition.w;
+    maskUv.y = 1.0f + maskUv.y;
+    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color = color * (1.0f - maskVal);
     return color;
@@ -125,7 +129,9 @@ float4 PixelMaskedPremult(VS_OUT In) : SV_Target {
     texColor.rgb = texColor.rgb * multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);
     float4 color = texColor * baseColor;
-    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;
+    float2 maskUv = In.clipPosition.xy / In.clipPosition.w;
+    maskUv.y = 1.0f + maskUv.y;
+    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color = color * maskVal;
     return color;
@@ -137,7 +143,9 @@ float4 PixelMaskedInvertedPremult(VS_OUT In) : SV_Target {
     texColor.rgb = texColor.rgb * multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);
     float4 color = texColor * baseColor;
-    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;
+    float2 maskUv = In.clipPosition.xy / In.clipPosition.w;
+    maskUv.y = 1.0f + maskUv.y;
+    float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color = color * (1.0f - maskVal);
     return color;

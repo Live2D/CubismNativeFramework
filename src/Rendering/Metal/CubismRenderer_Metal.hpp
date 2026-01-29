@@ -12,6 +12,7 @@
 #include "../CubismClippingManager.hpp"
 #include "CubismFramework.hpp"
 #include "CubismRenderTarget_Metal.hpp"
+#include "CubismDeviceInfo_Metal.hpp"
 #include "CubismCommandBuffer_Metal.hpp"
 #include "Type/csmVector.hpp"
 #include "Type/csmRectF.hpp"
@@ -24,65 +25,6 @@ namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering 
 //  前方宣言
 class CubismRenderer_Metal;
 class CubismClippingContext_Metal;
-class CubismShader_Metal;
-
-/**
- * @brief デバイスに紐づいているデータの使用箇所の数とデータを管理するクラス
- */
-class DeviceInfo_Metal
-{
-public:
-    /**
-     * @brief  レンダラを作成するための各種設定
-     * 　　　　　モデルロード前に毎回設定されている必要あり
-     *
-     * @param[in]   device                      -> 使用デバイス
-     * @param[in]   maskBufferCount  -> 1パーツに付き作成するバッファ数
-     */
-    static void SetConstantSettings(id<MTLDevice> device, csmUint32 maskBufferCount = 0);
-
-    /**
-     * @brief   デバイスに紐づいているデータを取得し使用数をカウントする
-     *
-     * @param[in]   device         -> 使用デバイス
-     *
-     * @return デバイスに紐づいているデータを返す
-     */
-    static DeviceInfo_Metal& AcquireInfo(id<MTLDevice> device);
-
-    /**
-     * @brief   デバイスに紐づいているデータの使用数を減らす
-     *
-     * @param[in]   device         -> 使用デバイス
-     */
-    static void ReleaseInfo(id<MTLDevice> device);
-
-    /**
-     * @brief   デバイスに紐づいているデータの全削除
-     */
-    static void DeleteAllInfo();
-
-    /**
-     * @brief   コンストラクタ
-     */
-    DeviceInfo_Metal();
-
-    /**
-     * @brief   ディストラクタ
-     */
-    ~DeviceInfo_Metal();
-
-    /**
-     * @brief   シェーダーを取得する
-     *
-     * @return シェーダーを返す
-     */
-    CubismShader_Metal* GetShader() const;
-
-private:
-    csmUint32 _useCount;       ///< 使用箇所の数
-    CubismShader_Metal* _shader; ///< シェーダ
-};
 
 /**
  * @brief  クリッピングマスクの処理を実行するクラス
@@ -181,6 +123,15 @@ class CubismRenderer_Metal : public CubismRenderer
 
 public:
     /**
+     * @brief  レンダラを作成するための各種設定
+     * 　　　　　モデルロード前に毎回設定されている必要あり
+     *
+     * @param[in]   device                      -> 使用デバイス
+     * @param[in]   maskBufferCount  -> 1パーツに付き作成するバッファ数
+     */
+    static void SetConstantSettings(id<MTLDevice> device, csmUint32 maskBufferCount = 0);
+
+    /**
      * @brief    デバイスを設定する
      *
      * @return 設定に成功したらtrueを返す
@@ -213,8 +164,6 @@ public:
      * @param offscreenCount -> オフスクリーンの数
      */
     void SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount);
-
-    /**
 
     /**
      * @brief   テクスチャのバインド処理
@@ -313,7 +262,7 @@ public:
      *
      * @return 現在のオフスクリーンのフレームバッファを返す
      */
-    CubismRenderTarget_Metal* GetCurrentOffscreen() const;
+    CubismOffscreenRenderTarget_Metal* GetCurrentOffscreen() const;
 
     /**
      * @brief  モデル全体を描画する先のフレームバッファを取得する
@@ -382,7 +331,7 @@ protected:
      * @brief   親オフスクリーンへオフスクリーンの描画結果の伝搬を試みる。
      *
      * @param[in] objectIndex 処理をするオブジェクトのインデックス
-     * @param objectType 処理をするオブジェクトのタイプ
+     * @param[in] objectType 処理をするオブジェクトのタイプ
      */
     void SubmitDrawToParentOffscreen(csmInt32 objectIndex, DrawableObjectType objectType);
 
@@ -398,9 +347,7 @@ protected:
      *
      * @param[in]   currentOffscreen ->  描画対象のオフスクリーン
      */
-    void DrawOffscreen(CubismRenderTarget_Metal* currentOffscreen);
-
-    /**
+    void DrawOffscreen(CubismOffscreenRenderTarget_Metal* currentOffscreen);
 
     /**
      * @brief    描画オブジェクト（アートメッシュ）を描画する。
@@ -426,7 +373,7 @@ protected:
      * @param[in]   offscreeen        ->  対象のオフスクリーン
      * @param[in]   blendTexture      ->  ブレンド対象のテクスチャ
      */
-    void DrawOffscreenMetal(id <MTLRenderCommandEncoder> renderEncoder, const CubismModel& model, CubismRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture);
+    void DrawOffscreenMetal(id <MTLRenderCommandEncoder> renderEncoder, const CubismModel& model, CubismOffscreenRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture);
 
     CubismCommandBuffer_Metal::DrawCommandBuffer* GetDrawCommandBufferData(csmInt32 drawableIndex);
 
@@ -444,24 +391,38 @@ private:
     CubismRenderer_Metal& operator=(const CubismRenderer_Metal&);
 
     /**
-     * @brief   レンダラが保持する静的なリソースを解放する
-     *           Metalの静的なシェーダプログラムを解放する
-     */
-    static void DoStaticRelease();
-
-    /**
      * @brief   描画開始時の追加処理。
-     *           モデルを描画する前にクリッピングマスクに必要な処理を実装している。
-     *
-     * @return  描画に使うMTLRenderCommandEncoder
      */
-    id <MTLRenderCommandEncoder> PreDraw(id <MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* drawableRenderDescriptor);
+    void PreDraw();
 
     /**
      * @brief   描画完了後の追加処理。
      *
      */
-    void PostDraw(id <MTLRenderCommandEncoder> renderEncoder);
+    void PostDraw();
+
+    /**
+     * @brief   デフォルト、モデル、オフスクリーンの中から現在使用するレンダーターゲットを開始する。
+     *
+     * @param[in]   isClearEnabled     ->  レンダーターゲットをクリアするか
+     */
+    void BeginRenderTarget(csmBool isClearEnabled = false);
+
+    /**
+     * @brief   BeginDrawで開始したレンダーターゲットを修了する。
+     *
+     */
+    void EndRenderTarget();
+
+    /**
+     * @brief  インデックスがブレンドモードか判定する。
+     *
+     * @param[in]   index     ->  描画オブジェクトのインデックス
+     * @param[in]   drawableObjectType    ->  描画オブジェクトの種別
+     *
+     * @return  ブレンドモードならtrueを返す
+     */
+    csmBool IsBlendModeIndex(csmInt32 index, DrawableObjectType drawableObjectType);
 
     /**
      * @brief   SuperClass対応
@@ -492,13 +453,6 @@ private:
      * @retval  false  使用しない
      */
     csmBool IsBlendMode(CubismModel* model = nullptr);
-
-    /**
-     * @brief   ブレンドモードの有無で異なるレンダーターゲットへの描画開始
-     *
-     * @return  描画に使うMTLRenderCommandEncoder
-     */
-   id <MTLRenderCommandEncoder> BeginRenderTarget();
 
     /**
      * @brief   マスクテクスチャに描画するクリッピングコンテキストをセットする。
@@ -549,8 +503,9 @@ private:
 
     id<MTLDevice> _device; ///< デバイス
     id<MTLCommandBuffer> _mtlCommandBuffer; ///< コマンドバッファ
+    id <MTLRenderCommandEncoder> _mtlCommandEncoder; ///< コマンドエンコーダー
     MTLRenderPassDescriptor* _renderPassDescriptor; ///< ディスクリプタ
-    CubismShader_Metal* _shader; ///< シェーダ
+    CubismDeviceInfo_Metal* _deviceInfo; ///< デバイスに紐づいている情報
 
     csmMap< csmInt32, id <MTLTexture> > _textures;                      ///< モデルが参照するテクスチャとレンダラでバインドしているテクスチャとのマップ
     csmVector<csmInt32> _sortedObjectsIndexList;       ///< 描画オブジェクトのインデックスを描画順に並べたリスト
@@ -566,9 +521,9 @@ private:
 
     csmVector<CubismRenderTarget_Metal> _drawableMasks;         ///< Drawableのマスク描画用のフレームバッファ
     csmVector<CubismRenderTarget_Metal> _offscreenMasks;        ///< オフスクリーン機能マスク描画用のフレームバッファ
-    csmVector<CubismRenderTarget_Metal> _offscreenList; ///< モデルのオフスクリーン
+    csmVector<CubismOffscreenRenderTarget_Metal> _offscreenList; ///< モデルのオフスクリーン
 
-    CubismRenderTarget_Metal* _currentOffscreen; ///< 現在のオフスクリーンのフレームバッファ
+    CubismOffscreenRenderTarget_Metal* _currentOffscreen; ///< 現在のオフスクリーンのフレームバッファ
 
     CubismCommandBuffer_Metal _commandBuffer;
     csmVector<CubismCommandBuffer_Metal::DrawCommandBuffer*> _drawableDrawCommandBuffer;
@@ -576,7 +531,6 @@ private:
 
     CubismCommandBuffer_Metal::DrawCommandBuffer* _copyCommandBuffer;
 
-    csmBool _isClearedModelRenderTarget; ///< レンダーターゲットをクリアしたか
 };
 
 }}}}

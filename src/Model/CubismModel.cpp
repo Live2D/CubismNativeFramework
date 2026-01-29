@@ -34,7 +34,7 @@ CubismModel::CubismModel(Core::csmModel* model)
 
 CubismModel::~CubismModel()
 {
-    CSM_FREE_ALLIGNED(_model);
+    CSM_FREE_ALIGNED(_model);
 }
 
 csmFloat32 CubismModel::GetParameterValue(CubismIdHandle parameterId)
