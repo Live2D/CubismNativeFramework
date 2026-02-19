@@ -26,10 +26,10 @@ void main()
     vec4 texColor = texture(s_texture0, v_texCoord);
     texColor.rgb = texColor.rgb * ubo.u_multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + ubo.u_screenColor.rgb * texColor.a) - (texColor.rgb * ubo.u_screenColor.rgb);
-    vec4 col_formask = texColor * ubo.u_baseColor;
+    vec4 col_formask = ConvertPremultipliedToStraight(texColor * ubo.u_baseColor);
     vec4 clipMask = (1.0 - texture(s_texture1, v_clipPos.xy / v_clipPos.w)) * ubo.u_channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
-    vec4 colorSource = col_formask * maskVal;
+    vec4 colorSource = vec4(col_formask.rgb, col_formask.a * maskVal);
     vec4 colorDestination = ConvertPremultipliedToStraight(texture(s_blendTexture, v_blendCoord));
     outColor = AlphaBlend(ColorBlend(colorSource.rgb, colorDestination.rgb), colorSource, colorDestination);
 }

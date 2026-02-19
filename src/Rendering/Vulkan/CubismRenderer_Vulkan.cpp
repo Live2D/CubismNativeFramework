@@ -202,6 +202,7 @@ void CubismClippingManager_Vulkan::SetupClippingContext(CubismModel& model, VkCo
     switch (drawableObjectType)
     {
     case CubismRenderer::DrawableObjectType_Drawable:
+    default:
         _currentMaskBuffer = renderer->GetDrawableMaskBuffer(commandBufferCurrent, 0);
         break;
     case CubismRenderer::DrawableObjectType_Offscreen:
@@ -262,6 +263,7 @@ void CubismClippingManager_Vulkan::SetupClippingContext(CubismModel& model, VkCo
         switch (drawableObjectType)
         {
         case CubismRenderer::DrawableObjectType_Drawable:
+        default:
             maskBuffer = renderer->GetDrawableMaskBuffer(commandBufferCurrent, clipContext->_bufferIndex);
             break;
         case CubismRenderer::DrawableObjectType_Offscreen:

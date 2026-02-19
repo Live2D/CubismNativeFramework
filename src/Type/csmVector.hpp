@@ -141,15 +141,15 @@ public:
     class iterator;
 
     /**
-     * @brief   コンテナにコンテナ要素を挿入する
+     * @brief   コンテナの指定位置に、別のコンテナの要素を挿入する
      *
-     * @param[in]   position    ->  挿入する位置
-     * @param[in]   begin       ->  挿入するコンテナの開始位置
-     * @param[in]   end         ->  挿入するコンテナの終端位置
-     * @param[in]   callPlacementNew    ->  Insert時に配置newを呼び出す場合はtrue（クラスインスタンス）
-     *                                       Insert時に値を単純に代入する場合はfalse（プリミティブ、ポインタ）
+     * @param[in]   position            挿入先コンテナ（自身）の挿入位置を示すイテレータ
+     * @param[in]   begin               挿入元コンテナの開始位置を示すイテレータ
+     * @param[in]   end                 挿入元コンテナの終端位置を示すイテレータ（この位置の要素は含まない）
+     * @param[in]   callPlacementNew    trueの場合、配置newでコンストラクタを呼び出す（クラスインスタンス用）
+     *                                  falseの場合、値を単純に代入する（プリミティブ、ポインタ用）
      */
-    void Insert(iterator position, iterator begin, iterator end, bool callPlacementNew = true);
+    void Insert(iterator position, iterator begin, iterator end, csmBool callPlacementNew = true);
 
     /**
      * @brief   コンテナの全要素に対して代入処理を行う。
@@ -752,10 +752,14 @@ template<class T>
 void csmVector<T>::Insert(iterator position, iterator begin, iterator end, csmBool callPlacementNew)
 {
     csmInt32 dst_si = position._index;
-    csmInt32 src_si = begin._index;
-    csmInt32 src_ei = end._index;
+    const csmInt32 src_si = begin._index;
+    const csmInt32 src_ei = end._index;
 
-    csmInt32 addcount = src_ei - src_si;
+    const csmInt32 addcount = src_ei - src_si;
+    if (addcount <= 0)
+    {
+        return;
+    }
 
     PrepareCapacity(_size + addcount);
 
@@ -770,7 +774,7 @@ void csmVector<T>::Insert(iterator position, iterator begin, iterator end, csmBo
     {
         for (csmInt32 i = src_si; i < src_ei; i++, dst_si++)
         {
-            CSM_PLACEMENT_NEW(&_ptr[i]) T(begin._vector->_ptr[i]);
+            CSM_PLACEMENT_NEW(&_ptr[dst_si]) T(begin._vector->_ptr[i]);
         }
     }
     else

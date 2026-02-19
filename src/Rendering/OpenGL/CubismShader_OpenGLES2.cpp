@@ -183,6 +183,8 @@ void CubismShader_OpenGLES2::SetShaderSet(CubismShaderSet& shaderSets, const Mas
         shaderSets.UniformClipMatrixLocation = glGetUniformLocation(shaderSets.ShaderProgram, "u_clipMatrix");
         shaderSets.UnifromChannelFlagLocation = glGetUniformLocation(shaderSets.ShaderProgram, "u_channelFlag");
         break;
+    default:
+        break;
     }
 }
 

@@ -27,11 +27,9 @@ FragShaderSrcMaskInvertedBlend(MaskedBlendRasterizerData in [[stage_in]],
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
     float4 col_formask = texColor * uniforms.baseColor;
-    col_formask.rgb = col_formask.rgb  * col_formask.a ;
     float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
-    col_formask = col_formask * (1.0 - maskVal);
-    float4 colorSource = col_formask;
+    float4 colorSource = float4(col_formask.rgb, col_formask.a * (1.0 - maskVal));
     float4 colorDestination = ConvertPremultipliedToStraight(blendTexture.sample(smp, in.blendCoord));
     float4 outColor = AlphaBlend(ColorBlend(colorSource.rgb, colorDestination.rgb), colorSource, colorDestination);
 
