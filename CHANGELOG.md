@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [5-r.5-beta.3.1] - 2026-02-19
+
+### Added
+
+* Add missing default labels in switch statements of `CubismShader_OpenGLES2` and `CubismRenderer_Vulkan`.
+
+### Fixed
+
+* Fix incorrect implementation of `csmVector::Insert`.
+* Fix a bug where rendering results were not as expected when using Blend mode on semi-transparent objects.
+
+
 ## [5-r.5-beta.3] - 2026-01-29
 
 ### Added
@@ -533,6 +546,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.5-beta.3.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.3...5-r.5-beta.3.1
 [5-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.2...5-r.5-beta.3
 [5-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.1...5-r.5-beta.2
 [5-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4.1...5-r.5-beta.1

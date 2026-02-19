@@ -29,7 +29,7 @@ void main()
     vec4 col_formask = texColor * ubo.u_baseColor;
     vec4 clipMask = (1.0 - texture(s_texture1, v_clipPos.xy / v_clipPos.w)) * ubo.u_channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
-    vec4 colorSource = col_formask * (1.0 - maskVal);
+    vec4 colorSource = vec4(col_formask.rgb, col_formask.a * (1.0 - maskVal));
     vec4 colorDestination = ConvertPremultipliedToStraight(texture(s_blendTexture, v_blendCoord));
     outColor = AlphaBlend(ColorBlend(colorSource.rgb, colorDestination.rgb), colorSource, colorDestination);
 }
