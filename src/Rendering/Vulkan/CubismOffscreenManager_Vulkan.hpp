@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -22,18 +22,14 @@ class CubismOffscreenManager_Vulkan : public ICubismOffscreenManager<CubismRende
 
 public:
     /**
-    * @brief   クラスのインスタンス（シングルトン）を返す。
-    *           インスタンスが生成されていない場合は内部でインスタンスを生成する。
-    *
-    * @return  クラスのインスタンス
-    */
-    static CubismOffscreenManager_Vulkan* GetInstance();
+     * @brief   コンストラクタ
+     */
+    CubismOffscreenManager_Vulkan();
 
     /**
-    * @brief   クラスのインスタンス（シングルトン）を解放する。
-    *
-    */
-    static void ReleaseInstance();
+     * @brief   デストラクタ
+     */
+    ~CubismOffscreenManager_Vulkan();
 
     /**
     * @brief 使用可能なレンダーターゲットの取得
@@ -52,18 +48,6 @@ public:
         csmUint32 displayBufferWidth, csmUint32 displayBufferHeight,
         VkFormat surfaceFormat, VkFormat depthFormat
     );
-
-private:
-
-    /**
-     * @brief   コンストラクタ
-     */
-    CubismOffscreenManager_Vulkan();
-
-    /**
-     * @brief   デストラクタ
-     */
-    ~CubismOffscreenManager_Vulkan();
 
 };
 

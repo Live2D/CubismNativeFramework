@@ -16,17 +16,19 @@ using namespace metal;
 #include "MetalShaderTypes.h"
 
 fragment float4
-FragShaderSrcPremultipliedAlphaBlend(MaskedBlendRasterizerData in [[stage_in]],
-                        texture2d<float> texture [[ texture(0) ]],
-                        constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                        sampler smp [[sampler(0)]],
-                        texture2d<float> blendTexture [[ texture(1) ]])
+FragShaderSrcPremultipliedAlphaBlend(
+    MaskedBlendRasterizerData in [[stage_in]],
+    texture2d<float> texture [[ texture(0) ]],
+    texture2d<float> blendTexture [[ texture(1) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[sampler(0)]],
+    sampler subSampler [[sampler(1)]])
 {
-    float4 texColor = texture.sample(smp, in.texCoord);
+    float4 texColor = texture.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
     float4 colorSource = ConvertPremultipliedToStraight(texColor * uniforms.baseColor);
-    float4 colorDestination = ConvertPremultipliedToStraight(blendTexture.sample(smp, in.blendCoord));
+    float4 colorDestination = ConvertPremultipliedToStraight(blendTexture.sample(subSampler, in.blendCoord));
     float4 outColor = AlphaBlend(ColorBlend(colorSource.rgb, colorDestination.rgb), colorSource, colorDestination);
 
     return outColor;

@@ -69,7 +69,8 @@ public:
     enum Sampler
     {
         Sampler_Origin,     ///< 元々の設定
-        Sampler_Normal,     ///< 使用ステート
+        Sampler_Drawable,   ///< アートメッシュ用の使用ステート
+        Sampler_Other,      ///< アートメッシュ以外用の使用ステート
         Sampler_Anisotropy, ///< 異方性フィルタリング使用
         Sampler_Max,
     };
@@ -97,7 +98,7 @@ public:
             _viewportMinZ = 0.0f;
             _viewportMaxZ = 0.0f;
 
-            _sampler = Sampler_Normal;
+            _sampler = Sampler_Drawable;
             _anisotropy = 0.0f;
 
             memset(_valid, 0, sizeof(_valid));

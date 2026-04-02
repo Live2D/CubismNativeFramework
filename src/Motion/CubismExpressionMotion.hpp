@@ -77,18 +77,6 @@ public:
      */
     csmVector<ExpressionParameter> GetExpressionParameters();
 
-    /**
-     * Returns the current fade weight value of the facial expression.
-     *
-     * @return fade weight value of the facial expression
-     *
-     * @deprecated Not recommended due to the planned removal of CubismExpressionMotion._fadeWeight.
-     *             Use CubismExpressionMotionManager.getFadeWeight(int index) instead.
-     *
-     * @see CubismExpressionMotionManager#getFadeWeight(int index)
-     */
-    csmFloat32 GetFadeWeight();
-
     static const csmFloat32 DefaultAdditiveValue;
     static const csmFloat32 DefaultMultiplyValue;
 
@@ -104,9 +92,6 @@ protected:
 private:
 
     csmFloat32 CalculateValue(csmFloat32 source, csmFloat32 destination, csmFloat32 fadeWeight);
-
-
-    csmFloat32 _fadeWeight;
 };
 
 }}}

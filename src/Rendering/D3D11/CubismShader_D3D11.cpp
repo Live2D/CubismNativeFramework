@@ -95,9 +95,22 @@ void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
 
         csmSizeInt effectShaderSize;
         csmByte* effectShaderSrc = fileLoader(frameworkShaderPath, &effectShaderSize);
-        csmString shaderString = csmString(reinterpret_cast<const csmChar*>(effectShaderSrc), effectShaderSize);
+        if (effectShaderSrc == NULL)
+        {
+            CubismLogError("Failed to load effect shader");
+            break;
+        }
+
         csmSizeInt blendShaderSize;
         csmByte* blendShaderSrc = fileLoader(frameworkBlendShaderPath, &blendShaderSize);
+        if (blendShaderSrc == NULL)
+        {
+            CubismLogError("Failed to load blend shader");
+            bytesReleaser(effectShaderSrc);
+            break;
+        }
+
+        csmString shaderString = csmString(reinterpret_cast<const csmChar*>(effectShaderSrc), effectShaderSize);
         shaderString += csmString(reinterpret_cast<const csmChar*>(blendShaderSrc), blendShaderSize);
 
         // ファイル読み込みで確保したバイト列を開放
@@ -157,26 +170,6 @@ void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
         CSM_SET_SHADER_53(COLOR, Out) \
         CSM_SET_SHADER_53(COLOR, ConjointOver) \
         CSM_SET_SHADER_53(COLOR, DisjointOver) \
-    }
-
-        // 5.2以前 copy
-        if (!LoadShaderProgram(device, false, ShaderNames_Copy, "VertCopy", shaderString))
-        {
-            break;
-        }
-        if (!LoadShaderProgram(device, true, ShaderNames_Copy, "PixelCopy", shaderString))
-        {
-            break;
-        }
-
-        // 5.2以前 setup mask
-        if (!LoadShaderProgram(device, false, ShaderNames_SetupMask, "VertSetupMask", shaderString))
-        {
-            break;
-        }
-        if (!LoadShaderProgram(device, true, ShaderNames_SetupMask, "PixelSetupMask", shaderString))
-        {
-            break;
     }
 
         // 5.2以前 normal
@@ -385,17 +378,21 @@ ID3D11PixelShader* CubismShader_D3D11::GetPixelShader(csmUint32 assign)
     return NULL;
 }
 
-void CubismShader_D3D11::SetupShader(ID3D11Device* device, ID3D11DeviceContext* renderContext)
+void CubismShader_D3D11::SetupShader(ID3D11Device* device)
 {
     // まだシェーダ・頂点宣言未作成ならば作成する
     GenerateShaders(device);
+}
 
-    if (!renderContext || !_vertexFormat)
+void CubismShader_D3D11::BindShader(ID3D11DeviceContext* context)
+{
+
+    if (!context || !_vertexFormat)
     {
         return;
     }
 
-    renderContext->IASetInputLayout(_vertexFormat);
+    context->IASetInputLayout(_vertexFormat);
 }
 
 }}}}

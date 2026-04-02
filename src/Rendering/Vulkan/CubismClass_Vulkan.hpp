@@ -137,10 +137,14 @@ public:
      * @brief   サンプラーを作成する
      *
      * @param[in]  device          -> デバイス
+     * @param[in]  addressMode     -> アドレスモード
+     * @param[in]  magFilter       -> マグフィルター
+     * @param[in]  minFilter       -> ミニフィルター
+     * @param[in]  mipmapMode      -> ミップマップモード
      * @param[in]  maxAnistropy    -> 異方性の値の最大値
      * @param[in]  mipLevel        -> ミップマップのレベル
      */
-    void CreateSampler(VkDevice device, csmFloat32 maxAnistropy, csmUint32 mipLevel);
+    void CreateSampler(VkDevice device, VkSamplerAddressMode addressMode, VkFilter magFilter, VkFilter minFilter, VkSamplerMipmapMode mipmapMode, csmFloat32 maxAnistropy, csmUint32 mipLevel);
 
     /**
      * @brief   イメージのレイアウトを変更する

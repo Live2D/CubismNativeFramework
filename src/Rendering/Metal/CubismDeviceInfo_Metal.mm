@@ -17,6 +17,11 @@ namespace {
 
 CubismDeviceInfo_Metal* CubismDeviceInfo_Metal::GetDeviceInfo(id<MTLDevice> device)
 {
+    if (!s_deviceInfoList.IsExist(device))
+    {
+        // シェーダの事前初期化
+        s_deviceInfoList[device]._shader.SetupShader(device);
+    }
     return &s_deviceInfoList[device];
 }
 

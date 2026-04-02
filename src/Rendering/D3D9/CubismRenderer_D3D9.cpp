@@ -491,8 +491,8 @@ void CubismRenderer_D3D9::StartFrame()
     // レンダーステートフレーム先頭処理
     _deviceInfo->GetRenderState()->StartFrame();
 
-    // シェーダ・頂点宣言
-    _deviceInfo->GetShader()->SetupShader(_device);
+    // シェーダーのバインド
+    _deviceInfo->GetShader()->BindShader(_device);
 }
 
 void CubismRenderer_D3D9::EndFrame()
@@ -1151,11 +1151,7 @@ void CubismRenderer_D3D9::ExecuteDrawForDrawable(const CubismModel& model, const
     csmBool isBlendMode;
     csmBlendMode blendMode = model.GetDrawableBlendModeType(index);
     SetBlendMode(blendMode, isBlendMode);
-    if (isBlendMode)
-    {
-        int stop = 0;
-    }
-    SetTextureFilter();
+    SetTextureFilter(true);
     SetTechniqueForDrawable(model, index, isBlendMode, blendMode);
 
     // numPassには指定のtechnique内に含まれるpassの数が返る
@@ -1203,8 +1199,9 @@ void CubismRenderer_D3D9::ExecuteDrawForDrawable(const CubismModel& model, const
             // ブレンドモード使用しない場合はDrawable単位でモデルカラーを処理する
             baseColor = GetModelColorWithOpacity(model.GetDrawableOpacity(index));
         }
-        CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-        CubismTextureColor screenColor = model.GetScreenColor(index);
+        const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+        CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetDrawableMultiplyColor(index);
+        CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetDrawableScreenColor(index);
         SetColorVectors(shaderEffect, baseColor, multiplyColor, screenColor);
 
         // D3D9はピクセル中心が違うため補正用に渡す
@@ -1234,7 +1231,7 @@ void CubismRenderer_D3D9::ExecuteDrawForOffscreen(const CubismModel& model, Cubi
     csmBool isBlendMode;
     csmBlendMode blendMode = model.GetOffscreenBlendModeType(offscreenIndex);
     SetBlendMode(blendMode, isBlendMode);
-    SetOffscreenTextureFilter();
+    SetTextureFilter(false);
     SetTechniqueForOffscreen(model, offscreenIndex, isBlendMode, blendMode);
 
     // numPassには指定のtechnique内に含まれるpassの数が返る
@@ -1269,8 +1266,9 @@ void CubismRenderer_D3D9::ExecuteDrawForOffscreen(const CubismModel& model, Cubi
         csmFloat32 offscreenOpacity = model.GetOffscreenOpacity(offscreenIndex);
         // PMAなのと不透明度だけを変更したいためすべてOpacityで初期化
         CubismTextureColor modelColorRGBA(offscreenOpacity, offscreenOpacity, offscreenOpacity, offscreenOpacity);
-        CubismTextureColor multiplyColor = model.GetMultiplyColorOffscreen(offscreenIndex);
-        CubismTextureColor screenColor = model.GetScreenColorOffscreen(offscreenIndex);
+        const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+        CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetOffscreenMultiplyColor(offscreenIndex);
+        CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetOffscreenScreenColor(offscreenIndex);
         SetColorVectors(shaderEffect, modelColorRGBA, multiplyColor, screenColor);
 
         // D3D9はピクセル中心が違うため補正用に渡す
@@ -1306,8 +1304,7 @@ void CubismRenderer_D3D9::ExecuteDrawForMask(const CubismModel& model, const csm
     shaderEffect->Begin(&numPass, 0);
     shaderEffect->BeginPass(0);
 
-    // マスクには線形補間を適用
-    _deviceInfo->GetRenderState()->SetTextureFilter(_device, 1, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_NONE, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+    SetTextureFilter(true);
 
     // 定数バッファ
     {
@@ -1317,9 +1314,8 @@ void CubismRenderer_D3D9::ExecuteDrawForMask(const CubismModel& model, const csm
         // 色
         csmRectF* rect = GetClippingContextBufferForMask()->_layoutBounds;
         CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
-        CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-        CubismTextureColor screenColor = model.GetScreenColor(index);
-        SetColorVectors(shaderEffect, baseColor, multiplyColor, screenColor);
+        D3DXVECTOR4 shaderBaseColor(baseColor.R, baseColor.G, baseColor.B, baseColor.A);
+        shaderEffect->SetVector("baseColor", &shaderBaseColor);
 
         // 使用するカラーチャンネルを設定
         CubismClippingContext_D3D9* contextBuffer = GetClippingContextBufferForMask();
@@ -1354,7 +1350,7 @@ void CubismRenderer_D3D9::ExecuteDrawForRenderTarget()
     }
 
     shaderEffect->SetTechnique("ShaderNames_Copy");
-    SetOffscreenTextureFilter();
+    SetTextureFilter(false);
     SetBlendMode(CubismBlendMode_Copy);
 
     // numPassには指定のtechnique内に含まれるpassの数が返る
@@ -1363,8 +1359,8 @@ void CubismRenderer_D3D9::ExecuteDrawForRenderTarget()
     shaderEffect->BeginPass(0);
 
     // テスクチャ
-    LPDIRECT3DTEXTURE9 mainTexture = _modelRenderTargets[0].GetTexture();
-    shaderEffect->SetTexture("mainTexture", mainTexture);
+    LPDIRECT3DTEXTURE9 blendTexture = _modelRenderTargets[0].GetTexture();
+    shaderEffect->SetTexture("blendTexture", blendTexture);
 
     // 定数バッファ
     {
@@ -1794,7 +1790,6 @@ void CubismRenderer_D3D9::SetTechniqueForDrawable(const CubismModel& model, cons
     const csmBool masked = GetClippingContextBufferForDrawable() != NULL;  // この描画オブジェクトはマスク対象か
     const csmBool premult = IsPremultipliedAlpha();
     const csmBool invertedMask = model.GetDrawableInvertedMask(index);
-    csmString shaderName = GetTechniqueName(masked, premult, invertedMask, isBlendMode, blendMode);
     shaderEffect->SetTechnique(GetTechniqueName(masked, premult, invertedMask, isBlendMode, blendMode).GetRawString());
 }
 
@@ -1807,21 +1802,26 @@ void CubismRenderer_D3D9::SetTechniqueForOffscreen(const CubismModel& model, csm
     shaderEffect->SetTechnique(GetTechniqueName(masked, premult, invertedMask, isBlendMode, blendMode).GetRawString());
 }
 
-void CubismRenderer_D3D9::SetTextureFilter() const
+void CubismRenderer_D3D9::SetTextureFilter(const csmBool useDrawable) const
 {
-    if (GetAnisotropy() > 1.0f)
+    if (useDrawable)
     {
-        _deviceInfo->GetRenderState()->SetTextureFilter(_device, 0, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
+        if (GetAnisotropy() > 1.0f)
+        {
+            _deviceInfo->GetRenderState()->SetTextureFilter(_device, 0, D3DTEXF_ANISOTROPIC, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP, GetAnisotropy());
+        }
+        else
+        {
+            _deviceInfo->GetRenderState()->SetTextureFilter(_device, 0, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+        }
     }
     else
     {
-        _deviceInfo->GetRenderState()->SetTextureFilter(_device, 0, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTEXF_LINEAR, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+        _deviceInfo->GetRenderState()->SetTextureFilter(_device, 0, D3DTEXF_POINT, D3DTEXF_POINT, D3DTEXF_NONE, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
     }
-}
 
-void CubismRenderer_D3D9::SetOffscreenTextureFilter() const
-{
-    _deviceInfo->GetRenderState()->SetTextureFilter(_device, 0, D3DTEXF_POINT, D3DTEXF_POINT, D3DTEXF_NONE, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+    _deviceInfo->GetRenderState()->SetTextureFilter(_device, 1, D3DTEXF_POINT, D3DTEXF_POINT, D3DTEXF_NONE, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
+    _deviceInfo->GetRenderState()->SetTextureFilter(_device, 2, D3DTEXF_POINT, D3DTEXF_POINT, D3DTEXF_NONE, D3DTADDRESS_WRAP, D3DTADDRESS_WRAP);
 }
 
 void CubismRenderer_D3D9::SetColorVectors(ID3DXEffect* shaderEffect, CubismTextureColor& baseColor, CubismTextureColor& multiplyColor, CubismTextureColor& screenColor)

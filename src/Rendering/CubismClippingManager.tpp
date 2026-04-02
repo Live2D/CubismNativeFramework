@@ -602,7 +602,7 @@ void CubismClippingManager<T_ClippingContext, T_RenderTarget>::CollectOffscreenC
 template <class T_ClippingContext, class T_RenderTarget>
 void CubismClippingManager<T_ClippingContext, T_RenderTarget>::CollectPartChildDrawableIndexList(CubismModel& model, csmInt32 partIndex, csmVector<csmInt32>& childDrawableIndexList)
 {
-    CubismModel::PartChildDrawObjects childDrawObjects = model.GetPartsHierarchy()[partIndex].ChildDrawObjects;
+    PartChildDrawObjects childDrawObjects = model.GetPartsHierarchy()[partIndex].ChildDrawObjects;
     for (csmInt32 i = 0; i < childDrawObjects.DrawableIndices.GetSize(); ++i)
     {
         childDrawableIndexList.PushBack(childDrawObjects.DrawableIndices[i]);

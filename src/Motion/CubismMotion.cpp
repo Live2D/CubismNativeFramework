@@ -876,34 +876,6 @@ csmFloat32 CubismMotion::GetParameterFadeOutTime(CubismIdHandle parameterId) con
     return -1;
 }
 
-void CubismMotion::IsLoop(csmBool loop)
-{
-    CubismLogWarning("IsLoop(csmBool loop) is a deprecated function. Please use SetLoop(csmBool loop).");
-
-    this->_isLoop = loop;
-}
-
-csmBool CubismMotion::IsLoop() const
-{
-    CubismLogWarning("IsLoop() is a deprecated function. Please use GetLoop().");
-
-    return this->_isLoop;
-}
-
-void CubismMotion::IsLoopFadeIn(csmBool loopFadeIn)
-{
-    CubismLogWarning("IsLoopFadeIn(csmBool loopFadeIn) is a deprecated function. Please use SetLoopFadeIn(csmBool loopFadeIn).");
-
-    this->_isLoopFadeIn = loopFadeIn;
-}
-
-csmBool CubismMotion::IsLoopFadeIn() const
-{
-    CubismLogWarning("IsLoopFadeIn() is a deprecated function. Please use GetLoopFadeIn().");
-
-    return this->_isLoopFadeIn;
-}
-
 void CubismMotion::SetMotionBehavior(MotionBehavior motionBehavior)
 {
     _motionBehavior = motionBehavior;

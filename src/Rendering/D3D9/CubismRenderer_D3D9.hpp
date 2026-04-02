@@ -523,13 +523,10 @@ private:
 
     /**
      * @brief   RenderStateManagerにテクスチャフィルターを設定する
+     *
+     * @param[in]   useDrawable -> 画像の読み込みとしてDrawableを使用するか
      */
-    void SetTextureFilter() const;
-
-    /**
-     * @brief   RenderStateManagerにオフスクリーン用テクスチャフィルターを設定する
-     */
-    void SetOffscreenTextureFilter() const;
+    void SetTextureFilter(csmBool useDrawable) const;
 
     /**
      * @brief  色関連の定数バッファを設定

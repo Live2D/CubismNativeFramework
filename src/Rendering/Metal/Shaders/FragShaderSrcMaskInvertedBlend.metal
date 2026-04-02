@@ -16,21 +16,23 @@ using namespace metal;
 #include "MetalShaderTypes.h"
 
 fragment float4
-FragShaderSrcMaskInvertedBlend(MaskedBlendRasterizerData in [[stage_in]],
-                    texture2d<float> texture0 [[ texture(0) ]],
-                    texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                    sampler smp [[sampler(0)]],
-                    texture2d<float> blendTexture [[ texture(2) ]])
+FragShaderSrcMaskInvertedBlend(
+    MaskedBlendRasterizerData in [[stage_in]],
+    texture2d<float> texture0 [[ texture(0) ]],
+    texture2d<float> texture1 [[ texture(1) ]],
+    texture2d<float> blendTexture [[ texture(2) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[sampler(0)]],
+    sampler subSampler [[sampler(1)]])
 {
-    float4 texColor = texture0.sample(smp, in.texCoord);
+    float4 texColor = texture0.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
     float4 col_formask = texColor * uniforms.baseColor;
-    float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
+    float4 clipMask = (1.0 - texture1.sample(subSampler, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     float4 colorSource = float4(col_formask.rgb, col_formask.a * (1.0 - maskVal));
-    float4 colorDestination = ConvertPremultipliedToStraight(blendTexture.sample(smp, in.blendCoord));
+    float4 colorDestination = ConvertPremultipliedToStraight(blendTexture.sample(subSampler, in.blendCoord));
     float4 outColor = AlphaBlend(ColorBlend(colorSource.rgb, colorDestination.rgb), colorSource, colorDestination);
 
     return outColor;

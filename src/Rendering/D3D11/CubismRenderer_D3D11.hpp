@@ -558,8 +558,10 @@ private:
 
     /**
      * @brief   異方向フィルタリングの値によってサンプラーを設定する。
+     *
+     * @param[in]   useDrawable -> 画像の読み込みとしてDrawableを使用するか
      */
-    void SetSamplerAccordingToAnisotropy();
+    void SetSamplerAccordingToAnisotropy(csmBool useDrawable);
 
     /**
      * @brief   マスク生成時かを判定する

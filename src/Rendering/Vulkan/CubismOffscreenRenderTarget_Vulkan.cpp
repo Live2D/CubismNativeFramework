@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -21,10 +21,11 @@ CubismOffscreenRenderTarget_Vulkan::~CubismOffscreenRenderTarget_Vulkan()
 
 void CubismOffscreenRenderTarget_Vulkan::SetOffscreenRenderTarget(
     VkDevice device, VkPhysicalDevice physicalDevice,
+    CubismOffscreenManager_Vulkan* offscreenManager,
     csmUint32 displayBufferWidth, csmUint32 displayBufferHeight,
     VkFormat surfaceFormat, VkFormat depthFormat)
 {
-    if (GetUsingRenderTextureState())
+    if (GetUsingRenderTextureState(offscreenManager))
     {
 
         if (_renderTarget->GetBufferWidth() != displayBufferWidth ||
@@ -37,18 +38,18 @@ void CubismOffscreenRenderTarget_Vulkan::SetOffscreenRenderTarget(
         return;
     }
 
-    _renderTarget = CubismOffscreenManager_Vulkan::GetInstance()->GetOffscreenRenderTarget(
+    _renderTarget = offscreenManager->GetOffscreenRenderTarget(
         device, physicalDevice, displayBufferWidth, displayBufferHeight, surfaceFormat, depthFormat);
 }
 
-csmBool CubismOffscreenRenderTarget_Vulkan::GetUsingRenderTextureState() const
+csmBool CubismOffscreenRenderTarget_Vulkan::GetUsingRenderTextureState(CubismOffscreenManager_Vulkan* offscreenManager) const
 {
-    return CubismOffscreenManager_Vulkan::GetInstance()->GetUsingRenderTextureState(_renderTarget);
+    return offscreenManager->GetUsingRenderTextureState(_renderTarget);
 }
 
-void CubismOffscreenRenderTarget_Vulkan::StopUsingRenderTexture()
+void CubismOffscreenRenderTarget_Vulkan::StopUsingRenderTexture(CubismOffscreenManager_Vulkan* offscreenManager)
 {
-    CubismOffscreenManager_Vulkan::GetInstance()->StopUsingRenderTexture(_renderTarget);
+    offscreenManager->StopUsingRenderTexture(_renderTarget);
     _renderTarget = nullptr;
 }
 

@@ -10,6 +10,7 @@
 #include "Effect/CubismPose.hpp"
 #include "Effect/CubismEyeBlink.hpp"
 #include "Effect/CubismBreath.hpp"
+#include "Effect/CubismLook.hpp"
 #include "Math/CubismModelMatrix.hpp"
 #include "Math/CubismTargetPoint.hpp"
 #include "Model/CubismMoc.hpp"
@@ -20,6 +21,7 @@
 #include "Rendering/CubismRenderer.hpp"
 #include "Model/CubismModelUserData.hpp"
 #include "Motion/CubismExpressionMotionManager.hpp"
+#include "Motion/CubismUpdateScheduler.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
@@ -247,6 +249,8 @@ protected:
     CubismMoc*              _moc;
     CubismModel*            _model;
 
+    CubismUpdateScheduler _updateScheduler;
+
     CubismMotionManager*    _motionManager;
     CubismExpressionMotionManager*    _expressionManager;
     CubismEyeBlink*         _eyeBlink;
@@ -256,14 +260,12 @@ protected:
     CubismTargetPoint*      _dragManager;
     CubismPhysics*          _physics;
     CubismModelUserData*    _modelUserData;
+    CubismLook*             _look;
 
     csmBool     _initialized;
     csmBool     _updating;
     csmFloat32  _opacity;
-    csmBool     _lipSync;
     csmFloat32  _lastLipSyncValue;
-    csmFloat32  _dragX;
-    csmFloat32  _dragY;
     csmFloat32  _accelerationX;
     csmFloat32  _accelerationY;
     csmFloat32  _accelerationZ;

@@ -68,9 +68,22 @@ void CubismShader_D3D9::GenerateShaders(LPDIRECT3DDEVICE9 device)
 
     csmSizeInt effectShaderSize;
     csmByte* effectShaderSrc = fileLoader(frameworkShaderPath, &effectShaderSize);
-    csmString shaderString = csmString(reinterpret_cast<const csmChar*>(effectShaderSrc), effectShaderSize);
+    if (effectShaderSrc == NULL)
+    {
+        CubismLogError("Failed to load effect shader");
+        return;
+    }
+
     csmSizeInt blendShaderSize;
     csmByte* blendShaderSrc = fileLoader(frameworkBlendShaderPath, &blendShaderSize);
+    if (blendShaderSrc == NULL)
+    {
+        CubismLogError("Failed to load blend shader");
+        bytesReleaser(effectShaderSrc);
+        return;
+    }
+
+    csmString shaderString = csmString(reinterpret_cast<const csmChar*>(effectShaderSrc), effectShaderSize);
     shaderString += csmString(reinterpret_cast<const csmChar*>(blendShaderSrc), blendShaderSize);
 
     // ファイル読み込みで確保したバイト列を開放
@@ -123,8 +136,14 @@ void CubismShader_D3D9::SetupShader(LPDIRECT3DDEVICE9 device)
 {
     // まだシェーダ・頂点宣言未作成ならば作成する
     GenerateShaders(device);
+}
 
-    if (!device || !_vertexFormat) return;
+void CubismShader_D3D9::BindShader(LPDIRECT3DDEVICE9 device)
+{
+    if (!device || !_vertexFormat)
+    {
+        return;
+    }
 
     device->SetVertexDeclaration(_vertexFormat);
 }

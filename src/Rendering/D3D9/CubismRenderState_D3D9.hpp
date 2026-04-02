@@ -33,6 +33,7 @@ public:
         State_CullMode,     ///< カリングモード
         State_TextureFilterStage0, ///< テクスチャフィルター（ステージ0）
         State_TextureFilterStage1, ///< テクスチャフィルター（ステージ1）
+        State_TextureFilterStage2, ///< テクスチャフィルター（ステージ2）
         State_Max,
     };
 
@@ -80,6 +81,13 @@ public:
             AddressV[1] = D3DTADDRESS_WRAP;
             Anisotropy[1] = 1.0f;
 
+            MinFilter[2] = D3DTEXF_NONE;
+            MagFilter[2] = D3DTEXF_NONE;
+            MipFilter[2] = D3DTEXF_NONE;
+            AddressU[2] = D3DTADDRESS_WRAP;
+            AddressV[2] = D3DTADDRESS_WRAP;
+            Anisotropy[2] = 1.0f;
+
             memset(_valid, 0, sizeof(_valid));
         }
 
@@ -112,12 +120,12 @@ public:
         D3DCULL CullModeFaceMode; // 消す面を指定 CWだと時計回りが消える
 
         // State_TextureFilter サンプラーフィルター(0番, 1番)
-        D3DTEXTUREFILTERTYPE    MinFilter[2];
-        D3DTEXTUREFILTERTYPE    MagFilter[2];
-        D3DTEXTUREFILTERTYPE    MipFilter[2];
-        D3DTEXTUREADDRESS       AddressU[2];
-        D3DTEXTUREADDRESS       AddressV[2];
-        float                   Anisotropy[2];
+        D3DTEXTUREFILTERTYPE    MinFilter[3];
+        D3DTEXTUREFILTERTYPE    MagFilter[3];
+        D3DTEXTUREFILTERTYPE    MipFilter[3];
+        D3DTEXTUREADDRESS       AddressU[3];
+        D3DTEXTUREADDRESS       AddressV[3];
+        float                   Anisotropy[3];
 
         csmBool _valid[State_Max];    ///< 設定したかどうか。現在はStartFrameで一通りは呼んでいる
     };
@@ -198,15 +206,26 @@ public:
     /**
      * @brief   テクスチャサンプラーにフィルタセット
      *
-     * @param   device[in]     描画デバイス
-     * @param   stage[in]       サンプラーステージインデックス（サンプラー番号）
-     * @param   minFilter[in]   縮小時フィルタ
-     * @param   magFilter[in]   拡大時フィルタ
-     * @param   mipFilter[in]   ミップフィルタ
-     * @param   addressU[in]    アドレッシングモードU
-     * @param   addressV[in]    アドレッシングモードV
+     * @param   device[in]       描画デバイス
+     * @param   stage[in]        サンプラーステージインデックス（サンプラー番号）
+     * @param   minFilter[in]    縮小時フィルタ
+     * @param   magFilter[in]    拡大時フィルタ
+     * @param   mipFilter[in]    ミップフィルタ
+     * @param   addressU[in]     アドレッシングモードU
+     * @param   addressV[in]     アドレッシングモードV
+     * @param   anisotropy[in]   異方性フィルタリング
+     * @param   force[in]        強制フラグ
      */
-    void SetTextureFilter(LPDIRECT3DDEVICE9 device, csmInt32 stage, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy = 1.0f, csmBool force = false);
+    void SetTextureFilter(
+        LPDIRECT3DDEVICE9 device,
+        csmInt32 stage,
+        D3DTEXTUREFILTERTYPE minFilter,
+        D3DTEXTUREFILTERTYPE magFilter,
+        D3DTEXTUREFILTERTYPE mipFilter,
+        D3DTEXTUREADDRESS addressU,
+        D3DTEXTUREADDRESS addressV,
+        csmFloat32 anisotropy = 1.0f,
+        csmBool force = false);
 
 private:
     /**

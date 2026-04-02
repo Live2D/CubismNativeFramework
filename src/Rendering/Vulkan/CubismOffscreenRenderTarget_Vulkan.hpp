@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -12,6 +12,8 @@
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
+
+class CubismOffscreenManager_Vulkan;
 
 /**
  * @brief  オフスクリーン用のレンダーターゲットを管理するクラス
@@ -34,6 +36,7 @@ public:
      *
      *  @param[in]  device                 -> 論理デバイス
      *  @param[in]  physicalDevice         -> 物理デバイス
+     *  @param[in]  offscreenManager       -> オフスクリーンマネージャー
      *  @param[in]  displayBufferWidth     -> オフスクリーンの横幅
      *  @param[in]  displayBufferHeight    -> オフスクリーンの縦幅
      *  @param[in]  surfaceFormat          -> サーフェスフォーマット
@@ -41,6 +44,7 @@ public:
      */
     void SetOffscreenRenderTarget(
         VkDevice device, VkPhysicalDevice physicalDevice,
+        CubismOffscreenManager_Vulkan* offscreenManager,
         csmUint32 displayBufferWidth, csmUint32 displayBufferHeight,
         VkFormat surfaceFormat, VkFormat depthFormat
     );
@@ -48,14 +52,18 @@ public:
     /**
      * @brief レンダーターゲットの使用状態を取得する。
      *
+     * @param[in]  offscreenManager       -> オフスクリーンマネージャー
+     *
      * @return 使用中はtrue、未使用の場合はfalseを返す。
      */
-    csmBool GetUsingRenderTextureState() const;
+    csmBool GetUsingRenderTextureState(CubismOffscreenManager_Vulkan* offscreenManager) const;
 
     /**
      * @brief オフスクリーン描画用レンダーターゲットの使用を終了する。
+     *
+     * @param[in]  offscreenManager       -> オフスクリーンマネージャー
      */
-    void StopUsingRenderTexture();
+    void StopUsingRenderTexture(CubismOffscreenManager_Vulkan* offscreenManager);
 
 };
 

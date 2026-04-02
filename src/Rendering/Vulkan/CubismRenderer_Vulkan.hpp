@@ -47,6 +47,7 @@ VkRect2D GetScissor(csmFloat32 offsetX, csmFloat32 offsetY, csmFloat32 width, cs
 //  前方宣言
 class CubismRenderer_Vulkan;
 class CubismClippingContext_Vulkan;
+class CubismDeviceInfo_Vulkan;
 
 /**
  * @brief  クリッピングマスクの処理を実行するクラス
@@ -267,8 +268,7 @@ struct ModelVertex
 };
 
 /**
- * @brief  シェーダー関連のプログラムを生成・破棄するクラス<br>
- *         シングルトンなクラスであり、CubismShader_Vulkan::GetInstance()からアクセスする。
+ * @brief  シェーダー関連のプログラムを生成・破棄するクラス
  */
 class CubismPipeline_Vulkan
 {
@@ -373,13 +373,6 @@ public:
         }
         return _pipelineResource[shaderIndex]->GetPipelineLayout(blendIndex);
     }
-
-    /**
-     * @brief   インスタンスを取得する（シングルトン）
-     *
-     * @return  インスタンスのポインタ
-     */
-    static CubismPipeline_Vulkan* GetInstance();
 
     /**
      * @brief   リソースを開放する
@@ -489,10 +482,10 @@ public:
      * @param[in]   imageFormat         -> 描画対象のフォーマット
      * @param[in]   depthFormat         -> 深度フォーマット
      */
-    static void InitializeConstantSettings(VkDevice device, VkPhysicalDevice physicalDevice,
-                                           VkCommandPool commandPool, VkQueue queue,
-                                           csmUint32 swapchainImageCount, VkExtent2D extent,
-                                           VkImageView imageView, VkFormat imageFormat, VkFormat depthFormat);
+    static void SetConstantSettings(VkDevice device, VkPhysicalDevice physicalDevice,
+                                    VkCommandPool commandPool, VkQueue queue,
+                                    csmUint32 swapchainImageCount, VkExtent2D extent,
+                                    VkImageView imageView, VkFormat imageFormat, VkFormat depthFormat);
 
     /**
      * @brief    レンダーターゲット変更を有効にする
@@ -950,8 +943,12 @@ private:
      * @brief  ブレンドモードで使用するテクスチャにメモリバリアを設定する
      *
      * @param[in]   drawCommandBuffer     -> コマンドバッファ
+     * @param[in]   currentLayout         -> 現在のイメージレイアウト
+     * @param[in]   newLayout             -> 遷移するイメージレイアウト
      */
-    void SetBlendTextureBarrier(VkCommandBuffer drawCommandBuffer);
+    void SetBlendTextureBarrier(VkCommandBuffer drawCommandBuffer,
+         VkImageLayout currentLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+         VkImageLayout newLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     /**
      * @brief  レンダーターゲット切り替え時に現在の描画を終了する
@@ -970,6 +967,7 @@ private:
     CubismRenderer_Vulkan(const CubismRenderer_Vulkan&);
     CubismRenderer_Vulkan& operator=(const CubismRenderer_Vulkan&);
 
+    CubismDeviceInfo_Vulkan* _deviceInfo; ///< デバイスに紐づいているデータ
     CubismClippingManager_Vulkan* _drawableClippingManager; ///< クリッピングマスク管理オブジェクト
     csmVector<csmInt32> _sortedDrawableIndexList; ///< 描画オブジェクトのインデックスを描画順に並べたリスト
     CubismClippingContext_Vulkan* _clippingContextBufferForMask; ///< マスクテクスチャに描画するためのクリッピングコンテキスト

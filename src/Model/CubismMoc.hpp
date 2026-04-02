@@ -95,7 +95,17 @@ public:
      */
     static csmBool HasMocConsistencyFromUnrevivedMoc(const csmByte* mocBytes, csmSizeInt size);
 
-private:
+    /**
+     * Delete copy constructor.
+     */
+    CubismMoc(const CubismMoc&) = delete;
+
+    /**
+     * Delete copy assignment operator.
+     */
+    CubismMoc& operator=(const CubismMoc&) = delete;
+
+protected:
     CubismMoc(Core::csmMoc* moc);
 
     virtual ~CubismMoc();

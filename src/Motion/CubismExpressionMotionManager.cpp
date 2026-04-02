@@ -14,9 +14,7 @@
 namespace Live2D { namespace Cubism { namespace Framework {
 
 CubismExpressionMotionManager::CubismExpressionMotionManager()
-    : _currentPriority(0)
-    , _reservePriority(0)
-    , _expressionParameterValues(CSM_NEW csmVector<ExpressionParameterValue>())
+    : _expressionParameterValues(CSM_NEW csmVector<ExpressionParameterValue>())
     , _fadeWeights(CSM_NEW csmVector<csmFloat32>())
 { }
 
@@ -35,37 +33,6 @@ CubismExpressionMotionManager::~CubismExpressionMotionManager()
 
         _fadeWeights = NULL;
     }
-}
-
-csmInt32 CubismExpressionMotionManager::GetCurrentPriority() const
-{
-    CubismLogWarning("CubismExpressionMotionManager::GetCurrentPriority() is deprecated because a priority value is not actually used during expression motion playback.");
-    return _currentPriority;
-}
-
-csmInt32 CubismExpressionMotionManager::GetReservePriority() const
-{
-    CubismLogWarning("CubismExpressionMotionManager::GetReservePriority() is deprecated because a priority value is not actually used during expression motion playback.");
-    return _reservePriority;
-}
-
-void CubismExpressionMotionManager::SetReservePriority(csmInt32 priority)
-{
-    CubismLogWarning("CubismExpressionMotionManager::SetReservePriority() is deprecated because a priority value is not actually used during expression motion playback.");
-    _reservePriority = priority;
-}
-
-CubismMotionQueueEntryHandle CubismExpressionMotionManager::StartMotionPriority(ACubismMotion* motion, csmBool autoDelete, csmInt32 priority)
-{
-    CubismLogWarning("CubismExpressionMotionManager::StartMotionPriority() is deprecated because a priority value is not actually used during expression motion playback.");
-
-    if (priority == _reservePriority)
-    {
-        _reservePriority = 0;           // 予約を解除
-    }
-    _currentPriority = priority;        // 再生中モーションの優先度を設定
-
-    return CubismMotionQueueManager::StartMotion(motion, autoDelete);
 }
 
 csmBool CubismExpressionMotionManager::UpdateMotion(CubismModel* model, csmFloat32 deltaTimeSeconds)

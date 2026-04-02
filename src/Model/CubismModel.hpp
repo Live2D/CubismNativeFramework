@@ -8,6 +8,7 @@
 #pragma once
 
 #include "CubismFramework.hpp"
+#include "CubismModelMultiplyAndScreenColor.hpp"
 #include "Rendering/csmBlendMode.hpp"
 #include "Type/csmMap.hpp"
 #include "Type/csmVector.hpp"
@@ -17,6 +18,126 @@
 namespace Live2D { namespace Cubism { namespace Framework {
 
 class CubismMoc;
+
+/**
+ * Information for a Cubism model object.
+ */
+struct CubismModelObjectInfo
+{
+    /**
+     * type used in object information
+     */
+    enum ObjectType
+    {
+        ObjectType_Drawable = 0,
+        ObjectType_Parts = 1
+    };
+
+    /**
+     * Constructor.
+     *
+     * @param objectIndex index of the object
+     * @param type type of the object (Drawable or Parts)
+     */
+    CubismModelObjectInfo(csmUint32 objectIndex, ObjectType type)
+        : ObjectIndex(objectIndex)
+        , ObjectType(type)
+    {
+    }
+
+    /**
+     * Destructor
+     */
+    ~CubismModelObjectInfo()
+    {
+    }
+
+    ObjectType ObjectType;  ///< Type of the object (Drawable or Parts)
+    csmUint32 ObjectIndex;  ///< Index of the object
+};
+
+/**
+ * Information for part child draw objects.
+ */
+struct PartChildDrawObjects
+{
+    /**
+     * Constructor
+     */
+    PartChildDrawObjects()
+        : DrawableIndices()
+        , OffscreenIndices()
+    {
+    }
+    /**
+     * Constructor
+     *
+     * @param drawableIndices collection of Drawable indices
+     * @param offscreenIndices collection of Offscreen indices
+     */
+    PartChildDrawObjects(csmVector<csmUint32> drawableIndices, csmVector<csmUint32> offscreenIndices)
+        : DrawableIndices(drawableIndices)
+        , OffscreenIndices(offscreenIndices)
+    {
+    }
+
+    /**
+     * Destructor.
+     */
+    ~PartChildDrawObjects()
+    {
+    }
+
+    csmVector<csmUint32> DrawableIndices;  ///< Collection of Drawable indices
+    csmVector<csmUint32> OffscreenIndices; ///< Collection of Offscreen indices
+};
+
+/**
+ * Information for a Cubism model part.
+ */
+struct CubismModelPartInfo
+{
+    /**
+     * Constructor
+     */
+    CubismModelPartInfo()
+        : Objects()
+        , ChildDrawObjects()
+    {
+    }
+
+    /**
+     * Constructor
+     *
+     * @param objects collection of CubismModelObjectInfo
+     * @param childDrawObjects information of part child draw objects
+     */
+    CubismModelPartInfo(csmVector<CubismModelObjectInfo> objects, PartChildDrawObjects childDrawObjects)
+        : Objects(objects)
+        , ChildDrawObjects(childDrawObjects)
+    {
+    }
+
+    /**
+     * Destructor
+     */
+    ~CubismModelPartInfo()
+    {
+    }
+
+    csmVector<CubismModelObjectInfo> Objects; ///< Collection of object information
+    PartChildDrawObjects ChildDrawObjects;    ///< Information of part child draw objects
+
+    /**
+     * Returns the number of child objects.
+     *
+     * @return Number of child objects
+     */
+    csmInt32 GetChildObjectCount() const
+    {
+        return static_cast<csmInt32>(Objects.GetSize());
+    }
+};
 
 /**
  * Handles models created from MOC data.
@@ -29,43 +150,6 @@ public:
     {
         CubismNoIndex_Parent = -1,    ///< Index value when no parent exists.
         CubismNoIndex_Offscreen = -1  ///< Index value when no referenced offscreen exists.
-    };
-
-    /**
-     * Structure for color information of drawing object
-     */
-    struct ColorData
-    {
-        /**
-         * Constructor
-         */
-        ColorData()
-            : IsOverridden(false)
-            , Color()
-        {
-        }
-
-        /**
-         * Constructor
-         *
-         * @param isOverridden whether to be overridden
-         * @param color Texture color
-         */
-        ColorData(csmBool isOverridden, Rendering::CubismRenderer::CubismTextureColor color)
-            : IsOverridden(isOverridden)
-            , Color(color)
-        {
-        }
-
-        /**
-         * Destructor
-         */
-        ~ColorData()
-        {
-        }
-
-        csmBool IsOverridden;                                      ///< Whether to be overridden
-        Rendering::CubismRenderer::CubismTextureColor Color;        ///< Color
     };
 
     /**
@@ -106,121 +190,6 @@ public:
     };
 
     /**
-     * (deprecated) Structure for color information of drawing object
-     */
-    struct DrawableColorData
-    {
-        /**
-         * Constructor
-         */
-        DrawableColorData()
-            : IsOverridden(false)
-            , Color()
-        {
-        }
-
-        /**
-         * Constructor
-         *
-         * @param isOverridden whether to be overridden
-         * @param color Texture color
-         */
-        DrawableColorData(csmBool isOverridden, Rendering::CubismRenderer::CubismTextureColor color)
-            : IsOverridden(isOverridden)
-            , Color(color)
-        {
-        }
-
-        /**
-         * Destructor
-         */
-        virtual ~DrawableColorData()
-        {
-        }
-
-        csmBool IsOverwritten;                                     ///< (deprecated) Whether to be overwritten
-        csmBool IsOverridden;                                      ///< Whether to be overridden
-        Rendering::CubismRenderer::CubismTextureColor Color;        ///< Color
-
-    };
-
-    /**
-     * (deprecated) Structure to manage texture culling settings
-     */
-    struct DrawableCullingData
-    {
-        /**
-         * Constructor
-         */
-        DrawableCullingData()
-            : IsOverridden(false)
-            , IsCulling(0)
-        {
-        }
-
-        /**
-         * Constructor
-         *
-         * @param isOverridden whether to be overridden
-         * @param isCulling Culling information
-         */
-        DrawableCullingData(csmBool isOverridden, csmInt32 isCulling)
-            : IsOverridden(isOverridden)
-            , IsCulling(isCulling)
-        {
-        }
-
-        /**
-         * Destructor
-         */
-        ~DrawableCullingData()
-        {
-        }
-
-        csmBool IsOverwritten;      ///< (deprecated) Whether to be overwritten
-        csmBool IsOverridden;      ///< Whether to be overridden
-        csmInt32 IsCulling;         ///< Culling information
-    };
-
-    /**
-     * (deprecated) Structure to handle texture color in RGBA
-     */
-    struct PartColorData
-    {
-        /**
-         * Constructor
-         */
-        PartColorData()
-            : IsOverridden(false)
-            , Color()
-        {
-        }
-
-        /**
-         * Constructor
-         *
-         * @param isOverridden whether to be overridden
-         * @param color Texture color
-         */
-        PartColorData(csmBool isOverridden, Rendering::CubismRenderer::CubismTextureColor color)
-            : IsOverridden(isOverridden)
-            , Color(color)
-        {
-        }
-
-        /**
-         * Destructor
-         */
-        virtual ~PartColorData()
-        {
-        }
-
-        csmBool IsOverwritten;                                     ///< (deprecated) Whether to be overwritten
-        csmBool IsOverridden;                                      ///< Whether to be overridden
-        Rendering::CubismRenderer::CubismTextureColor Color;        ///< Color
-    };
-
-    /**
      * Structure for managing the override of parameter repetition settings
      */
     struct ParameterRepeatData
@@ -258,165 +227,44 @@ public:
     };
 
     /**
-     * Information for part child draw objects.
-     */
-    struct PartChildDrawObjects
-    {
-        /**
-         * Constructor
-         */
-        PartChildDrawObjects()
-            : DrawableIndices()
-            , OffscreenIndices()
-        {
-        }
-        /**
-         * Constructor
-         *
-         * @param drawableIndices collection of Drawable indices
-         * @param offscreenIndices collection of Offscreen indices
-         */
-        PartChildDrawObjects(csmVector<csmUint32> drawableIndices, csmVector<csmUint32> offscreenIndices)
-            : DrawableIndices(drawableIndices)
-            , OffscreenIndices(offscreenIndices)
-        {
-        }
-
-        /**
-         * Destructor.
-         */
-        ~PartChildDrawObjects()
-        {
-        }
-
-        csmVector<csmUint32> DrawableIndices;  ///< Collection of Drawable indices
-        csmVector<csmUint32> OffscreenIndices; ///< Collection of Offscreen indices
-
-    };
-
-    /**
-     * Information for a Cubism model object.
-     */
-    struct CubismModelObjectInfo
-    {
-        /**
-         * type used in object information
-         */
-        enum ObjectType
-        {
-            ObjectType_Drawable = 0,
-            ObjectType_Parts = 1
-        };
-
-        /**
-         * Constructor.
-         *
-         * @param objectIndex index of the object
-         * @param type type of the object (Drawable or Parts)
-         */
-        CubismModelObjectInfo(csmUint32 objectIndex, ObjectType type)
-            : ObjectIndex(objectIndex)
-            , ObjectType(type)
-        {
-        }
-
-        /**
-         * Destructor
-         */
-        ~CubismModelObjectInfo()
-        {
-        }
-
-        ObjectType ObjectType;  ///< Type of the object (Drawable or Parts)
-        csmUint32 ObjectIndex;  ///< Index of the object
-    };
-
-    /**
-     * Information for a Cubism model part.
-     */
-    struct CubismModelPartInfo
-    {
-        /**
-         * Constructor
-         */
-        CubismModelPartInfo()
-            : Objects()
-            , ChildDrawObjects()
-        {
-        }
-
-        /**
-         * Constructor
-         *
-         * @param objects collection of CubismModelObjectInfo
-         * @param childDrawObjects information of part child draw objects
-         */
-        CubismModelPartInfo(csmVector<CubismModelObjectInfo> objects, PartChildDrawObjects childDrawObjects)
-            : Objects(objects)
-            , ChildDrawObjects(childDrawObjects)
-        {
-        }
-
-        /**
-         * Destructor
-         */
-        ~CubismModelPartInfo()
-        {
-        }
-
-        csmVector<CubismModelObjectInfo> Objects; ///< Collection of object information
-        PartChildDrawObjects ChildDrawObjects;    ///< Information of part child draw objects
-
-        /**
-         * Returns the number of child objects.
-         *
-         * @return Number of child objects
-         */
-        csmInt32 GetChildObjectCount() const
-        {
-            return static_cast<csmInt32>(Objects.GetSize());
-        }
-    };
-
-    /**
      * Calculates and updates the model state based on the set parameters.
      */
-    void    Update() const;
+    void Update() const;
 
     /**
      * Returns the width of the canvas.
      *
      * @return Width of the canvas in pixels
      */
-    csmFloat32  GetCanvasWidthPixel() const;
+    csmFloat32 GetCanvasWidthPixel() const;
 
     /**
      * Returns the height of the canvas.
      *
      * @return Height of the canvas in pixels
      */
-    csmFloat32  GetCanvasHeightPixel() const;
+    csmFloat32 GetCanvasHeightPixel() const;
 
     /**
      * Returns the pixels per unit (PPU).
      *
      * @return Pixels per unit
      */
-    csmFloat32  GetPixelsPerUnit() const;
+    csmFloat32 GetPixelsPerUnit() const;
 
     /**
      * Returns the width of the canvas.
      *
      * @return Width of the canvas in PPU (pixels per unit)
      */
-    csmFloat32  GetCanvasWidth() const;
+    csmFloat32 GetCanvasWidth() const;
 
     /**
      * Returns the height of the canvas.
      *
      * @return Height of the canvas in PPU (pixels per unit)
      */
-    csmFloat32  GetCanvasHeight() const;
+    csmFloat32 GetCanvasHeight() const;
 
     /**
      * Returns the list of object render orders.
@@ -436,7 +284,7 @@ public:
      *
      * @return Index of the part
      */
-    csmInt32    GetPartIndex(CubismIdHandle partId);
+    csmInt32 GetPartIndex(CubismIdHandle partId);
 
     /**
      * Returns the ID of the part.
@@ -444,14 +292,14 @@ public:
      * @param partIndex Index of the part
      * @return Part ID
      */
-    CubismIdHandle    GetPartId(csmUint32 partIndex);
+    CubismIdHandle GetPartId(csmUint32 partIndex);
 
     /**
      * Returns the number of parts.
      *
      * @return Number of parts
      */
-    csmInt32    GetPartCount() const;
+    csmInt32 GetPartCount() const;
 
     /**
      * Returns the index of the parent parts for the parts.
@@ -473,7 +321,7 @@ public:
      * @param partId Part ID
      * @param opacity Opacity
      */
-    void        SetPartOpacity(CubismIdHandle partId, csmFloat32 opacity);
+    void SetPartOpacity(CubismIdHandle partId, csmFloat32 opacity);
 
     /**
      * Sets the opacity of the part.
@@ -481,7 +329,7 @@ public:
      * @param partIndex Part index
      * @param opacity Part opacity
      */
-    void        SetPartOpacity(csmInt32 partIndex, csmFloat32 opacity);
+    void SetPartOpacity(csmInt32 partIndex, csmFloat32 opacity);
 
     /**
      * Returns the opacity of the part.
@@ -490,7 +338,7 @@ public:
      *
      * @return Part opacity
      */
-    csmFloat32  GetPartOpacity(CubismIdHandle partId);
+    csmFloat32 GetPartOpacity(CubismIdHandle partId);
 
     /**
      * Returns the opacity of the part.
@@ -499,7 +347,7 @@ public:
      *
      * @return Part opacity
      */
-    csmFloat32  GetPartOpacity(csmInt32 partIndex);
+    csmFloat32 GetPartOpacity(csmInt32 partIndex);
 
     /**
      * Returns the index of the parent part of the part.
@@ -535,7 +383,7 @@ public:
      *
      * @return Parameter index
      */
-    csmInt32    GetParameterIndex(CubismIdHandle parameterId);
+    csmInt32 GetParameterIndex(CubismIdHandle parameterId);
 
     /**
      * Returns the ID of the parameter
@@ -545,14 +393,14 @@ public:
      * @param parameterIndex Index of the parameter
      * @return Parameter ID
      */
-    CubismIdHandle    GetParameterId(csmUint32 parameterIndex);
+    CubismIdHandle GetParameterId(csmUint32 parameterIndex);
 
     /**
      * Returns the number of parameters.
      *
      * @return Number of parameters
      */
-    csmInt32    GetParameterCount() const;
+    csmInt32 GetParameterCount() const;
 
     /**
      * Returns the type of the parameter.
@@ -570,7 +418,7 @@ public:
      *
      * @return Maximum value of the parameter
      */
-    csmFloat32  GetParameterMaximumValue(csmUint32 parameterIndex) const;
+    csmFloat32 GetParameterMaximumValue(csmUint32 parameterIndex) const;
 
     /**
      * Returns the minimum value of the parameter.
@@ -579,7 +427,7 @@ public:
      *
      * @return Minimum value of the parameter
      */
-    csmFloat32  GetParameterMinimumValue(csmUint32 parameterIndex) const;
+    csmFloat32 GetParameterMinimumValue(csmUint32 parameterIndex) const;
 
     /**
      * Returns the default value of the parameter.
@@ -588,7 +436,7 @@ public:
      *
      * @return Default value of the parameter
      */
-    csmFloat32  GetParameterDefaultValue(csmUint32 parameterIndex) const;
+    csmFloat32 GetParameterDefaultValue(csmUint32 parameterIndex) const;
 
     /**
      * Returns the value of the parameter.
@@ -597,7 +445,7 @@ public:
      *
      * @return Parameter value
      */
-    csmFloat32  GetParameterValue(CubismIdHandle parameterId);
+    csmFloat32 GetParameterValue(CubismIdHandle parameterId);
 
     /**
      * Returns the value of the parameter.
@@ -606,7 +454,7 @@ public:
      *
      * @return Parameter value
      */
-    csmFloat32  GetParameterValue(csmInt32 parameterIndex);
+    csmFloat32 GetParameterValue(csmInt32 parameterIndex);
 
     /**
      * Sets the value of the parameter.
@@ -615,7 +463,7 @@ public:
      * @param value Parameter value
      * @param weight Weight
      */
-    void        SetParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight = 1.0f);
+    void SetParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight = 1.0f);
 
     /**
      * Sets the value of the parameter.
@@ -624,7 +472,7 @@ public:
      * @param value Parameter value
      * @param weight Weight
      */
-    void        SetParameterValue(csmInt32 parameterIndex, csmFloat32 value, csmFloat32 weight = 1.0f);
+    void SetParameterValue(csmInt32 parameterIndex, csmFloat32 value, csmFloat32 weight = 1.0f);
 
     /**
      * Gets whether the parameter has the repeat setting.
@@ -671,7 +519,7 @@ public:
      * @param value Value to be added
      * @param weight Weight
      */
-    void        AddParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight = 1.0f);
+    void AddParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight = 1.0f);
 
     /**
      * Adds to the value of the parameter.
@@ -680,7 +528,7 @@ public:
      * @param value Value to be added
      * @param weight Weight
      */
-    void        AddParameterValue(csmInt32 parameterIndex, csmFloat32 value, csmFloat32 weight = 1.0f);
+    void AddParameterValue(csmInt32 parameterIndex, csmFloat32 value, csmFloat32 weight = 1.0f);
 
     /**
      * Multiplies the value of the parameter.
@@ -689,7 +537,7 @@ public:
      * @param value Value to be multiplied
      * @param weight Weight
      */
-    void        MultiplyParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight = 1.0f);
+    void MultiplyParameterValue(CubismIdHandle parameterId, csmFloat32 value, csmFloat32 weight = 1.0f);
 
     /**
      * Multiplies the value of the parameter.
@@ -698,7 +546,7 @@ public:
      * @param value Value to be multiplied
      * @param weight Weight
      */
-    void        MultiplyParameterValue(csmInt32 parameterIndex, csmFloat32 value, csmFloat32 weight = 1.0f);
+    void MultiplyParameterValue(csmInt32 parameterIndex, csmFloat32 value, csmFloat32 weight = 1.0f);
 
     //========================================================
     //  Drawable Functions.
@@ -711,14 +559,14 @@ public:
      *
      * @return Index of the drawable
      */
-    csmInt32            GetDrawableIndex(CubismIdHandle drawableId) const;
+    csmInt32 GetDrawableIndex(CubismIdHandle drawableId) const;
 
     /**
      * Returns the number of drawables.
      *
      * @return Number of drawables
      */
-    csmInt32            GetDrawableCount() const;
+    csmInt32 GetDrawableCount() const;
 
     /**
      * Returns the ID of the drawable.
@@ -727,18 +575,7 @@ public:
      *
      * @return Drawable ID
      */
-    CubismIdHandle      GetDrawableId(csmInt32 drawableIndex) const;
-
-    /**
-     * Returns the list of texture indices attached to the drawable.
-     *
-     * @deprecated This function is deprecated due to a naming error, use GetDrawableTextureIndex instead.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return List of texture indices
-     */
-    csmInt32            GetDrawableTextureIndices(csmInt32 drawableIndex) const;
+    CubismIdHandle GetDrawableId(csmInt32 drawableIndex) const;
 
     /**
      * Returns the texture index attached to the drawable.
@@ -747,7 +584,7 @@ public:
      *
      * @return Texture index attached to the drawable
      */
-    csmInt32            GetDrawableTextureIndex(csmInt32 drawableIndex) const;
+    csmInt32 GetDrawableTextureIndex(csmInt32 drawableIndex) const;
 
     /**
      * Returns the number of vertex indices in the drawable.
@@ -756,7 +593,7 @@ public:
      *
      * @return Number of vertex indices in the drawable
      */
-    csmInt32            GetDrawableVertexIndexCount(csmInt32 drawableIndex) const;
+    csmInt32 GetDrawableVertexIndexCount(csmInt32 drawableIndex) const;
 
     /**
      * Returns the number of vertices in the drawable.
@@ -765,7 +602,7 @@ public:
      *
      * @return Number of vertices in the drawable
      */
-    csmInt32            GetDrawableVertexCount(csmInt32 drawableIndex) const;
+    csmInt32 GetDrawableVertexCount(csmInt32 drawableIndex) const;
 
     /**
      * Returns the list of vertices in the drawable.
@@ -774,7 +611,7 @@ public:
      *
      * @return List of vertices in the drawable
      */
-    const csmFloat32*   GetDrawableVertices(csmInt32 drawableIndex) const;
+    const csmFloat32* GetDrawableVertices(csmInt32 drawableIndex) const;
 
     /**
      * Returns the list of vertex indices in the drawable.
@@ -783,7 +620,7 @@ public:
      *
      * @return List of vertex indices in the drawable
      */
-    const csmUint16*            GetDrawableVertexIndices(csmInt32 drawableIndex) const;
+    const csmUint16* GetDrawableVertexIndices(csmInt32 drawableIndex) const;
 
     /**
      * Returns the list of vertices in the drawable.
@@ -792,7 +629,7 @@ public:
      *
      * @return List of vertices in the drawable
      */
-    const Core::csmVector2*     GetDrawableVertexPositions(csmInt32 drawableIndex) const;
+    const Core::csmVector2* GetDrawableVertexPositions(csmInt32 drawableIndex) const;
 
     /**
      * Returns the list of vertex UVs in the drawable.
@@ -801,7 +638,7 @@ public:
      *
      * @return List of vertex UVs in the drawable
      */
-    const Core::csmVector2*     GetDrawableVertexUvs(csmInt32 drawableIndex) const;
+    const Core::csmVector2* GetDrawableVertexUvs(csmInt32 drawableIndex) const;
 
     /**
      * Returns the opacity of the drawable.
@@ -810,7 +647,7 @@ public:
      *
      * @return Opacity of the drawable
      */
-    csmFloat32                  GetDrawableOpacity(csmInt32 drawableIndex) const;
+    csmFloat32 GetDrawableOpacity(csmInt32 drawableIndex) const;
 
     /**
      * Returns the multiply color of the drawable.
@@ -842,17 +679,6 @@ public:
     /**
      * Returns the blend mode of the drawable.
      *
-     * @deprecated This function is deprecated due to a naming change, use GetDrawableBlendModeType instead.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return Blend mode of the drawable
-     */
-    Rendering::CubismRenderer::CubismBlendMode   GetDrawableBlendMode(csmInt32 drawableIndex) const;
-
-    /**
-     * Returns the blend mode of the drawable.
-     *
      * @param drawableIndex Drawable index
      *
      * @return Blend mode of the drawable
@@ -877,7 +703,7 @@ public:
      *
      * @return Visibility state of the drawable. true if visible.
      */
-    csmBool                  GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagIsVisible(csmInt32 drawableIndex) const;
 
     /**
      * Returns whether the visibility state of the drawable has changed from the dynamic flag.
@@ -886,7 +712,7 @@ public:
      *
      * @return true if the visibility state of the drawable has changed.
      */
-    csmBool                  GetDrawableDynamicFlagVisibilityDidChange(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagVisibilityDidChange(csmInt32 drawableIndex) const;
 
     /**
      * Returns whether the opacity of the drawable has changed from the dynamic flag.
@@ -895,7 +721,7 @@ public:
      *
      * @return true if the opacity of the drawable has changed.
      */
-    csmBool                  GetDrawableDynamicFlagOpacityDidChange(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagOpacityDidChange(csmInt32 drawableIndex) const;
 
     /**
      * Returns whether the draw order of the drawable has changed from the dynamic flag.
@@ -906,7 +732,7 @@ public:
      *
      * @note Draw order is information specified from 0 to 1000 on the ArtMesh.
      */
-    csmBool                  GetDrawableDynamicFlagDrawOrderDidChange(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagDrawOrderDidChange(csmInt32 drawableIndex) const;
 
     /**
      * Returns whether the render order of the drawable has changed from the dynamic flag.
@@ -915,7 +741,7 @@ public:
      *
      * @return true if the render order of the drawable has changed.
      */
-    csmBool                  GetDrawableDynamicFlagRenderOrderDidChange(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagRenderOrderDidChange(csmInt32 drawableIndex) const;
 
     /**
      * Returns whether the vertex information of the drawable has changed from the dynamic flag.
@@ -924,7 +750,7 @@ public:
      *
      * @return true if the vertex information of the drawable has changed.
      */
-    csmBool                  GetDrawableDynamicFlagVertexPositionsDidChange(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagVertexPositionsDidChange(csmInt32 drawableIndex) const;
 
     /**
      * Returns whether the multiply or screen color of the drawable has changed from the dynamic flag.
@@ -933,21 +759,21 @@ public:
      *
      * @return true if the multiply or screen color of the drawable has changed.
      */
-    csmBool                  GetDrawableDynamicFlagBlendColorDidChange(csmInt32 drawableIndex) const;
+    csmBool GetDrawableDynamicFlagBlendColorDidChange(csmInt32 drawableIndex) const;
 
     /**
      * Returns the list of clipping masks of the drawables.
      *
      * @return List of clipping masks of the drawables
      */
-    const csmInt32**            GetDrawableMasks() const;
+    const csmInt32** GetDrawableMasks() const;
 
     /**
      * Returns the list of the number of clipping masks of the drawables.
      *
      * @return List of the number of clipping masks of the drawables
      */
-    const csmInt32*             GetDrawableMaskCounts() const;
+    const csmInt32* GetDrawableMaskCounts() const;
 
     //========================================================
     //  Offscreen Functions.
@@ -1046,7 +872,7 @@ public:
      *
      * @return true if the model uses clipping masks.
      */
-    csmBool     IsUsingMasking() const;
+    csmBool IsUsingMasking() const;
 
     /**
      * Checks whether the offscreen uses clipping masks.
@@ -1058,158 +884,12 @@ public:
     /**
      * Loads temporarily stored parameter values.
      */
-    void    LoadParameters();
+    void LoadParameters();
 
     /**
      * Stores the value of the parameter temporarily.
      */
-    void    SaveParameters();
-
-    //========================================================
-    //  Color Functions.
-    //========================================================
-
-    /**
-     * Returns the multiply color from the list of drawables.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return Multiply color (CubismTextureColor)
-     */
-    Rendering::CubismRenderer::CubismTextureColor GetMultiplyColor(csmInt32 drawableIndex) const;
-
-    /**
-     * Returns the screen color from the list of drawables.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return Screen color (CubismTextureColor)
-     */
-    Rendering::CubismRenderer::CubismTextureColor GetScreenColor(csmInt32 drawableIndex) const;
-
-    /**
-     * Sets the multiply color of the drawable.
-     *
-     * @param drawableIndex Drawable index
-     * @param color Multiply color to be set (CubismTextureColor)
-     */
-    void SetMultiplyColor(csmInt32 drawableIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
-
-    /**
-     * Sets the multiply color of the drawable.
-     *
-     * @param drawableIndex Drawable index
-     * @param r Red value of the multiply color to be set
-     * @param g Green value of the multiply color to be set
-     * @param b Blue value of the multiply color to be set
-     * @param a Alpha value of the multiply color to be set
-     */
-    void SetMultiplyColor(csmInt32 drawableIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
-
-    /**
-     * Sets the screen color of the drawable.
-     *
-     * @param drawableIndex Drawable index
-     * @param color Screen color to be set (CubismTextureColor)
-     */
-    void SetScreenColor(csmInt32 drawableIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
-
-    /**
-     * Sets the screen color of the drawable.
-     *
-     * @param drawableIndex Drawable index
-     * @param r Red value of the screen color to be set
-     * @param g Green value of the screen color to be set
-     * @param b Blue value of the screen color to be set
-     * @param a Alpha value of the screen color to be set
-     */
-    void SetScreenColor(csmInt32 drawableIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
-
-    /**
-     * Returns the multiply color of the part.
-     */
-    Rendering::CubismRenderer::CubismTextureColor GetPartMultiplyColor(csmInt32 partIndex) const;
-
-    /**
-     * Returns the screen color of the part.
-     */
-    Rendering::CubismRenderer::CubismTextureColor GetPartScreenColor(csmInt32 partIndex) const;
-
-    /**
-     * Sets the multiply color of the part.
-     */
-    void SetPartMultiplyColor(csmInt32 partIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
-
-    /**
-     * Sets the multiply color of the part.
-     */
-    void SetPartMultiplyColor(csmInt32 partIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
-
-    /**
-     * Sets the screen color of the part.
-     */
-    void SetPartScreenColor(csmInt32 partIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
-
-    /**
-     * Sets the screen color of the part.
-     */
-    void SetPartScreenColor(csmInt32 partIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
-
-    /**
-     * Returns the multiply color from the list of offscreen.
-     *
-     * @param offscreenIndex Offsscreen index
-     *
-     * @return Multiply color (CubismTextureColor)
-     */
-    Rendering::CubismRenderer::CubismTextureColor GetMultiplyColorOffscreen(csmInt32 offscreenIndex) const;
-
-    /**
-     * Returns the screen color from the list of offscreen.
-     *
-     * @param offscreenIndex Offsscreen index
-     *
-     * @return Screen color (CubismTextureColor)
-     */
-    Rendering::CubismRenderer::CubismTextureColor GetScreenColorOffscreen(csmInt32 offscreenIndex) const;
-
-    /**
-     * Sets the multiply color of the offscreen.
-     *
-     * @param offscreenIndex Offsscreen index
-     * @param color Multiply color to be set (CubismTextureColor)
-     */
-    void SetMultiplyColorOffscreen(csmInt32 offscreenIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
-
-    /**
-     * Sets the multiply color of the offscreen.
-     *
-     * @param offscreenIndex Offsscreen index
-     * @param r Red value of the multiply color to be set
-     * @param g Green value of the multiply color to be set
-     * @param b Blue value of the multiply color to be set
-     * @param a Alpha value of the multiply color to be set
-     */
-    void SetMultiplyColorOffscreen(csmInt32 offscreenIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
-
-    /**
-     * Sets the screen color of the offscreen.
-     *
-     * @param offscreenIndex Offsscreen index
-     * @param color Screen color to be set (CubismTextureColor)
-     */
-    void SetScreenColorOffscreen(csmInt32 offscreenIndex, const Rendering::CubismRenderer::CubismTextureColor& color);
-
-    /**
-     * Sets the screen color of the offscreen.
-     *
-     * @param offscreenIndex Offsscreen index
-     * @param r Red value of the screen color to be set
-     * @param g Green value of the screen color to be set
-     * @param b Blue value of the screen color to be set
-     * @param a Alpha value of the screen color to be set
-     */
-    void SetScreenColorOffscreen(csmInt32 offscreenIndex, csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a = 1.0f);
+    void SaveParameters();
 
     /**
      * Checks whether parameter repetition is performed for the entire model.
@@ -1259,260 +939,18 @@ public:
     void SetRepeatFlagForParameterRepeat(csmInt32 parameterIndex, csmBool value);
 
     /**
-     * Returns the flag indicating whether the color set at runtime is used as the multiply color for the entire model during rendering.
+     * Returns the multiply and screen color settings.
      *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideFlagForModelMultiplyColors instead.
-     *
-     * @return true if the color set at runtime is used; otherwise false.
+     * @return Multiply and screen color settings.
      */
-    csmBool GetOverwriteFlagForModelMultiplyColors() const;
+    CubismModelMultiplyAndScreenColor& GetOverrideMultiplyAndScreenColor();
 
     /**
-     * Returns the flag indicating whether the color set at runtime is used as the multiply color for the entire model during rendering.
+     * Returns the multiply and screen color settings.
      *
-     * @return true if the color set at runtime is used; otherwise false.
+     * @return Multiply and screen color settings.
      */
-    csmBool GetOverrideFlagForModelMultiplyColors() const;
-
-    /**
-     * Returns the flag indicating whether the color set at runtime is used as the screen color for the entire model during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideFlagForModelScreenColors instead.
-     *
-     * @return true if the color set at runtime is used; otherwise false.
-     */
-    csmBool GetOverwriteFlagForModelScreenColors() const;
-
-    /**
-     * Returns the flag indicating whether the color set at runtime is used as the screen color for the entire model during rendering.
-     *
-     * @return true if the color set at runtime is used; otherwise false.
-     */
-    csmBool GetOverrideFlagForModelScreenColors() const;
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the multiply color for the entire model during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideFlagForModelMultiplyColors instead.
-     *
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverwriteFlagForModelMultiplyColors(csmBool value);
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the multiply color for the entire model during rendering.
-     *
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverrideFlagForModelMultiplyColors(csmBool value);
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the screen color for the entire model during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideFlagForModelScreenColors instead.
-     *
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverwriteFlagForModelScreenColors(csmBool value);
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the screen color for the entire model during rendering.
-     *
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverrideFlagForModelScreenColors(csmBool value);
-
-    /**
-     * Returns the flag indicating whether the color set at runtime is used as the multiply color for the drawable during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideFlagForDrawableMultiplyColors instead.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return true if the color set at runtime is used; otherwise false.
-     */
-    csmBool GetOverwriteFlagForDrawableMultiplyColors(csmInt32 drawableIndex) const;
-
-    /**
-     * Returns the flag indicating whether the color set at runtime is used as the multiply color for the drawable during rendering.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return true if the color set at runtime is used; otherwise false.
-     */
-    csmBool GetOverrideFlagForDrawableMultiplyColors(csmInt32 drawableIndex) const;
-
-    /**
-     * Returns the flag indicating whether the color set at runtime is used as the screen color for the drawable during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideFlagForDrawableScreenColors instead.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return true if the color set at runtime is used; otherwise false.
-     */
-    csmBool GetOverwriteFlagForDrawableScreenColors(csmInt32 drawableIndex) const;
-
-    /**
-     * Returns the flag indicating whether the color set at runtime is used as the screen color for the drawable during rendering.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return true if the color set at runtime is used; otherwise false.
-     */
-    csmBool GetOverrideFlagForDrawableScreenColors(csmInt32 drawableIndex) const;
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the multiply color for the drawable during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideFlagForDrawableMultiplyColors instead.
-     *
-     * @param drawableIndex Drawable index
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverwriteFlagForDrawableMultiplyColors(csmUint32 drawableIndex, csmBool value);
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the multiply color for the drawable during rendering.
-     *
-     * @param drawableIndex Drawable index
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverrideFlagForDrawableMultiplyColors(csmUint32 drawableIndex, csmBool value);
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the screen color for the drawable during rendering.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideFlagForDrawableScreenColors instead.
-     *
-     * @param drawableIndex Drawable index
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverwriteFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value);
-
-    /**
-     * Sets the flag indicating whether the color set at runtime is used as the screen color for the drawable during rendering.
-     *
-     * @param drawableIndex Drawable index
-     * @param value true if the color set at runtime is to be used; otherwise false.
-     */
-    void SetOverrideFlagForDrawableScreenColors(csmUint32 drawableIndex, csmBool value);
-
-    /**
-     * Checks whether the part multiply color is overridden by the SDK.
-     *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideColorForPartMultiplyColors instead.
-     *
-     * @param partIndex Part index
-     *
-     * @return true if the color information from the SDK is used; otherwise false.
-     */
-    csmBool GetOverwriteColorForPartMultiplyColors(csmInt32 partIndex) const;
-
-    /**
-     * Checks whether the part multiply color is overridden by the SDK.
-     *
-     * @param partIndex Part index
-     *
-     * @return true if the color information from the SDK is used; otherwise false.
-     */
-    csmBool GetOverrideColorForPartMultiplyColors(csmInt32 partIndex) const;
-
-    /**
-     * Checks whether the part screen color is overridden by the SDK.
-     *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideColorForPartScreenColors instead.
-     *
-     * @param partIndex Part index
-     *
-     * @return true if the color information from the SDK is used; otherwise false.
-     */
-    csmBool GetOverwriteColorForPartScreenColors(csmInt32 partIndex) const;
-
-    /**
-     * Checks whether the part screen color is overridden by the SDK.
-     *
-     * @param partIndex Part index
-     *
-     * @return true if the color information from the SDK is used; otherwise false.
-     */
-    csmBool GetOverrideColorForPartScreenColors(csmInt32 partIndex) const;
-
-    /**
-     * Sets whether the part multiply color is overridden by the SDK.
-     * Use true to use the color information from the SDK, or false to use the color information from the model.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideColorForPartMultiplyColors instead.
-     *
-     * @param partIndex Part index
-     * @param value Offscreen True enable override, false to disable
-     */
-    void SetOverwriteColorForPartMultiplyColors(csmUint32 partIndex, csmBool value);
-
-    /**
-     * Sets whether the part multiply color is overridden by the SDK.
-     * Use true to use the color information from the SDK, or false to use the color information from the model.
-     *
-     * @param partIndex Part index
-     * @param value Offscreen True enable override, false to disable
-     */
-    void SetOverrideColorForPartMultiplyColors(csmUint32 partIndex, csmBool value);
-
-    /**
-     * Sets whether the part screen color is overridden by the SDK.
-     * Use true to use the color information from the SDK, or false to use the color information from the model.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideColorForPartScreenColors instead.
-     *
-     * @param partIndex Part index
-     * @param value Offscreen True enable override, false to disable
-     */
-    void SetOverwriteColorForPartScreenColors(csmUint32 partIndex, csmBool value);
-
-    /**
-     * Sets whether the part screen color is overridden by the SDK.
-     * Use true to use the color information from the SDK, or false to use the color information from the model.
-     *
-     * @param partIndex Part index
-     * @param value Offscreen True enable override, false to disable
-     */
-    void SetOverrideColorForPartScreenColors(csmUint32 partIndex, csmBool value);
-
-    /**
-     * Checks whether the offscreen multiply color is overridden by the SDK.
-     *
-     * @param offscreenIndex Offscreen index
-     *
-     * @return true if the color information from the SDK is used; otherwise false.
-     */
-    csmBool GetOverrideFlagForOffscreenMultiplyColors(csmInt32 offscreenIndex) const;
-
-    /**
-     * Checks whether the offscreen screen color is overridden by the SDK.
-     *
-     * @param offscreenIndex Offscreen index
-     *
-     * @return true if the color information from the SDK is used; otherwise false.
-     */
-    csmBool GetOverrideFlagForOffscreenScreenColors(csmInt32 offscreenIndex) const;
-
-    /**
-     * Sets whether the offscreen multiply color is overridden by the SDK.
-     * Use true to use the color information from the SDK, or false to use the color information from the model.
-     *
-     * @param offscreenIndex Offscreen index
-     * @param value Offscreen True enable override, false to disable
-     */
-    void SetOverrideFlagForOffscreenMultiplyColors(csmUint32 offscreenIndex, csmBool value);
-
-    /**
-     * Sets whether the offscreen screen color is overridden by the SDK.
-     * Use true to use the color information from the SDK, or false to use the color information from the model.
-     *
-     * @param offscreenIndex Offscreen index
-     * @param value Offscreen True enable override, false to disable
-     */
-    void SetOverrideFlagForOffscreenScreenColors(csmUint32 offscreenIndex, csmBool value);
+    const CubismModelMultiplyAndScreenColor& GetOverrideMultiplyAndScreenColor() const;
 
     //========================================================
     //  Culling Functions.
@@ -1555,28 +993,9 @@ public:
     /**
      * Checks whether the culling settings for the entire model are overridden by the SDK.
      *
-     * @deprecated This function is deprecated due to a naming change, use GetOverwriteFlagForModelCullings instead.
-     *
-     * @return true if the culling settings from the SDK are used; otherwise false.
-     */
-    csmBool GetOverwriteFlagForModelCullings() const;
-
-    /**
-     * Checks whether the culling settings for the entire model are overridden by the SDK.
-     *
      * @return true if the culling settings from the SDK are used; otherwise false.
      */
     csmBool GetOverrideFlagForModelCullings() const;
-
-    /**
-     * Sets whether the culling settings for the entire model are overridden by the SDK.
-     * Use true to use the culling settings from the SDK, or false to use the culling settings from the model.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideFlagForModelCullings instead.
-     *
-     * @param value True to use the override, false to keep the model's own culling settings
-     */
-    void SetOverwriteFlagForModelCullings(csmBool value);
 
     /**
      * Sets whether the culling settings for the entire model are overridden by the SDK.
@@ -1589,33 +1008,11 @@ public:
     /**
      * Checks whether the culling settings for the drawable are overridden by the SDK.
      *
-     * @deprecated This function is deprecated due to a naming change, use GetOverrideFlagForDrawableCullings instead.
-     *
-     * @param drawableIndex Drawable index
-     *
-     * @return true if the culling settings from the SDK are used; otherwise false.
-     */
-    csmBool GetOverwriteFlagForDrawableCullings(csmInt32 drawableIndex) const;
-
-    /**
-     * Checks whether the culling settings for the drawable are overridden by the SDK.
-     *
      * @param drawableIndex Drawable index
      *
      * @return true if the culling settings from the SDK are used; otherwise false.
      */
     csmBool GetOverrideFlagForDrawableCullings(csmInt32 drawableIndex) const;
-
-    /**
-     * Sets whether the culling settings for the drawable are overridden by the SDK.
-     * Use true to use the culling settings from the SDK, or false to use the culling settings from the model.
-     *
-     * @deprecated This function is deprecated due to a naming change, use SetOverrideFlagForDrawableCullings instead.
-     *
-     * @param drawableIndex Drawable index
-     * @param value True to use the override, false to keep the model's own culling settings
-     */
-    void SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value);
 
     /**
      * Sets whether the culling settings for the drawable are overridden by the SDK.
@@ -1665,35 +1062,28 @@ public:
      */
     void SetModelOpacity(csmFloat32 value);
 
-    Core::csmModel*     GetModel() const;
+    Core::csmModel* GetModel() const;
 
-private:
+    /**
+     * Delete copy constructor.
+     */
+    CubismModel(const CubismModel&) = delete;
+
+    /**
+     * Delete copy assignment operator.
+     */
+    CubismModel& operator=(const CubismModel&) = delete;
+
+protected:
     CubismModel(Core::csmModel* model);
 
     virtual ~CubismModel();
-
-    CubismModel(const CubismModel&);
-    CubismModel& operator=(const CubismModel&);
 
     void Initialize();
 
     void InitializeBlendMode();
 
-    void InitializeOffscreen();
-
     void SetupPartsHierarchy();
-
-    void SetPartColor(
-        csmUint32 partIndex,
-        csmFloat32 r, csmFloat32 g, csmFloat32 b, csmFloat32 a,
-        csmVector<ColorData>& partColors,
-        csmVector<ColorData>& drawableColors);
-
-    void SetOverrideColorForPartColors(
-        csmUint32 partIndex,
-        csmBool value,
-        csmVector<ColorData>& partColors,
-        csmVector<ColorData>& drawableColors);
 
     csmMap<csmInt32, csmFloat32>        _notExistPartOpacities;
     csmMap<CubismIdHandle, csmInt32>   _notExistPartId;
@@ -1716,22 +1106,14 @@ private:
     csmVector<CubismIdHandle> _parameterIds;
     csmVector<CubismIdHandle> _partIds;
     csmVector<CubismIdHandle> _drawableIds;
+    csmVector<CubismModelPartInfo> _partsHierarchy;
     csmVector<ParameterRepeatData> _userParameterRepeatDataList;
-    csmVector<ColorData> _userDrawableScreenColors;
-    csmVector<ColorData> _userDrawableMultiplyColors;
-    csmVector<ColorData> _userPartScreenColors;
-    csmVector<ColorData> _userPartMultiplyColors;
-    csmVector<ColorData> _userOffscreenScreenColors;
-    csmVector<ColorData> _userOffscreenMultiplyColors;
     csmVector<CullingData> _userDrawableCullings;
     csmVector<CullingData> _userOffscreenCullings;
-    csmVector<csmVector<csmUint32> > _partChildDrawables;
+    CubismModelMultiplyAndScreenColor _overrideMultiplyAndScreenColors;
     csmBool _isOverriddenParameterRepeat;
-    csmBool _isOverriddenModelMultiplyColors;
-    csmBool _isOverriddenModelScreenColors;
     csmBool _isOverriddenCullings;
     csmBool _isBlendModeEnabled;
-    csmVector<CubismModelPartInfo> _partsHierarchy;
 };
 
 }}}

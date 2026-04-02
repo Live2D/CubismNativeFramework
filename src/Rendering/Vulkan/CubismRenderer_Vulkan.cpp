@@ -6,6 +6,7 @@
  */
 
 #include "CubismRenderer_Vulkan.hpp"
+#include "CubismDeviceInfo_Vulkan.hpp"
 #include "CubismOffscreenManager_Vulkan.hpp"
 #include "Math/CubismMatrix44.hpp"
 #include "Type/csmVector.hpp"
@@ -351,7 +352,6 @@ CubismClippingContext_Vulkan::GetClippingManager()
 namespace {
 const csmInt32 ShaderCount = ShaderNames_ShaderCount;
 ///<シェーダの数 = コピー用 + マスク生成用 + (通常 + 加算 + 乗算 + ブレンドモードの組み合わせ数) * (マスク無 + マスク有 + マスク有反転 + マスク無の乗算済アルファ対応版 + マスク有の乗算済アルファ対応版 + マスク有反転の乗算済アルファ対応版)
-CubismPipeline_Vulkan* s_pipelineManager;
 }
 
 CubismPipeline_Vulkan::CubismPipeline_Vulkan()
@@ -651,6 +651,12 @@ void CubismPipeline_Vulkan::CreatePipelines(VkDescriptorSetLayout descriptorSetL
     _pipelineResource.Resize(ShaderCount);
     for (csmInt32 i = 0; i < ShaderCount; i++)
     {
+        // 加算と乗算は通常と同じリソースを参照するため生成しない
+        if (i >= ShaderNames_Add && i <= ShaderNames_MultMaskedInvertedPremultipliedAlpha)
+        {
+            _pipelineResource[i] = NULL;
+            continue;
+        }
         _pipelineResource[i] = CSM_NEW PipelineResource();
     }
 
@@ -737,15 +743,6 @@ void CubismPipeline_Vulkan::CreatePipelineResource(csmUint32 const& shaderName, 
     }
 }
 
-CubismPipeline_Vulkan* CubismPipeline_Vulkan::GetInstance()
-{
-    if (s_pipelineManager == NULL)
-    {
-        s_pipelineManager = CSM_NEW CubismPipeline_Vulkan();
-    }
-    return s_pipelineManager;
-}
-
 void CubismPipeline_Vulkan::ReleaseShaderProgram()
 {
     for (csmInt32 i = 0; i < _pipelineResource.GetSize(); i++)
@@ -782,6 +779,7 @@ void CubismRenderer::StaticRelease()
 CubismRenderer_Vulkan::CubismRenderer_Vulkan(csmUint32 width, csmUint32 height) :
                                                CubismRenderer(width, height)
                                                , vkCmdSetCullModeEXT()
+                                               , _deviceInfo(NULL)
                                                , _drawableClippingManager(NULL)
                                                , _clippingContextBufferForMask(NULL)
                                                , _clippingContextBufferForDraw(NULL)
@@ -791,6 +789,9 @@ CubismRenderer_Vulkan::CubismRenderer_Vulkan(csmUint32 width, csmUint32 height) 
                                                , _currentRenderTarget(NULL)
                                                , _descriptorPool(VK_NULL_HANDLE)
                                                , _descriptorSetLayout(VK_NULL_HANDLE)
+                                               , _offscreenDescriptorPool(VK_NULL_HANDLE)
+                                               , _copyDescriptorPool(VK_NULL_HANDLE)
+                                               , _copyDescriptorSetLayout(VK_NULL_HANDLE)
                                                , _clearColor()
                                                , _commandBufferCurrent(0)
 {
@@ -848,7 +849,10 @@ CubismRenderer_Vulkan::~CubismRenderer_Vulkan()
 
     // ディスクリプタ関連解放
     vkDestroyDescriptorPool(s_device, _descriptorPool, nullptr);
-    vkDestroyDescriptorPool(s_device, _offscreenDescriptorPool, nullptr);
+    if (_offscreenDescriptorPool != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorPool(s_device, _offscreenDescriptorPool, nullptr);
+    }
     vkDestroyDescriptorPool(s_device, _copyDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(s_device, _descriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(s_device, _copyDescriptorSetLayout, nullptr);
@@ -896,11 +900,6 @@ CubismRenderer_Vulkan::~CubismRenderer_Vulkan()
 
 void CubismRenderer_Vulkan::DoStaticRelease()
 {
-    if (s_pipelineManager)
-    {
-        CSM_DELETE_SELF(CubismPipeline_Vulkan, s_pipelineManager);
-        s_pipelineManager = NULL;
-    }
 }
 
 VkCommandBuffer CubismRenderer_Vulkan::BeginSingleTimeCommands()
@@ -954,8 +953,8 @@ void CubismRenderer_Vulkan::SubmitCommand(VkCommandBuffer commandBuffer, VkSemap
 
 }
 
-void CubismRenderer_Vulkan::InitializeConstantSettings(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue queue,
-                                                       csmUint32 swapchainImageCount, VkExtent2D extent, VkImageView imageView, VkFormat imageFormat, VkFormat depthFormat)
+void CubismRenderer_Vulkan::SetConstantSettings(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue queue,
+                                                 csmUint32 swapchainImageCount, VkExtent2D extent, VkImageView imageView, VkFormat imageFormat, VkFormat depthFormat)
 {
     s_device = device;
     s_physicalDevice = physicalDevice;
@@ -1214,19 +1213,21 @@ void CubismRenderer_Vulkan::CreateDescriptorSets()
     }
 
     // オフスクリーン用ディスクリプタプール作成
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = offscreenDescriptorSetCount;
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = offscreenDescriptorSetCount * textureCount; // offscreenCount * 描画方法の数 * テクスチャの数
-
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]);
-    poolInfo.pPoolSizes = poolSizes;
-    poolInfo.maxSets = offscreenDescriptorSetCount;
-
-    if (vkCreateDescriptorPool(s_device, &poolInfo, nullptr, &_offscreenDescriptorPool) != VK_SUCCESS)
+    if (offscreenDescriptorSetCount > 0)
     {
-        CubismLogError("failed to create offscreen descriptor pool!");
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = offscreenDescriptorSetCount;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = offscreenDescriptorSetCount * textureCount; // offscreenCount * 描画方法の数 * テクスチャの数
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]);
+        poolInfo.pPoolSizes = poolSizes;
+        poolInfo.maxSets = offscreenDescriptorSetCount;
+
+        if (vkCreateDescriptorPool(s_device, &poolInfo, nullptr, &_offscreenDescriptorPool) != VK_SUCCESS)
+        {
+            CubismLogError("failed to create offscreen descriptor pool!");
+        }
     }
 
     // コピー用ディスクリプタプール作成
@@ -1363,40 +1364,43 @@ void CubismRenderer_Vulkan::CreateDescriptorSets()
     }
 
     // オフスクリーン用
-    for (csmUint32 buffer = 0; buffer < s_bufferSetNum; buffer++)
+    if (offscreenCount > 0)
     {
-        _offscreenDescriptorSets[buffer].Resize(offscreenCount);
-        for (csmInt32 offscreenAssign = 0; offscreenAssign < offscreenCount; offscreenAssign++)
+        for (csmUint32 buffer = 0; buffer < s_bufferSetNum; buffer++)
         {
-            _offscreenDescriptorSets[buffer][offscreenAssign].uniformBuffer.CreateBuffer(s_device, s_physicalDevice, sizeof(ModelUBO),
-                                                                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            _offscreenDescriptorSets[buffer][offscreenAssign].uniformBuffer.Map(s_device, VK_WHOLE_SIZE);
-        }
+            _offscreenDescriptorSets[buffer].Resize(offscreenCount);
+            for (csmInt32 offscreenAssign = 0; offscreenAssign < offscreenCount; offscreenAssign++)
+            {
+                _offscreenDescriptorSets[buffer][offscreenAssign].uniformBuffer.CreateBuffer(s_device, s_physicalDevice, sizeof(ModelUBO),
+                                                                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                _offscreenDescriptorSets[buffer][offscreenAssign].uniformBuffer.Map(s_device, VK_WHOLE_SIZE);
+            }
 
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = _offscreenDescriptorPool;
-        allocInfo.descriptorSetCount = offscreenDescriptorSetCountPerBuffer;
-        csmVector<VkDescriptorSetLayout> layouts;
-        for (csmInt32 i = 0; i < offscreenDescriptorSetCountPerBuffer; i++)
-        {
-            layouts.PushBack(_descriptorSetLayout);
-        }
-        allocInfo.pSetLayouts = layouts.GetPtr();
+            VkDescriptorSetAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            allocInfo.descriptorPool = _offscreenDescriptorPool;
+            allocInfo.descriptorSetCount = offscreenDescriptorSetCountPerBuffer;
+            csmVector<VkDescriptorSetLayout> layouts;
+            for (csmInt32 i = 0; i < offscreenDescriptorSetCountPerBuffer; i++)
+            {
+                layouts.PushBack(_descriptorSetLayout);
+            }
+            allocInfo.pSetLayouts = layouts.GetPtr();
 
-        csmVector<VkDescriptorSet> descriptorSets;
-        descriptorSets.Resize(offscreenDescriptorSetCountPerBuffer);
-        if (vkAllocateDescriptorSets(s_device, &allocInfo, descriptorSets.GetPtr()) != VK_SUCCESS)
-        {
-            CubismLogError("failed to allocate descriptor sets!");
-        }
+            csmVector<VkDescriptorSet> descriptorSets;
+            descriptorSets.Resize(offscreenDescriptorSetCountPerBuffer);
+            if (vkAllocateDescriptorSets(s_device, &allocInfo, descriptorSets.GetPtr()) != VK_SUCCESS)
+            {
+                CubismLogError("failed to allocate descriptor sets!");
+            }
 
-        for (csmInt32 offscreenAssign = 0; offscreenAssign < offscreenCount; offscreenAssign++)
-        {
-            _offscreenDescriptorSets[buffer][offscreenAssign].descriptorSet = descriptorSets[offscreenAssign * 2];
-            _offscreenDescriptorSets[buffer][offscreenAssign].descriptorSetMasked = descriptorSets[offscreenAssign * 2 + 1];
+            for (csmInt32 offscreenAssign = 0; offscreenAssign < offscreenCount; offscreenAssign++)
+            {
+                _offscreenDescriptorSets[buffer][offscreenAssign].descriptorSet = descriptorSets[offscreenAssign * 2];
+                _offscreenDescriptorSets[buffer][offscreenAssign].descriptorSetMasked = descriptorSets[offscreenAssign * 2 + 1];
+            }
         }
     }
 
@@ -1437,6 +1441,8 @@ void CubismRenderer_Vulkan::CreateDepthBuffer()
 
 void CubismRenderer_Vulkan::InitializeRenderer()
 {
+    _deviceInfo = CubismDeviceInfo_Vulkan::GetDeviceInfo(s_device);
+
     vkCmdSetCullModeEXT = reinterpret_cast<PFN_vkCmdSetCullMode>(vkGetDeviceProcAddr(s_device, "vkCmdSetCullModeEXT"));
 
     _updateFinishedSemaphores.Resize(s_bufferSetNum);
@@ -1452,7 +1458,7 @@ void CubismRenderer_Vulkan::InitializeRenderer()
     CreateIndexBuffer();
     CreateDescriptorSets();
     CreateDepthBuffer();
-    CubismPipeline_Vulkan::GetInstance()->CreatePipelines(_descriptorSetLayout, _copyDescriptorSetLayout);
+    _deviceInfo->GetPipeline()->CreatePipelines(_descriptorSetLayout, _copyDescriptorSetLayout);
 }
 
 void CubismRenderer_Vulkan::Initialize(CubismModel* model)
@@ -1721,7 +1727,7 @@ void CubismRenderer_Vulkan::UpdateDescriptorSet(Descriptor& descriptor, csmUint3
                                                           ? _currentRenderTarget
                                                           : GetModelRenderTarget();
 
-        imageInfo3.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageInfo3.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
         imageInfo3.imageView = blendRenderTarget->GetTextureView();
         imageInfo3.sampler = blendRenderTarget->GetTextureSampler();
         VkWriteDescriptorSet image3{};
@@ -1856,7 +1862,7 @@ void CubismRenderer_Vulkan::UpdateDescriptorSetForOffscreen(Descriptor& descript
                                                           ? _currentRenderTarget
                                                           : GetModelRenderTarget();
 
-        blendImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        blendImageInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
         blendImageInfo.imageView = blendRenderTarget->GetTextureView();
         blendImageInfo.sampler = blendRenderTarget->GetTextureSampler();
         VkWriteDescriptorSet blendImage{};
@@ -1954,13 +1960,13 @@ void CubismRenderer_Vulkan::ExecuteDrawForDrawable(const CubismModel& model, con
         break;
     }
 
-    VkPipelineLayout pipelineLayout = CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex);
+    VkPipelineLayout pipelineLayout = _deviceInfo->GetPipeline()->GetPipelineLayout(shaderIndex, blendIndex);
     if (pipelineLayout == NULL)
     {
         return;
     }
 
-    VkPipeline pipeline = CubismPipeline_Vulkan::GetInstance()->GetPipeline(shaderIndex, blendIndex);
+    VkPipeline pipeline = _deviceInfo->GetPipeline()->GetPipeline(shaderIndex, blendIndex);
     if (pipeline == NULL)
     {
         return;
@@ -2000,8 +2006,9 @@ void CubismRenderer_Vulkan::ExecuteDrawForDrawable(const CubismModel& model, con
         // ブレンドモード使用しない場合はDrawable単位でモデルカラーを処理する
         baseColor = GetModelColorWithOpacity(model.GetDrawableOpacity(index));
     }
-    CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    CubismTextureColor screenColor = model.GetScreenColor(index);
+    const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+    CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetDrawableMultiplyColor(index);
+    CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetDrawableScreenColor(index);
     SetColorUniformBuffer(ubo, baseColor, multiplyColor, screenColor);
 
     // ディスクリプタにユニフォームバッファをコピー
@@ -2027,7 +2034,7 @@ void CubismRenderer_Vulkan::ExecuteDrawForDrawable(const CubismModel& model, con
 
     if (isBlendMode)
     {
-        SetBlendTextureBarrier(cmdBuffer);
+        SetBlendTextureBarrier(cmdBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
 
     // 描画
@@ -2039,13 +2046,13 @@ void CubismRenderer_Vulkan::ExecuteDrawForMask(const CubismModel& model, const c
     csmUint32 shaderIndex = ShaderNames_SetupMask;
     csmUint32 blendIndex = Blend_Mask;
 
-    VkPipelineLayout pipelineLayout = CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex);
+    VkPipelineLayout pipelineLayout = _deviceInfo->GetPipeline()->GetPipelineLayout(shaderIndex, blendIndex);
     if (pipelineLayout == NULL)
     {
         return;
     }
 
-    VkPipeline pipeline = CubismPipeline_Vulkan::GetInstance()->GetPipeline(shaderIndex, blendIndex);
+    VkPipeline pipeline = _deviceInfo->GetPipeline()->GetPipeline(shaderIndex, blendIndex);
     if (pipeline == NULL)
     {
         return;
@@ -2053,6 +2060,7 @@ void CubismRenderer_Vulkan::ExecuteDrawForMask(const CubismModel& model, const c
 
     Descriptor &descriptor = _descriptorSets[_commandBufferCurrent][index];
     ModelUBO ubo;
+    memset(&ubo, 0, sizeof(ubo));
 
     // クリッピング用行列の設定
     UpdateMatrix(ubo.clipMatrix, GetClippingContextBufferForMask()->_matrixForMask);
@@ -2066,9 +2074,7 @@ void CubismRenderer_Vulkan::ExecuteDrawForMask(const CubismModel& model, const c
     // 色定数バッファの設定
     csmRectF *rect = GetClippingContextBufferForMask()->_layoutBounds;
     CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
-    CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    CubismTextureColor screenColor = model.GetScreenColor(index);
-    SetColorUniformBuffer(ubo, baseColor, multiplyColor, screenColor);
+    UpdateColor(ubo.baseColor, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
 
     // マスク生成時用ユニフォームバッファにコピー
     descriptor.uniformBufferMask.MemCpy(&ubo, sizeof(ModelUBO));
@@ -2129,13 +2135,13 @@ void CubismRenderer_Vulkan::ExecuteDrawForOffscreen(const CubismModel& model, Cu
         break;
     }
 
-    VkPipelineLayout pipelineLayout = CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(shaderIndex, blendIndex);
+    VkPipelineLayout pipelineLayout = _deviceInfo->GetPipeline()->GetPipelineLayout(shaderIndex, blendIndex);
     if (pipelineLayout == NULL)
     {
         return;
     }
 
-    VkPipeline pipeline = CubismPipeline_Vulkan::GetInstance()->GetPipeline(shaderIndex, blendIndex);
+    VkPipeline pipeline = _deviceInfo->GetPipeline()->GetPipeline(shaderIndex, blendIndex);
     if (pipeline == NULL)
     {
         return;
@@ -2161,8 +2167,9 @@ void CubismRenderer_Vulkan::ExecuteDrawForOffscreen(const CubismModel& model, Cu
     // オフスクリーンはPreMultipliedAlpha
     csmFloat32 offscreenOpacity = model.GetOffscreenOpacity(offscreenIndex);
     CubismTextureColor baseColor = CubismTextureColor(offscreenOpacity, offscreenOpacity, offscreenOpacity, offscreenOpacity);
-    CubismTextureColor multiplyColor = model.GetMultiplyColorOffscreen(offscreenIndex);
-    CubismTextureColor screenColor = model.GetScreenColorOffscreen(offscreenIndex);
+    const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+    CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetOffscreenMultiplyColor(offscreenIndex);
+    CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetOffscreenScreenColor(offscreenIndex);
     SetColorUniformBuffer(ubo, baseColor, multiplyColor, screenColor);
 
     // ディスクリプタにユニフォームバッファをコピー
@@ -2219,12 +2226,12 @@ void CubismRenderer_Vulkan::ExecuteDrawForRenderTarget(const CubismRenderTarget_
     // ディスクリプタセットバインド
     VkDescriptorSet* descriptorSet = &_copyDescriptorSets[_commandBufferCurrent].descriptorSet;
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            CubismPipeline_Vulkan::GetInstance()->GetPipelineLayout(ShaderNames_Copy, 0),
+                            _deviceInfo->GetPipeline()->GetPipelineLayout(ShaderNames_Copy, 0),
                             0, 1, descriptorSet, 0, nullptr);
 
     // パイプラインバインド
     vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        CubismPipeline_Vulkan::GetInstance()->GetPipeline(ShaderNames_Copy, 0));
+                        _deviceInfo->GetPipeline()->GetPipeline(ShaderNames_Copy, 0));
 
     // 裏面描画の有効
     vkCmdSetCullModeEXT(cmdBuffer, VK_CULL_MODE_NONE);
@@ -2271,7 +2278,7 @@ void CubismRenderer_Vulkan::DrawMeshVulkan(const CubismModel& model, const csmIn
         return;
     }
 
-    csmInt32 textureIndex = model.GetDrawableTextureIndices(index);
+    csmInt32 textureIndex = model.GetDrawableTextureIndex(index);
     if (_textures[textureIndex].GetSampler() == VK_NULL_HANDLE || _textures[textureIndex].GetView() == VK_NULL_HANDLE)
     {
         return;
@@ -2316,7 +2323,9 @@ void CubismRenderer_Vulkan::BeginRendering(VkCommandBuffer drawCommandBuffer, cs
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     memoryBarrier.srcAccessMask = VK_ACCESS_NONE;
     memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    memoryBarrier.oldLayout = (s_useRenderTarget
+        ? (isResume ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED)
+        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     memoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     memoryBarrier.image = s_renderImage;
     memoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
@@ -2361,7 +2370,7 @@ void CubismRenderer_Vulkan::EndRendering(VkCommandBuffer drawCommandBuffer)
     memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     memoryBarrier.dstAccessMask = (s_useRenderTarget ? VK_ACCESS_SHADER_READ_BIT : VK_ACCESS_NONE);
     memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    memoryBarrier.newLayout = (s_useRenderTarget ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL);
+    memoryBarrier.newLayout = (s_useRenderTarget ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     memoryBarrier.image = s_renderImage;
     memoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
@@ -2567,7 +2576,7 @@ void CubismRenderer_Vulkan::CopyRenderTarget(const CubismRenderTarget_Vulkan* sr
     ExecuteDrawForRenderTarget(src, drawCommandBuffer);
 
     // 描画終了
-    _modelRenderTargets[0].EndDraw(drawCommandBuffer);
+    EndRendering(drawCommandBuffer);
 }
 
 void CubismRenderer_Vulkan::SetClippingContextBufferForMask(CubismClippingContext_Vulkan* clip)
@@ -2957,7 +2966,7 @@ void CubismRenderer_Vulkan::AddOffscreen(csmInt32 offscreenIndex,
     }
 
     CubismOffscreenRenderTarget_Vulkan* offscreen = &_offscreenList.At(offscreenIndex);
-    offscreen->SetOffscreenRenderTarget(s_device, s_physicalDevice,
+    offscreen->SetOffscreenRenderTarget(s_device, s_physicalDevice, _deviceInfo->GetOffscreenManager(),
         _modelRenderTargetWidth, _modelRenderTargetHeight, s_imageFormat, s_depthFormat);
 
     // 以前のオフスクリーンレンダリングターゲットを取得
@@ -3147,40 +3156,44 @@ void CubismRenderer_Vulkan::DrawOffscreenVulkan(const CubismModel& model, Cubism
     ExecuteDrawForOffscreen(model, offscreen, drawCommandBuffer);
 
     // 後処理
-    offscreen->StopUsingRenderTexture();
+    offscreen->StopUsingRenderTexture(_deviceInfo->GetOffscreenManager());
     SetClippingContextBufferForOffscreen(NULL);
     SetClippingContextBufferForMask(NULL);
 }
 
-void CubismRenderer_Vulkan::SetBlendTextureBarrier(VkCommandBuffer drawCommandBuffer)
+void CubismRenderer_Vulkan::SetBlendTextureBarrier(VkCommandBuffer drawCommandBuffer, VkImageLayout currentLayout, VkImageLayout newLayout)
 {
     CubismRenderTarget_Vulkan* blendRenderTarget = (_currentRenderTarget != NULL)
                                                           ? _currentRenderTarget
                                                           : GetModelRenderTarget();
 
-        VkImageMemoryBarrier2 imageBarrier{};
-        imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-        imageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-        imageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-        imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-        imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-        imageBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        imageBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    // レンダリング中でない場合は何もしない
+    if (blendRenderTarget == nullptr || !blendRenderTarget->IsRendering())
+    {
+        return;
+    }
 
-        imageBarrier.image = blendRenderTarget->GetTextureImage();
-        imageBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    // レンダリング中断
+    blendRenderTarget->EndDraw(drawCommandBuffer, currentLayout);
 
-        VkDependencyInfo depInfo{};
-        depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        depInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-        depInfo.memoryBarrierCount = 0;
-        depInfo.pMemoryBarriers = nullptr;
-        depInfo.bufferMemoryBarrierCount = 0;
-        depInfo.pBufferMemoryBarriers = nullptr;
-        depInfo.imageMemoryBarrierCount = 1;
-        depInfo.pImageMemoryBarriers = &imageBarrier;
+    // ちらつきを無くすためバリア設定
+    VkImageMemoryBarrier imageBarrier{};
+    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageBarrier.newLayout = newLayout;
+    imageBarrier.image = blendRenderTarget->GetTextureImage();
+    imageBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-        vkCmdPipelineBarrier2(drawCommandBuffer, &depInfo);
+    vkCmdPipelineBarrier(drawCommandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, 1, &imageBarrier);
+
+    // バリアでレイアウトが変更されたので内部状態を更新
+    blendRenderTarget->SetColorImageCurrentLayout(newLayout);
+
+    // レンダリング再開
+    blendRenderTarget->BeginDraw(drawCommandBuffer, 0.0f, 0.0f, 0.0f, 0.0f, false);
 }
 
 void CubismRenderer_Vulkan::EnsurePreviousRenderFinished(VkCommandBuffer commandBuffer, const CubismRenderTarget_Vulkan* nextRenderTarget)

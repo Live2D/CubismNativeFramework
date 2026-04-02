@@ -636,6 +636,9 @@ void CubismRenderer_OpenGLES2::Initialize(CubismModel* model, csmInt32 maskBuffe
     }
 
     CubismRenderer::Initialize(model, maskBufferCount);  //親クラスの処理を呼ぶ
+
+    // シェーダの事前初期化
+    CubismShader_OpenGLES2::GetInstance();
 }
 
 void CubismRenderer_OpenGLES2::SetupParentOffscreens(const CubismModel* model, csmInt32 offscreenCount)
@@ -865,6 +868,9 @@ void CubismRenderer_OpenGLES2::DrawDrawable(csmInt32 drawableIndex)
 
     if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある
     {
+        GLint preHighPrecisionMaskViewport[4];
+        glGetIntegerv(GL_VIEWPORT, preHighPrecisionMaskViewport);
+
         if (clipContext->_isUsing) // 書くことになっていた
         {
             // 生成したRenderTargetと同じサイズでビューポートを設定
@@ -908,7 +914,8 @@ void CubismRenderer_OpenGLES2::DrawDrawable(csmInt32 drawableIndex)
             // --- 後処理 ---
             GetDrawableMaskBuffer(clipContext->_bufferIndex)->EndDraw();
             SetClippingContextBufferForMask(NULL);
-            glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
+            glViewport(preHighPrecisionMaskViewport[0], preHighPrecisionMaskViewport[1],
+                       preHighPrecisionMaskViewport[2], preHighPrecisionMaskViewport[3]);
 
             PreDraw(); // バッファをクリアする
         }
@@ -1043,6 +1050,9 @@ void CubismRenderer_OpenGLES2::DrawOffscreen(CubismOffscreenRenderTarget_OpenGLE
 
     if (clipContext != NULL && IsUsingHighPrecisionMask()) // マスクを書く必要がある
     {
+        GLint preHighPrecisionMaskViewport[4];
+        glGetIntegerv(GL_VIEWPORT, preHighPrecisionMaskViewport);
+
         if (clipContext->_isUsing) // 書くことになっていた
         {
             // 生成したRenderTargetと同じサイズでビューポートを設定
@@ -1086,7 +1096,8 @@ void CubismRenderer_OpenGLES2::DrawOffscreen(CubismOffscreenRenderTarget_OpenGLE
             // --- 後処理 ---
             GetOffscreenMaskBuffer(clipContext->_bufferIndex)->EndDraw();
             SetClippingContextBufferForMask(NULL);
-            glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
+            glViewport(preHighPrecisionMaskViewport[0], preHighPrecisionMaskViewport[1],
+                       preHighPrecisionMaskViewport[2], preHighPrecisionMaskViewport[3]);
 
             PreDraw(); // バッファをクリアする
         }
@@ -1218,6 +1229,7 @@ void CubismRenderer_OpenGLES2::BeforeDrawModelRenderTarget()
 
     // 別バッファに描画を開始
     _modelRenderTargets[0].BeginDraw();
+    glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
     _modelRenderTargets[0].Clear(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
@@ -1340,6 +1352,7 @@ const CubismRenderTarget_OpenGLES2* CubismRenderer_OpenGLES2::CopyRenderTarget(c
     // textureBarrierが無効な場合は、オフスクリーンの内容をコピーしてから描画する
 #if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
     _modelRenderTargets[1].BeginDraw();
+    glViewport(0, 0, _modelRenderTargetWidth, _modelRenderTargetHeight);
 
     CubismShader_OpenGLES2::GetInstance()->CopyTexture(srcBuffer.GetColorBuffer());
     glDrawElements(GL_TRIANGLES, sizeof(ModelRenderTargetIndexArray) / sizeof(csmUint16), GL_UNSIGNED_SHORT, ModelRenderTargetIndexArray);

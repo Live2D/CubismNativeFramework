@@ -61,7 +61,7 @@ void CubismRenderTarget_Vulkan::BeginDraw(VkCommandBuffer commandBuffer, csmFloa
     _isRendering = true;
 }
 
-void CubismRenderTarget_Vulkan::EndDraw(VkCommandBuffer commandBuffer)
+void CubismRenderTarget_Vulkan::EndDraw(VkCommandBuffer commandBuffer, VkImageLayout currentLayout)
 {
     // レンダリングパスがアクティブでない場合はスキップ
     if (!_isRendering)
@@ -78,7 +78,7 @@ void CubismRenderTarget_Vulkan::EndDraw(VkCommandBuffer commandBuffer)
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    memoryBarrier.oldLayout = currentLayout;
     memoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     memoryBarrier.image = _colorImage->GetImage();
     memoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
@@ -87,6 +87,7 @@ void CubismRenderTarget_Vulkan::EndDraw(VkCommandBuffer commandBuffer)
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &memoryBarrier);
     _colorImage->SetCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+    memoryBarrier.dstAccessMask = VK_ACCESS_NONE;
     memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     memoryBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     memoryBarrier.image = _depthImage->GetImage();
@@ -110,7 +111,7 @@ void CubismRenderTarget_Vulkan::CreateRenderTarget(
                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
                              VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     _colorImage->CreateView(device, surfaceFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    _colorImage->CreateSampler(device, 1.0, 1);
+    _colorImage->CreateSampler(device, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 1.0, 1);
 
     _depthImage = CSM_NEW CubismImageVulkan;
     _depthImage->CreateImage(device, physicalDevice, displayBufferWidth, displayBufferHeight,
@@ -177,6 +178,14 @@ csmBool CubismRenderTarget_Vulkan::IsValid() const
 csmBool CubismRenderTarget_Vulkan::IsRendering() const
 {
     return _isRendering;
+}
+
+void CubismRenderTarget_Vulkan::SetColorImageCurrentLayout(VkImageLayout layout)
+{
+    if (_colorImage != VK_NULL_HANDLE)
+    {
+        _colorImage->SetCurrentLayout(layout);
+    }
 }
 }}}}
 
