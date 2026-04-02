@@ -146,8 +146,17 @@ public:
 
     /**
      * @brief   頂点宣言のデバイスへの設定、シェーダがまだ未設定ならロード
+     *
+     * @param[in]   device      使用デバイス
      */
-    void SetupShader(ID3D11Device* device, ID3D11DeviceContext* renderContext);
+    void SetupShader(ID3D11Device* device);
+
+    /**
+     * @brief   コンテキストにシェーダを設定する
+     *
+     * @param[in]   context      コンテキスト
+     */
+    void BindShader(ID3D11DeviceContext* context);
 
 private:
     /**

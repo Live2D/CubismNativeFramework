@@ -137,6 +137,7 @@ private:
     GLuint      _colorBuffer;           ///< 描画の際使用するテクスチャとしてのアドレス
 
     GLint       _oldFBO;                ///< 旧フレームバッファ
+    GLint       _oldViewport[4];        ///< 旧ビューポート
 
     csmUint32   _bufferWidth;           ///< Create時に指定された幅
     csmUint32   _bufferHeight;          ///< Create時に指定された高さ

@@ -20,6 +20,8 @@ CubismDeviceInfo_D3D11* CubismDeviceInfo_D3D11::GetDeviceInfo(ID3D11Device* devi
     if (!s_deviceInfoList.IsExist(device))
     {
         s_deviceInfoList[device]._renderState = CSM_NEW CubismRenderState_D3D11(device);
+        // シェーダの事前初期化
+        s_deviceInfoList[device]._shader.SetupShader(device);
     }
     return &s_deviceInfoList[device];
 }

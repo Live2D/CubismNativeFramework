@@ -200,7 +200,7 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     // origin
     _samplerState.PushBack(NULL);
 
-    // normal
+    // drawable
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -209,7 +209,12 @@ void CubismRenderState_D3D11::Create(ID3D11Device* device)
     samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     samplerDesc.MinLOD = -D3D11_FLOAT32_MAX;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-    samplerDesc.BorderColor[0] = samplerDesc.BorderColor[1] = samplerDesc.BorderColor[2] = samplerDesc.BorderColor[3] = 1.0f;
+    samplerDesc.BorderColor[0] = samplerDesc.BorderColor[1] = samplerDesc.BorderColor[2] = samplerDesc.BorderColor[3] = 0.0f;
+    device->CreateSamplerState(&samplerDesc, &sampler);
+    _samplerState.PushBack(sampler);
+
+    // other
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
     device->CreateSamplerState(&samplerDesc, &sampler);
     _samplerState.PushBack(sampler);
 
@@ -407,6 +412,9 @@ void CubismRenderState_D3D11::SetSampler(ID3D11DeviceContext* renderContext, Sam
         // 0番だけ使用している
         renderContext->PSSetSamplers(0, 1, &_samplerState[sample]);
     }
+
+    renderContext->PSSetSamplers(1, 1, &_samplerState[Sampler_Other]);
+    renderContext->PSSetSamplers(2, 1, &_samplerState[Sampler_Other]);
 
     _stored._sampler = sample;
     _stored._anisotropy = anisotropy;

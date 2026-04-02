@@ -15,6 +15,8 @@ cbuffer ConstantBuffer {
 }
 
 SamplerState mainSampler : register(s0);
+SamplerState maskSampler : register(s1);
+SamplerState blendSampler : register(s2);
 Texture2D mainTexture : register(t0);
 Texture2D maskTexture : register(t1);
 Texture2D blendTexture : register(t2);

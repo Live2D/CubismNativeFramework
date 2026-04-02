@@ -63,9 +63,18 @@ public:
     ID3DXEffect* GetShaderEffect() const;
 
     /**
-     * @brief   頂点宣言のデバイスへの設定、シェーダがまだ未設定ならロード
+     * @brief   シェーダのロード
+     *
+     * @param[in]   device      使用デバイス
      */
     void SetupShader(LPDIRECT3DDEVICE9 pD3dDevice);
+
+    /**
+     * @brief   頂点宣言のデバイスへの設定
+     *
+     * @param[in]   device      使用デバイス
+     */
+    void BindShader(LPDIRECT3DDEVICE9 pD3dDevice);
 
 private:
     /**

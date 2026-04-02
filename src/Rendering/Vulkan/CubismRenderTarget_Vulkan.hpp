@@ -37,8 +37,9 @@ public:
      * @brief   描画終了
      *
      *  @param[in]  commandBuffer                 -> コマンドバッファ
+     *  @param[in]  currentLayout                 -> 現在のイメージレイアウト
      */
-    void EndDraw(VkCommandBuffer commandBuffer);
+    void EndDraw(VkCommandBuffer commandBuffer, VkImageLayout currentLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     /**
      *  @brief  CubismRenderTargetを作成する。
@@ -95,6 +96,13 @@ public:
      * @brief   レンダリングパスがアクティブかどうかを返す
      */
     csmBool IsRendering() const;
+
+    /**
+     * @brief   カラーイメージの現在のレイアウトを設定する
+     *
+     * @param[in]  newLayout  -> 新しいレイアウト
+     */
+    void SetColorImageCurrentLayout(VkImageLayout newLayout);
 
 private:
     VkDevice _device; ///< 論理デバイス

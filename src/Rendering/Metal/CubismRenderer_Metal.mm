@@ -317,6 +317,7 @@ CubismRenderer_Metal::CubismRenderer_Metal(csmUint32 width, csmUint32 height)
     , _clippingContextBufferForOffscreen(NULL)
     , _copyCommandBuffer(NULL)
     , _offscreenDrawCommandBuffer(NULL)
+    , _renderViewportIsSet(false)
 {
     // テクスチャ対応マップの容量を確保しておく.
     _textures.PrepareCapacity(32, true);
@@ -582,11 +583,21 @@ void CubismRenderer_Metal::StartFrame(id<MTLCommandBuffer> commandBuffer, MTLRen
     _renderPassDescriptor = renderPassDescriptor;
 }
 
+void CubismRenderer_Metal::SetRenderViewport(MTLViewport viewport)
+{
+    _renderViewport = viewport;
+    _renderViewportIsSet = true;
+}
+
 void CubismRenderer_Metal::PreDraw()
 {
     if (_mtlCommandEncoder == nil)
     {
         _mtlCommandEncoder = [_mtlCommandBuffer renderCommandEncoderWithDescriptor:_renderPassDescriptor];
+        if (_renderViewportIsSet)
+        {
+          [_mtlCommandEncoder setViewport:_renderViewport];
+        }
     }
 }
 

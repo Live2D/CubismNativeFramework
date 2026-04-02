@@ -78,15 +78,15 @@ void CubismRenderState_D3D9::Restore(LPDIRECT3DDEVICE9 device)
             SetCullMode(device, current.CullModeFaceMode, true);
             isSet[State_CullMode] = true;
         }
-        if (_pushed[i]._valid[State_TextureFilterStage0] && !isSet[State_TextureFilterStage0])
+        for (csmUint32 j = 0; j < 3; ++j)
         {
-            SetTextureFilter(device, 0, current.MinFilter[0], current.MagFilter[0], current.MipFilter[0], current.AddressU[0], current.AddressV[0], current.Anisotropy[0], true);
-            isSet[State_TextureFilterStage0] = true;
-        }
-        if (_pushed[i]._valid[State_TextureFilterStage1] && !isSet[State_TextureFilterStage1])
-        {
-            SetTextureFilter(device, 1, current.MinFilter[1], current.MagFilter[1], current.MipFilter[1], current.AddressU[1], current.AddressV[1], current.Anisotropy[1], true);
-            isSet[State_TextureFilterStage1] = true;
+            csmInt32 stateIndex = State_TextureFilterStage0 + j;
+
+            if (_pushed[i]._valid[stateIndex] && !isSet[stateIndex])
+            {
+                SetTextureFilter(device, j, current.MinFilter[j], current.MagFilter[j], current.MipFilter[j], current.AddressU[j], current.AddressV[j], current.Anisotropy[j], true);
+                isSet[stateIndex] = true;
+            }
         }
     }
 
@@ -202,12 +202,21 @@ void CubismRenderState_D3D9::SetCullMode(LPDIRECT3DDEVICE9 device, D3DCULL cullF
     _stored._valid[State_CullMode] = true;
 }
 
-void CubismRenderState_D3D9::SetTextureFilter(LPDIRECT3DDEVICE9 device, csmInt32 stage, D3DTEXTUREFILTERTYPE minFilter, D3DTEXTUREFILTERTYPE magFilter, D3DTEXTUREFILTERTYPE mipFilter, D3DTEXTUREADDRESS addressU, D3DTEXTUREADDRESS addressV, csmFloat32 anisotropy, csmBool force)
+void CubismRenderState_D3D9::SetTextureFilter(
+    LPDIRECT3DDEVICE9 device,
+    csmInt32 stage,
+    D3DTEXTUREFILTERTYPE minFilter,
+    D3DTEXTUREFILTERTYPE magFilter,
+    D3DTEXTUREFILTERTYPE mipFilter,
+    D3DTEXTUREADDRESS addressU,
+    D3DTEXTUREADDRESS addressV,
+    csmFloat32 anisotropy,
+    csmBool force)
 {
     const csmInt32 stateIndex = State_TextureFilterStage0 + stage;
 
     // ステージインデックスの範囲内検知
-    CSM_ASSERT((stateIndex == State_TextureFilterStage0) || (stateIndex == State_TextureFilterStage1));
+    CSM_ASSERT(State_TextureFilterStage0 <= stateIndex && stateIndex <= State_TextureFilterStage2);
 
     if (!_stored._valid[stateIndex] || force ||
         _stored.MinFilter[stage] != minFilter ||

@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [5-r.5] - 2026-04-02
+
+### Added
+
+* Add the `SetRenderViewport` method to `CubismRenderer_Metal` to set the viewport when drawing the model.
+* Add functionality to change motion calculation order.
+* Add `cubismlook` class that implements the target tracking feature.
+  * The target tracking feature can now specify parameter IDs through the `Framework`.
+
+### Changed
+
+* Change Vulkan renderer to use `CubismDeviceInfo_Vulkan` instead of singletons for pipeline and offscreen manager.
+  * Rename `InitializeConstantSettings` to `SetConstantSettings` in Vulkan renderer.
+* Change the access level of the private members in the `CubismMoc` and `CubismModel` classes to protected.
+* Change multiply and screen color functions to separate class with renamed methods.
+* Change shader generation from draw loop to Initialize() in OpenGL, D3D9, D3D11 and Metal.
+* Change to unify sampler settings across all graphics APIs, except for OpenGL ES on Android and iOS.
+
+### Fixed
+
+* Fix a validation error on Vulkan.
+* Fix unnecessary multiply color and screen color settings in mask drawing.
+* Fix a memory leak in `CubismRenderer_D3D11::ReleaseCommandBuffer()` where `_indexBuffers` and `_vertexBuffers` were not freed due to a copy-paste bug.
+* Fix a memory leak in `CubismRenderer_Vulkan::CreatePipelines()` where `PipelineResource` objects allocated for Add/Mult blend modes were overwritten and leaked.
+* Fix missing null checks after loading shader source files in OpenGL, D3D9 and D3D11 renderers.
+* Fix a resource leak in `CubismShader_D3D11::GenerateShaders()` where Copy and SetupMask shaders were loaded twice, causing the first set of COM objects to leak.
+* Fix redundant matrix transpose in D3D11 renderer.
+* Improve the viewport save and restore process on OpenGL.
+
+### Removed
+
+* Remove unnecessary shader processing in D3D11 and D3D9.
+* Remove deprecated functions from CubismModel:
+ * `GetDrawableTextureIndices(csmInt32 drawableIndex)` (use `GetDrawableTextureIndex(csmInt32 drawableIndex)` instead)
+ * `GetDrawableBlendMode(csmInt32 drawableIndex)` (use `GetDrawableBlendModeType(csmInt32 drawableIndex)` instead)
+ * `SetOverwriteFlagForModelCullings(csmBool value)` (use `SetOverrideFlagForModelCullings(csmBool value)` instead)
+ * `GetOverwriteFlagForModelCullings()` (use `GetOverwriteFlagForModelCullings()` instead)
+ * `SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)` (use `SetOverrideFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)` instead)
+ * `GetOverwriteFlagForDrawableCullings(csmInt32 drawableIndex)` (use `GetOverrideFlagForDrawableCullings(csmInt32 drawableIndex)` instead)
+* Remove deprecated functions from CubismExpressionMotion:
+ * `GetFadeWeight()` (use `CubismExpressionMotionManager.GetFadeWeight(csmInt32 index)` instead)
+* Remove deprecated fields from CubismExpressionMotion:
+ * `_fadeWeight` (priority is not used in expression motion playback)
+* Remove deprecated functions from CubismExpressionMotionManager:
+ * `GetCurrentPriority()` (priority is not used in expression motion playback)
+ * `SetReservePriority(csmInt32 priority)` (priority is not used in expression motion playback)
+ * `GetReservePriority()` (priority is not used in expression motion playback)
+ * `StartMotionPriority(ACubismMotion* motion, csmBool autoDelete, csmInt32 priority)` (use `CubismMotionQueueManager::StartMotion(ACubismMotion* motion, csmBool autoDelete)` instead)
+* Remove deprecated fields from CubismExpressionMotionManager:
+ * `_currentPriority` (priority is not used in expression motion playback)
+ * `_reservePriority` (priority is not used in expression motion playback)
+* Remove deprecated functions from CubismMotion:
+ * `IsLoop(csmBool loop)` (use `ACubismMotion.SetLoop(csmBool loop)` instead)
+ * `IsLoop()` (use `ACubismMotion.GetLoop()` instead)
+ * `IsLoopFadeIn(csmBool loopFadeIn)` (use `ACubismMotion.SetLoopFadeIn(csmBool loopFadeIn)` instead)
+ * `IsLoopFadeIn()` (use `ACubismMotion.GetLoopFadeIn()` instead)
+* Remove deprecated functions from CubismMotionQueueManager:
+ * `StartMotion(ACubismMotion* motion, csmBool autoDelete, csmFloat32 userTimeSeconds)` (use `StartMotion(ACubismMotion* motion, csmBool autoDelete)` instead)
+
+
 ## [5-r.5-beta.3.1] - 2026-02-19
 
 ### Added
@@ -546,6 +606,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.5]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.3.1...5-r.5
 [5-r.5-beta.3.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.3...5-r.5-beta.3.1
 [5-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.2...5-r.5-beta.3
 [5-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.1...5-r.5-beta.2

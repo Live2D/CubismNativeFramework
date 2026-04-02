@@ -9,10 +9,6 @@
 #include <float.h>
 #include "Type/csmRectF.hpp"
 
-#ifdef CSM_TARGET_WIN_GL
-#include <Windows.h>
-#endif
-
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
@@ -301,6 +297,7 @@ CubismShader_OpenGLES2* CubismShader_OpenGLES2::GetInstance()
     if (s_instance == NULL)
     {
         s_instance = CSM_NEW CubismShader_OpenGLES2();
+        s_instance->GenerateShaders();
     }
     return s_instance;
 }
@@ -326,6 +323,11 @@ void CubismShader_OpenGLES2::SetExtShaderMode(csmBool extMode, csmBool extPAMode
 
 void CubismShader_OpenGLES2::GenerateShaders()
 {
+    if (_shaderSets.GetSize() > 0)
+    {
+        return;
+    }
+
     for (csmInt32 i = 0; i < ShaderNames_ShaderCount; i++)
     {
         _shaderSets.PushBack(CSM_NEW CubismShaderSet());
@@ -473,8 +475,6 @@ void CubismShader_OpenGLES2::GenerateShaders()
     _shaderSets[ShaderNames_SetupMask]->UniformClipMatrixLocation = glGetUniformLocation(_shaderSets[ShaderNames_SetupMask]->ShaderProgram, "u_clipMatrix");
     _shaderSets[ShaderNames_SetupMask]->UnifromChannelFlagLocation = glGetUniformLocation(_shaderSets[ShaderNames_SetupMask]->ShaderProgram, "u_channelFlag");
     _shaderSets[ShaderNames_SetupMask]->UniformBaseColorLocation = glGetUniformLocation(_shaderSets[ShaderNames_SetupMask]->ShaderProgram, "u_baseColor");
-    _shaderSets[ShaderNames_SetupMask]->UniformMultiplyColorLocation = glGetUniformLocation(_shaderSets[ShaderNames_SetupMask]->ShaderProgram, "u_multiplyColor");
-    _shaderSets[ShaderNames_SetupMask]->UniformScreenColorLocation = glGetUniformLocation(_shaderSets[ShaderNames_SetupMask]->ShaderProgram, "u_screenColor");
 
     // 通常
     SetShaderSet(*_shaderSets[ShaderNames_Normal], MaskType_None);
@@ -543,11 +543,6 @@ void CubismShader_OpenGLES2::GenerateShaders()
 
 void CubismShader_OpenGLES2::SetupShaderProgramForDrawable(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index)
 {
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders();
-    }
-
     // Blending
     csmInt32 SRC_COLOR;
     csmInt32 DST_COLOR;
@@ -660,8 +655,9 @@ void CubismShader_OpenGLES2::SetupShaderProgramForDrawable(CubismRenderer_OpenGL
         // ブレンドモード使用しない場合はDrawable単位でモデルカラーを処理する
         baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
     }
-    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+    const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+    CubismRenderer::CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetDrawableMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetDrawableScreenColor(index);
     SetColorUniformVariables(renderer, model, index, shaderSet, baseColor, multiplyColor, screenColor);
 
     glBlendFuncSeparate(SRC_COLOR, DST_COLOR, SRC_ALPHA, DST_ALPHA);
@@ -669,11 +665,6 @@ void CubismShader_OpenGLES2::SetupShaderProgramForDrawable(CubismRenderer_OpenGL
 
 void CubismShader_OpenGLES2::SetupShaderProgramForMask(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const csmInt32 index)
 {
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders();
-    }
-
     // Blending
     csmInt32 SRC_COLOR = GL_ZERO;
     csmInt32 DST_COLOR = GL_ONE_MINUS_SRC_COLOR;
@@ -697,9 +688,7 @@ void CubismShader_OpenGLES2::SetupShaderProgramForMask(CubismRenderer_OpenGLES2*
     // ユニフォーム変数設定
     csmRectF* rect = renderer->GetClippingContextBufferForMask()->_layoutBounds;
     CubismRenderer::CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
-    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
-    SetColorUniformVariables(renderer, model, index, shaderSet, baseColor, multiplyColor, screenColor);
+    glUniform4f(shaderSet->UniformBaseColorLocation, baseColor.R, baseColor.G, baseColor.B, baseColor.A);
 
     glBlendFuncSeparate(SRC_COLOR, DST_COLOR, SRC_ALPHA, DST_ALPHA);
 }
@@ -717,11 +706,6 @@ void CubismShader_OpenGLES2::SetupShaderProgramForOffscreenRenderTarget(CubismRe
 
 void CubismShader_OpenGLES2::CopyTexture(GLint texture, csmInt32 srcColor, csmInt32 dstColor, csmInt32 srcAlpha, csmInt32 dstAlpha, CubismRenderer::CubismTextureColor baseColor)
 {
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders();
-    }
-
     CubismShaderSet* shaderSet = _shaderSets[ShaderNames_Copy];
     glUseProgram(shaderSet->ShaderProgram);
 
@@ -746,11 +730,6 @@ void CubismShader_OpenGLES2::CopyTexture(GLint texture, csmInt32 srcColor, csmIn
 
 void CubismShader_OpenGLES2::SetupShaderProgramForOffscreen(CubismRenderer_OpenGLES2* renderer, const CubismModel& model, const CubismOffscreenRenderTarget_OpenGLES2* offscreen)
 {
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders();
-    }
-
     // Blending
     csmInt32 SRC_COLOR;
     csmInt32 DST_COLOR;
@@ -856,8 +835,9 @@ void CubismShader_OpenGLES2::SetupShaderProgramForOffscreen(CubismRenderer_OpenG
     csmFloat32 offscreenOpacity = model.GetOffscreenOpacity(offscreenIndex);
     // PMAなのと不透明度だけを変更したいためすべてOpacityで初期化
     CubismRenderer::CubismTextureColor baseColor(offscreenOpacity, offscreenOpacity, offscreenOpacity, offscreenOpacity);
-    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColorOffscreen(offscreenIndex);
-    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColorOffscreen(offscreenIndex);
+    const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+    CubismRenderer::CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetOffscreenMultiplyColor(offscreenIndex);
+    CubismRenderer::CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetOffscreenScreenColor(offscreenIndex);
     SetColorUniformVariables(renderer, model, offscreenIndex, shaderSet, baseColor, multiplyColor, screenColor);
 
     glBlendFuncSeparate(SRC_COLOR, DST_COLOR, SRC_ALPHA, DST_ALPHA);
@@ -970,6 +950,7 @@ GLuint CubismShader_OpenGLES2::LoadShaderProgramFromFile(const csmChar* vertShad
     if (fragSrc == NULL)
     {
         CubismLogError("Failed to load fragment shader");
+        bytesReleaser(vertSrc);
         return 0;
     }
 
@@ -982,7 +963,23 @@ GLuint CubismShader_OpenGLES2::LoadShaderProgramFromFile(const csmChar* vertShad
     {
         csmChar buffer[64];
         csmByte* colorBlendSrc = fileLoader(ColorBlendShaderPath, &colorBlendSrcSize);
+        if (colorBlendSrc == NULL)
+        {
+            CubismLogError("Failed to load color blend shader");
+            bytesReleaser(vertSrc);
+            bytesReleaser(fragSrc);
+            return 0;
+        }
+
         csmByte* alphaBlendSrc = fileLoader(AlphaBlendShaderPath, &alphaBlendSrcSize);
+        if (alphaBlendSrc == NULL)
+        {
+            CubismLogError("Failed to load alpha blend shader");
+            bytesReleaser(colorBlendSrc);
+            bytesReleaser(vertSrc);
+            bytesReleaser(fragSrc);
+            return 0;
+        }
 
         // ブレンド
         std::snprintf(buffer, sizeof(buffer), "\n#define CSM_COLOR_BLEND_MODE %d\n", colorBlendMode);
@@ -1099,6 +1096,10 @@ void CubismShader_OpenGLES2::SetupTexture(CubismRenderer_OpenGLES2* renderer, co
     const GLuint textureId = renderer->GetBindedTextureId(textureIndex);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glUniform1i(shaderSet->SamplerTexture0Location, 0);
 }
 

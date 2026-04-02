@@ -29,10 +29,11 @@ struct MaskedRasterizerData
 };
 
 vertex MaskedRasterizerData
-VertShaderSrcSetupMask(uint vertexID [[ vertex_id ]],
-             constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
-             constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
-             constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
+VertShaderSrcSetupMask(
+    uint vertexID [[ vertex_id ]],
+    constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
+    constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]])
 {
     MaskedRasterizerData out;
     float2 vert = vertexArray[vertexID];
@@ -48,10 +49,11 @@ VertShaderSrcSetupMask(uint vertexID [[ vertex_id ]],
 }
 
 fragment float4
-FragShaderSrcSetupMask(MaskedRasterizerData in [[stage_in]],
-                       texture2d<float> texture [[ texture(0) ]],
-                       constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                       sampler smp [[sampler(0)]])
+FragShaderSrcSetupMask(
+    MaskedRasterizerData in [[stage_in]],
+    texture2d<float> texture [[ texture(0) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[sampler(0)]])
 {
     float isInside =
         step(uniforms.baseColor.x, in.myPos.x/in.myPos.w)
@@ -59,18 +61,18 @@ FragShaderSrcSetupMask(MaskedRasterizerData in [[stage_in]],
         * step(in.myPos.x/in.myPos.w, uniforms.baseColor.z)
         * step(in.myPos.y/in.myPos.w, uniforms.baseColor.w);
 
-    float4 gl_FragColor = float4(uniforms.channelFlag * texture.sample(smp, in.texCoord).a * isInside);
+    float4 gl_FragColor = float4(uniforms.channelFlag * texture.sample(mainSampler, in.texCoord).a * isInside);
     return gl_FragColor;
 }
 
 ////----- バーテックスシェーダプログラム -----
 //// Normal & Add & Mult 共通
 vertex NormalRasterizerData
-VertShaderSrc(uint vertexID [[ vertex_id ]],
-              constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
-              constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
-             constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
-
+VertShaderSrc(
+    uint vertexID [[ vertex_id ]],
+    constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
+    constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]])
 {
     NormalRasterizerData out;
     float2 vert = vertexArray[vertexID];
@@ -86,10 +88,11 @@ VertShaderSrc(uint vertexID [[ vertex_id ]],
 
 //// Normal & Add & Mult 共通（クリッピングされたものの描画用）
 vertex MaskedRasterizerData
-VertShaderSrcMasked(uint vertexID [[ vertex_id ]],
-            constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
-            constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
-            constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]])
+VertShaderSrcMasked(
+    uint vertexID [[ vertex_id ]],
+    constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
+    constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]])
 {
     MaskedRasterizerData out;
     float2 vert = vertexArray[vertexID];
@@ -106,10 +109,10 @@ VertShaderSrcMasked(uint vertexID [[ vertex_id ]],
 }
 
 vertex NormalRasterizerData
-VertShaderSrcCopy(uint vertexID [[ vertex_id ]],
-              constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
-              constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]]
-             )
+VertShaderSrcCopy(
+    uint vertexID [[ vertex_id ]],
+    constant float2 *vertexArray [[ buffer(MetalVertexInputIndexVertices) ]],
+    constant float2 *uvArray [[ buffer(MetalVertexInputUVs) ]])
 {
     NormalRasterizerData out;
     float2 vert = vertexArray[vertexID];
@@ -123,13 +126,13 @@ VertShaderSrcCopy(uint vertexID [[ vertex_id ]],
 }
 
 fragment float4
-FragShaderSrcCopy(NormalRasterizerData in [[stage_in]],
-              texture2d<float> texture [[ texture(0) ]],
-              sampler smp [[sampler(0)]],
-              constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]]
-            )
+FragShaderSrcCopy(
+    NormalRasterizerData in [[stage_in]],
+    texture2d<float> texture [[ texture(0) ]],
+    sampler mainSampler [[sampler(0)]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]])
 {
-    float4 texColor = texture.sample(smp, in.texCoord) * uniforms.baseColor;
+    float4 texColor = texture.sample(mainSampler, in.texCoord) * uniforms.baseColor;
 
     return texColor;
 }
@@ -137,12 +140,13 @@ FragShaderSrcCopy(NormalRasterizerData in [[stage_in]],
 ////----- フラグメントシェーダプログラム -----
 //// Normal & Add & Mult 共通
 fragment float4
-FragShaderSrc(NormalRasterizerData in [[stage_in]],
-              texture2d<float> texture [[ texture(0) ]],
-              constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-              sampler smp [[sampler(0)]])
+FragShaderSrc(
+    NormalRasterizerData in [[stage_in]],
+    texture2d<float> texture [[ texture(0) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[sampler(0)]])
 {
-    float4 texColor = texture.sample(smp, in.texCoord);
+    float4 texColor = texture.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
     float4 color = texColor * uniforms.baseColor;
@@ -153,12 +157,13 @@ FragShaderSrc(NormalRasterizerData in [[stage_in]],
 
 //// Normal & Add & Mult 共通 （PremultipliedAlpha）
 fragment float4
-FragShaderSrcPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
-                        texture2d<float> texture [[ texture(0) ]],
-                        constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                        sampler smp [[sampler(0)]])
+FragShaderSrcPremultipliedAlpha(
+    MaskedRasterizerData in [[stage_in]],
+    texture2d<float> texture [[ texture(0) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[sampler(0)]])
 {
-    float4 texColor = texture.sample(smp, in.texCoord);
+    float4 texColor = texture.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
     float4 gl_FragColor = texColor * uniforms.baseColor;
@@ -168,18 +173,20 @@ FragShaderSrcPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
 
 //// Normal & Add & Mult 共通（クリッピングされたものの描画用）
 fragment float4
-FragShaderSrcMask(MaskedRasterizerData in [[stage_in]],
-                    texture2d<float> texture0 [[ texture(0) ]],
-                    texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                    sampler smp [[sampler(0)]])
+FragShaderSrcMask(
+    MaskedRasterizerData in [[stage_in]],
+    texture2d<float> texture0 [[ texture(0) ]],
+    texture2d<float> texture1 [[ texture(1) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[ sampler(0) ]],
+    sampler subSampler [[ sampler(1) ]])
 {
-    float4 texColor = texture0.sample(smp, in.texCoord);
+    float4 texColor = texture0.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
     float4 col_formask = texColor * uniforms.baseColor;
     col_formask.rgb = col_formask.rgb  * col_formask.a ;
-    float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
+    float4 clipMask = (1.0 - texture1.sample(subSampler, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     col_formask = col_formask * maskVal;
     float4 gl_FragColor = col_formask;
@@ -188,18 +195,20 @@ FragShaderSrcMask(MaskedRasterizerData in [[stage_in]],
 
 //// Normal & Add & Mult 共通（クリッピングされて反転使用の描画用）
 fragment float4
-FragShaderSrcMaskInverted(MaskedRasterizerData in [[stage_in]],
-                    texture2d<float> texture0 [[ texture(0) ]],
-                    texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                    sampler smp [[sampler(0)]])
+FragShaderSrcMaskInverted(
+    MaskedRasterizerData in [[stage_in]],
+    texture2d<float> texture0 [[ texture(0) ]],
+    texture2d<float> texture1 [[ texture(1) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[ sampler(0) ]],
+    sampler subSampler [[ sampler(1) ]])
 {
-    float4 texColor = texture0.sample(smp, in.texCoord);
+    float4 texColor = texture0.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = texColor.rgb + uniforms.screenColor.rgb - (texColor.rgb * uniforms.screenColor.rgb);
     float4 col_formask = texColor * uniforms.baseColor;
     col_formask.rgb = col_formask.rgb  * col_formask.a ;
-    float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
+    float4 clipMask = (1.0 - texture1.sample(subSampler, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     col_formask = col_formask * (1.0 - maskVal);
     float4 gl_FragColor = col_formask;
@@ -208,17 +217,19 @@ FragShaderSrcMaskInverted(MaskedRasterizerData in [[stage_in]],
 
 //// Normal & Add & Mult 共通（クリッピングされたものの描画用、PremultipliedAlphaの場合）
 fragment float4
-FragShaderSrcMaskPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
-                    texture2d<float> texture0 [[ texture(0) ]],
-                    texture2d<float> texture1 [[ texture(1) ]],
-                                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                                    sampler smp [[sampler(0)]])
+FragShaderSrcMaskPremultipliedAlpha(
+    MaskedRasterizerData in [[stage_in]],
+    texture2d<float> texture0 [[ texture(0) ]],
+    texture2d<float> texture1 [[ texture(1) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[ sampler(0) ]],
+    sampler subSampler [[ sampler(1) ]])
 {
-    float4 texColor = texture0.sample(smp, in.texCoord);
+    float4 texColor = texture0.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
     float4 col_formask = texColor * uniforms.baseColor;
-    float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
+    float4 clipMask = (1.0 - texture1.sample(subSampler, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     col_formask = col_formask * maskVal;
     float4 gl_FragColor = col_formask;
@@ -227,17 +238,19 @@ FragShaderSrcMaskPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
 
 //// Normal & Add & Mult 共通（クリッピングされて反転使用の描画用、PremultipliedAlphaの場合）
 fragment float4
-FragShaderSrcMaskInvertedPremultipliedAlpha(MaskedRasterizerData in [[stage_in]],
-                    texture2d<float> texture0 [[ texture(0) ]],
-                    texture2d<float> texture1 [[ texture(1) ]],
-                    constant CubismShaderUniforms &uniforms  [[ buffer(MetalVertexInputIndexUniforms) ]],
-                    sampler smp [[sampler(0)]])
+FragShaderSrcMaskInvertedPremultipliedAlpha(
+    MaskedRasterizerData in [[stage_in]],
+    texture2d<float> texture0 [[ texture(0) ]],
+    texture2d<float> texture1 [[ texture(1) ]],
+    constant CubismShaderUniforms &uniforms [[ buffer(MetalVertexInputIndexUniforms) ]],
+    sampler mainSampler [[ sampler(0) ]],
+    sampler subSampler [[ sampler(1) ]])
 {
-    float4 texColor = texture0.sample(smp, in.texCoord);
+    float4 texColor = texture0.sample(mainSampler, in.texCoord);
     texColor.rgb = texColor.rgb * uniforms.multiplyColor.rgb;
     texColor.rgb = (texColor.rgb + uniforms.screenColor.rgb * texColor.a) - (texColor.rgb * uniforms.screenColor.rgb);
     float4 col_formask = texColor * uniforms.baseColor;
-    float4 clipMask = (1.0 - texture1.sample(smp, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
+    float4 clipMask = (1.0 - texture1.sample(subSampler, in.myPos.xy / in.myPos.w)) * uniforms.channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     col_formask = col_formask * (1.0 - maskVal);
     float4 gl_FragColor = col_formask;

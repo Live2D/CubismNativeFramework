@@ -17,6 +17,11 @@ namespace {
 
 CubismDeviceInfo_D3D9* CubismDeviceInfo_D3D9::GetDeviceInfo(LPDIRECT3DDEVICE9 device)
 {
+    if (!s_deviceInfoList.IsExist(device))
+    {
+        // シェーダの事前初期化
+        s_deviceInfoList[device]._shader.SetupShader(device);
+    }
     return &s_deviceInfoList[device];
 }
 

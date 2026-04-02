@@ -83,9 +83,7 @@ void CubismExpressionMotion::CalculateExpressionParameters(CubismModel* model, c
         return;
     }
 
-    // CubismExpressionMotion._fadeWeight は廃止予定です。
-    // 互換性のために処理は残りますが、実際には使用しておりません。
-    _fadeWeight = UpdateFadeWeight(motionQueueEntry, userTimeSeconds);
+    UpdateFadeWeight(motionQueueEntry, userTimeSeconds);
 
     // モデルに適用する値を計算
     for (csmInt32 i = 0; i < expressionParameterValues->GetSize(); ++i)
@@ -178,13 +176,6 @@ void CubismExpressionMotion::CalculateExpressionParameters(CubismModel* model, c
 csmVector<CubismExpressionMotion::ExpressionParameter> CubismExpressionMotion::GetExpressionParameters()
 {
     return _parameters;
-}
-
-csmFloat32 CubismExpressionMotion::GetFadeWeight()
-{
-    CubismLogWarning("GetFadeWeight() is a deprecated function. Please use CubismExpressionMotionManager.GetFadeWeight(int index).");
-
-    return _fadeWeight;
 }
 
 void CubismExpressionMotion::Parse(const csmByte* buffer, csmSizeInt size)

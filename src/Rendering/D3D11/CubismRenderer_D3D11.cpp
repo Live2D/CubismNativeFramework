@@ -165,23 +165,23 @@ DirectX::XMMATRIX ConvertToD3DX(CubismMatrix44& mtx)
 {
     DirectX::XMMATRIX retMtx;
     retMtx.r[0].m128_f32[0] = mtx.GetArray()[ 0];
-    retMtx.r[0].m128_f32[1] = mtx.GetArray()[ 1];
-    retMtx.r[0].m128_f32[2] = mtx.GetArray()[ 2];
-    retMtx.r[0].m128_f32[3] = mtx.GetArray()[ 3];
+    retMtx.r[0].m128_f32[1] = mtx.GetArray()[ 4];
+    retMtx.r[0].m128_f32[2] = mtx.GetArray()[ 8];
+    retMtx.r[0].m128_f32[3] = mtx.GetArray()[12];
 
-    retMtx.r[1].m128_f32[0] = mtx.GetArray()[ 4];
+    retMtx.r[1].m128_f32[0] = mtx.GetArray()[ 1];
     retMtx.r[1].m128_f32[1] = mtx.GetArray()[ 5];
-    retMtx.r[1].m128_f32[2] = mtx.GetArray()[ 6];
-    retMtx.r[1].m128_f32[3] = mtx.GetArray()[ 7];
+    retMtx.r[1].m128_f32[2] = mtx.GetArray()[ 9];
+    retMtx.r[1].m128_f32[3] = mtx.GetArray()[13];
 
-    retMtx.r[2].m128_f32[0] = mtx.GetArray()[ 8];
-    retMtx.r[2].m128_f32[1] = mtx.GetArray()[ 9];
+    retMtx.r[2].m128_f32[0] = mtx.GetArray()[ 2];
+    retMtx.r[2].m128_f32[1] = mtx.GetArray()[ 6];
     retMtx.r[2].m128_f32[2] = mtx.GetArray()[10];
-    retMtx.r[2].m128_f32[3] = mtx.GetArray()[11];
+    retMtx.r[2].m128_f32[3] = mtx.GetArray()[14];
 
-    retMtx.r[3].m128_f32[0] = mtx.GetArray()[12];
-    retMtx.r[3].m128_f32[1] = mtx.GetArray()[13];
-    retMtx.r[3].m128_f32[2] = mtx.GetArray()[14];
+    retMtx.r[3].m128_f32[0] = mtx.GetArray()[ 3];
+    retMtx.r[3].m128_f32[1] = mtx.GetArray()[ 7];
+    retMtx.r[3].m128_f32[2] = mtx.GetArray()[11];
     retMtx.r[3].m128_f32[3] = mtx.GetArray()[15];
 
     return retMtx;
@@ -544,8 +544,8 @@ void CubismRenderer_D3D11::StartFrame(ID3D11DeviceContext* context)
     // レンダーステートフレーム先頭処理
     _deviceInfo->GetRenderState()->StartFrame();
 
-    // シェーダ・頂点宣言
-    _deviceInfo->GetShader()->SetupShader(_device, _context);
+    // コンテキストにシェーダーをバインド
+    _deviceInfo->GetShader()->BindShader(_context);
 }
 
 void CubismRenderer_D3D11::EndFrame()
@@ -835,15 +835,15 @@ void CubismRenderer_D3D11::ReleaseCommandBuffer()
         CSM_FREE(_constantBuffers);
         _constantBuffers = NULL;
     }
-    if (_constantBuffers != NULL)
+    if (_indexBuffers != NULL)
     {
         CSM_FREE(_indexBuffers);
-        _constantBuffers = NULL;
+        _indexBuffers = NULL;
     }
-    if (_constantBuffers != NULL)
+    if (_vertexBuffers != NULL)
     {
         CSM_FREE(_vertexBuffers);
-        _constantBuffers = NULL;
+        _vertexBuffers = NULL;
     }
 }
 
@@ -1303,7 +1303,7 @@ void CubismRenderer_D3D11::ExecuteDrawForMask(const CubismModel& model, const cs
 
     // テクスチャ + サンプラーセット
     SetTextureViewForDrawable(model, index);
-    SetSamplerAccordingToAnisotropy();
+    SetSamplerAccordingToAnisotropy(true);
 
     // シェーダーセット
     _context->VSSetShader(_deviceInfo->GetShader()->GetVertexShader(ShaderNames_SetupMask), NULL, 0);
@@ -1321,9 +1321,7 @@ void CubismRenderer_D3D11::ExecuteDrawForMask(const CubismModel& model, const cs
         // 色
         csmRectF* rect = GetClippingContextBufferForMask()->_layoutBounds;
         CubismTextureColor baseColor = {rect->X * 2.0f - 1.0f, rect->Y * 2.0f - 1.0f, rect->GetRight() * 2.0f - 1.0f, rect->GetBottom() * 2.0f - 1.0f};
-        CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-        CubismTextureColor screenColor = model.GetScreenColor(index);
-        SetColorConstantBuffer(cb, baseColor, multiplyColor, screenColor);
+        XMStoreFloat4(&cb.baseColor, DirectX::XMVectorSet(baseColor.R, baseColor.G, baseColor.B, baseColor.A));
 
         // プロジェクションMtx
         SetProjectionMatrix(cb, GetClippingContextBufferForMask()->_matrixForMask);
@@ -1348,7 +1346,7 @@ void CubismRenderer_D3D11::ExecuteDrawForDrawable(const CubismModel& model, cons
 
     // テクスチャ+サンプラーセット
     SetTextureViewForDrawable(model, index, isBlendMode);
-    SetSamplerAccordingToAnisotropy();
+    SetSamplerAccordingToAnisotropy(true);
 
     // シェーダーセット
     SetShaderForDrawable(model, index, blendMode);
@@ -1363,7 +1361,7 @@ void CubismRenderer_D3D11::ExecuteDrawForDrawable(const CubismModel& model, cons
         {
             // View座標をClippingContextの座標に変換するための行列を設定
             DirectX::XMMATRIX clip = ConvertToD3DX(GetClippingContextBufferForDrawable()->_matrixForDraw);
-            XMStoreFloat4x4(&cb.clipMatrix, DirectX::XMMatrixTranspose(clip));
+            XMStoreFloat4x4(&cb.clipMatrix, clip);
 
             // 使用するカラーチャンネルを設定
             CubismClippingContext_D3D11* contextBuffer = GetClippingContextBufferForDrawable();
@@ -1389,8 +1387,9 @@ void CubismRenderer_D3D11::ExecuteDrawForDrawable(const CubismModel& model, cons
             // ブレンドモード使用しない場合はDrawable単位でモデルカラーを処理する
             baseColor = GetModelColorWithOpacity(model.GetDrawableOpacity(index));
         }
-        CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-        CubismTextureColor screenColor = model.GetScreenColor(index);
+        const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+        CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetDrawableMultiplyColor(index);
+        CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetDrawableScreenColor(index);
         SetColorConstantBuffer(cb, baseColor, multiplyColor, screenColor);
 
         // プロジェクションMtx
@@ -1418,7 +1417,7 @@ void CubismRenderer_D3D11::ExecuteDrawForOffscreen(const CubismModel& model, Cub
 
     // テクスチャ + サンプラーセット
     SetTextureViewForOffscreen(model, offscreen);
-    SetSamplerAccordingToAnisotropy();
+    SetSamplerAccordingToAnisotropy(false);
 
     // シェーダーセット
     SetShaderForOffscreen(model, offscreenIndex, blendMode);
@@ -1433,7 +1432,7 @@ void CubismRenderer_D3D11::ExecuteDrawForOffscreen(const CubismModel& model, Cub
         {
             // View座標をClippingContextの座標に変換するための行列を設定
             DirectX::XMMATRIX clip = ConvertToD3DX(GetClippingContextBufferForOffscreen()->_matrixForDraw);
-            XMStoreFloat4x4(&cb.clipMatrix, DirectX::XMMatrixTranspose(clip));
+            XMStoreFloat4x4(&cb.clipMatrix, clip);
 
             // 使用するカラーチャンネルを設定
             CubismClippingContext_D3D11* contextBuffer = GetClippingContextBufferForOffscreen();
@@ -1444,8 +1443,9 @@ void CubismRenderer_D3D11::ExecuteDrawForOffscreen(const CubismModel& model, Cub
         csmFloat32 offscreenOpacity = model.GetOffscreenOpacity(offscreenIndex);
         // PMAなのと不透明度だけを変更したいためすべてOpacityで初期化
         CubismTextureColor baseColor(offscreenOpacity, offscreenOpacity, offscreenOpacity, offscreenOpacity);
-        CubismTextureColor multiplyColor = model.GetMultiplyColorOffscreen(offscreenIndex);
-        CubismTextureColor screenColor = model.GetScreenColorOffscreen(offscreenIndex);
+        const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+        CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetOffscreenMultiplyColor(offscreenIndex);
+        CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetOffscreenScreenColor(offscreenIndex);
         SetColorConstantBuffer(cb, baseColor, multiplyColor, screenColor);
 
         // プロジェクション行列
@@ -1495,7 +1495,7 @@ void CubismRenderer_D3D11::ExecuteDrawForRenderTarget()
     // テクスチャ+サンプラーセット
     ID3D11ShaderResourceView* const viewArray[3] = { _modelRenderTargets[0].GetTextureView(), NULL, NULL };
     _context->PSSetShaderResources(0, 3, viewArray);
-    SetSamplerAccordingToAnisotropy();
+    SetSamplerAccordingToAnisotropy(false);
 
     // シェーダーセット
     _context->VSSetShader(_deviceInfo->GetShader()->GetVertexShader(ShaderNames_Copy), NULL, 0);
@@ -1957,7 +1957,7 @@ void CubismRenderer_D3D11::SetColorChannel(CubismConstantBufferD3D11& cb, Cubism
 void CubismRenderer_D3D11::SetProjectionMatrix(CubismConstantBufferD3D11& cb, CubismMatrix44 matrix)
 {
     DirectX::XMMATRIX proj = ConvertToD3DX(matrix);
-    XMStoreFloat4x4(&cb.projectMatrix, DirectX::XMMatrixTranspose(proj));
+    XMStoreFloat4x4(&cb.projectMatrix, proj);
 }
 
 void CubismRenderer_D3D11::UpdateConstantBuffer(CubismConstantBufferD3D11& cb, csmInt32 index)
@@ -1969,15 +1969,22 @@ void CubismRenderer_D3D11::UpdateConstantBuffer(CubismConstantBufferD3D11& cb, c
     _context->PSSetConstantBuffers(0, 1, &constantBuffer);
 }
 
-void CubismRenderer_D3D11::SetSamplerAccordingToAnisotropy()
+void CubismRenderer_D3D11::SetSamplerAccordingToAnisotropy(const csmBool useDrawable)
 {
-    if (GetAnisotropy() >= 1.0f)
+    if (useDrawable)
     {
-        _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Anisotropy, GetAnisotropy(), _device);
+        if (GetAnisotropy() >= 1.0f)
+        {
+            _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Anisotropy, GetAnisotropy(), _device);
+        }
+        else
+        {
+            _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Drawable);
+        }
     }
     else
     {
-        _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Normal);
+        _deviceInfo->GetRenderState()->SetSampler(_context, CubismRenderState_D3D11::Sampler_Other);
     }
 }
 

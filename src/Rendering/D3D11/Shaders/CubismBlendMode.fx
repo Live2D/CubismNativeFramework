@@ -19,7 +19,7 @@ VS_OUT VertCopy(VS_IN In) {
 }
 
 float4 PixelCopy(VS_OUT In) : SV_Target {
-    float4 color = mainTexture.Sample(mainSampler, In.uv);
+    float4 color = mainTexture.Sample(blendSampler, In.uv);
     return color * baseColor;
 }
 
@@ -355,7 +355,7 @@ ColorInfo GetNormalColorInfo(VS_OUT In) {
     texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);
     ColorInfo color;
     color.source = texColor * baseColor;
-    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(mainSampler, In.blendUv));
+    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(blendSampler, In.blendUv));
     return color;
 }
 
@@ -366,7 +366,7 @@ ColorInfo GetNormalPremultColorInfo(VS_OUT In) {
     texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);
     ColorInfo color;
     color.source = ConvertPremultipliedToStraight(texColor * baseColor);
-    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(mainSampler, In.blendUv));
+    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(blendSampler, In.blendUv));
     return color;
 }
 
@@ -382,7 +382,7 @@ ColorInfo GetMaskedColorInfo(VS_OUT In) {
     float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color.source = float4(color.source.rgb, color.source.a * maskVal);
-    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(mainSampler, In.blendUv));
+    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(blendSampler, In.blendUv));
     return color;
 }
 
@@ -398,7 +398,7 @@ ColorInfo GetMaskedInvertedColorInfo(VS_OUT In) {
     float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color.source = float4(color.source.rgb, color.source.a * (1.0f - maskVal));
-    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(mainSampler, In.blendUv));
+    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(blendSampler, In.blendUv));
     return color;
 }
 
@@ -414,7 +414,7 @@ ColorInfo GetMaskedPremultColorInfo(VS_OUT In) {
     float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color.source = float4(color.source.rgb, color.source.a * maskVal);
-    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(mainSampler, In.blendUv));
+    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(blendSampler, In.blendUv));
     return color;
 }
 
@@ -430,7 +430,7 @@ ColorInfo GetMaskedInvertedPremultColorInfo(VS_OUT In) {
     float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, maskUv)) * channelFlag;
     float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;
     color.source = float4(color.source.rgb, color.source.a * (1.0f - maskVal));
-    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(mainSampler, In.blendUv));
+    color.destination = ConvertPremultipliedToStraight(blendTexture.Sample(blendSampler, In.blendUv));
     return color;
 }
 
@@ -466,16 +466,6 @@ CSM_CREATE_BLEND_MODE(COLOR, ConjointOver) \
 CSM_CREATE_BLEND_MODE(COLOR, DisjointOver)
 
 // normal
-CSM_CREATE_PIXEL_FUNC(Masked, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(MaskedInverted, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(NormalPremult, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(MaskedPremult, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(MaskedInvertedPremult, Normal, Over)
-
 CSM_CREATE_BLEND_MODE(Normal, Atop)
 
 CSM_CREATE_BLEND_MODE(Normal, Out)

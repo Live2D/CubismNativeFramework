@@ -1,5 +1,7 @@
 target_sources(${LIB_NAME}
   PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismDeviceInfo_Vulkan.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CubismDeviceInfo_Vulkan.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenManager_Vulkan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenManager_Vulkan.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CubismOffscreenRenderTarget_Vulkan.cpp

@@ -29,6 +29,7 @@ CubismRenderTarget_OpenGLES2::CubismRenderTarget_OpenGLES2()
     : _renderTexture(0)
     , _colorBuffer(0)
     , _oldFBO(0)
+    , _oldViewport{0, 0, 0, 0}
     , _bufferWidth(0)
     , _bufferHeight(0)
     , _isColorBufferInherited(false)
@@ -52,6 +53,9 @@ void CubismRenderTarget_OpenGLES2::BeginDraw(GLint restoreFBO)
         _oldFBO = restoreFBO;
     }
 
+    // ビューポートを記憶しておく
+    glGetIntegerv(GL_VIEWPORT, _oldViewport);
+
     // マスク用RenderTextureをactiveにセット
     glBindFramebuffer(GL_FRAMEBUFFER, _renderTexture);
 }
@@ -65,6 +69,7 @@ void CubismRenderTarget_OpenGLES2::EndDraw()
 
     // 描画対象を戻す
     glBindFramebuffer(GL_FRAMEBUFFER, _oldFBO);
+    glViewport(_oldViewport[0], _oldViewport[1], _oldViewport[2], _oldViewport[3]);
 }
 
 void CubismRenderTarget_OpenGLES2::Clear(float r, float g, float b, float a)
@@ -90,10 +95,15 @@ csmBool CubismRenderTarget_OpenGLES2::CreateRenderTarget(csmUint32 displayBuffer
 
             glBindTexture(GL_TEXTURE_2D, _colorBuffer);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, displayBufferWidth, displayBufferHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+#if defined(CSM_TARGET_ANDROID_ES2) || defined(CSM_TARGET_IPHONE_ES2)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+#endif
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glBindTexture(GL_TEXTURE_2D, 0);
 
             _isColorBufferInherited = false;

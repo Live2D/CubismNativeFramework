@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -10,28 +10,12 @@
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
 
-namespace {
-    CubismOffscreenManager_Vulkan* s_instance = nullptr;
+CubismOffscreenManager_Vulkan::CubismOffscreenManager_Vulkan()
+{
 }
 
-CubismOffscreenManager_Vulkan* CubismOffscreenManager_Vulkan::GetInstance()
+CubismOffscreenManager_Vulkan::~CubismOffscreenManager_Vulkan()
 {
-    if (s_instance == NULL)
-    {
-        s_instance = new CubismOffscreenManager_Vulkan();
-    }
-
-    return s_instance;
-}
-
-void CubismOffscreenManager_Vulkan::ReleaseInstance()
-{
-    if (s_instance != NULL)
-    {
-        delete s_instance;
-    }
-
-    s_instance = NULL;
 }
 
 CubismRenderTarget_Vulkan* CubismOffscreenManager_Vulkan::GetOffscreenRenderTarget(
@@ -64,14 +48,6 @@ CubismRenderTarget_Vulkan* CubismOffscreenManager_Vulkan::GetOffscreenRenderTarg
         displayBufferWidth, displayBufferHeight, surfaceFormat, depthFormat);
 
     return offscreenRenderTarget;
-}
-
-CubismOffscreenManager_Vulkan::CubismOffscreenManager_Vulkan()
-{
-}
-
-CubismOffscreenManager_Vulkan::~CubismOffscreenManager_Vulkan()
-{
 }
 
 }}}}

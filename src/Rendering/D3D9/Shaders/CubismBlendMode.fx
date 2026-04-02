@@ -25,7 +25,7 @@ VS_OUT VertCopy(VS_IN In) {
 }
 
 float4 PixelCopy(VS_OUT In) : COLOR0 {
-    float4 color = tex2D(mainSampler, In.uv);
+    float4 color = tex2D(blendSampler, In.uv);
     return color * baseColor;
 }
 
@@ -474,16 +474,6 @@ CSM_CREATE_BLEND_MODE(COLOR, ConjointOver) \
 CSM_CREATE_BLEND_MODE(COLOR, DisjointOver)
 
 // normal
-CSM_CREATE_PIXEL_FUNC(Masked, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(MaskedInverted, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(NormalPremult, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(MaskedPremult, Normal, Over)
-
-CSM_CREATE_PIXEL_FUNC(MaskedInvertedPremult, Normal, Over)
-
 CSM_CREATE_BLEND_MODE(Normal, Atop)
 
 CSM_CREATE_BLEND_MODE(Normal, Out)
@@ -569,7 +559,10 @@ CSM_CREATE_TECHNIQUE(MASK_NAME, VERT, MASK, COLOR, ConjointOver) \
 CSM_CREATE_TECHNIQUE(MASK_NAME, VERT, MASK, COLOR, DisjointOver)
 
 #define CSM_CREATE_BLEND_MODE_TECHNIQUE(MASK_NAME, VERT, MASK) \
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(MASK_NAME, VERT, MASK, Normal) \
+CSM_CREATE_TECHNIQUE(MASK_NAME, VERT, MASK, Normal, Atop) \
+CSM_CREATE_TECHNIQUE(MASK_NAME, VERT, MASK, Normal, Out) \
+CSM_CREATE_TECHNIQUE(MASK_NAME, VERT, MASK, Normal, ConjointOver) \
+CSM_CREATE_TECHNIQUE(MASK_NAME, VERT, MASK, Normal, DisjointOver) \
 \
 CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(MASK_NAME, VERT, MASK, Add)\
 \
@@ -602,43 +595,7 @@ CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(MASK_NAME, VERT, MASK, Hue) \
 CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(MASK_NAME, VERT, MASK, Color)
 
 // normal
-CSM_CREATE_TECHNIQUE(Normal, VertNormalBlend, Normal, Normal, Atop)
-
-CSM_CREATE_TECHNIQUE(Normal, VertNormalBlend, Normal, Normal, Out)
-
-CSM_CREATE_TECHNIQUE(Normal, VertNormalBlend, Normal, Normal, ConjointOver)
-
-CSM_CREATE_TECHNIQUE(Normal, VertNormalBlend, Normal, Normal, DisjointOver)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Add)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, AddGlow)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Darken)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Multiply)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, ColorBurn)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, LinearBurn)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Lighten)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Screen)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, ColorDodge)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Overlay)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, SoftLight)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, HardLight)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, LinearLight)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Hue)
-
-CSM_CREATE_BLEND_OVERLAP_TECHNIQUE(Normal, VertNormalBlend, Normal, Color)
+CSM_CREATE_BLEND_MODE_TECHNIQUE(Normal, VertNormalBlend, Normal)
 
 // Masked
 CSM_CREATE_BLEND_MODE_TECHNIQUE(Masked, VertMaskedBlend, Masked)

@@ -23,13 +23,11 @@ CubismUserModel::CubismUserModel()
     , _dragManager(NULL)
     , _physics(NULL)
     , _modelUserData(NULL)
+    , _look(NULL)
     , _initialized(false)
     , _updating(false)
     , _opacity(1.0f)
-    , _lipSync(true)
     , _lastLipSyncValue(0.0f)
-    , _dragX(0.0f)
-    , _dragY(0.0f)
     , _accelerationX(0.0f)
     , _accelerationY(0.0f)
     , _accelerationZ(0.0f)
@@ -67,6 +65,7 @@ CubismUserModel::~CubismUserModel()
     CSM_DELETE(_dragManager);
     CubismPhysics::Delete(_physics);
     CubismModelUserData::Delete(_modelUserData);
+    CubismLook::Delete(_look);
 
     DeleteRenderer();
 }

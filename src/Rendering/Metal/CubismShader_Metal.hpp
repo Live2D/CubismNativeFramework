@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
  * Use of this source code is governed by the Live2D Open Software license
@@ -98,6 +98,22 @@ public:
     void CopyTexture(id<MTLTexture> texture, CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
                                 , CubismRenderer_Metal* renderer);
 
+    /**
+     * @brief   シェーダがまだ未設定ならロードする
+     *
+     * @param[in]       device  ->  デバイスのインスタンス
+     */
+    void SetupShader(id<MTLDevice> device);
+
+    /**
+     * @brief   サンプラーを設定する。
+     *
+     * @param[in]   device  ->  デバイスのインスタンス
+     * @param[in]   anisotropy ->  異方性フィルタリング
+     * @param[in]   useDrawable -> 画像の読み込みとしてDrawableを使用するか
+     */
+    void SetSampler(id<MTLDevice> device, csmFloat32 anisotropy, csmBool useDrawable);
+
 private:
     struct ShaderProgram
     {
@@ -111,10 +127,20 @@ private:
     */
     struct CubismShaderSet
     {
+        CubismShaderSet()
+            : ShaderProgram(nil)
+            , RenderPipelineState(nil)
+            , DepthStencilState(nil)
+            , MainSamplerState(nil)
+            , SubSamplerState(nil)
+        {
+        }
+
         ShaderProgram *ShaderProgram; ///< シェーダプログラムのアドレス
         id<MTLRenderPipelineState> RenderPipelineState;
         id<MTLDepthStencilState> DepthStencilState;
-        id<MTLSamplerState> SamplerState;
+        id<MTLSamplerState> MainSamplerState;
+        id<MTLSamplerState> SubSamplerState;
     };
 
     enum ShaderNames
@@ -198,8 +224,10 @@ private:
 
     /**
      * @brief   シェーダプログラムを初期化する
+     *
+     * @param[in]       device  ->  デバイスのインスタンス
      */
-    void GenerateShaders(CubismRenderer_Metal* renderer);
+    void GenerateShaders(id<MTLDevice> device);
 
     /**
      * @brief   ブレンドモード用シェーダプログラムを初期化する
@@ -210,9 +238,8 @@ private:
      * @param[in]       vertShaderSrc        ->  頂点シェーダーのソース
      * @param[in]       fragShaderSrc        ->  フラグメントシェーダーのソース
      * @param[in]       device               ->  デバイスのインスタンス
-     * @param[in]       renderer             ->  レンダラのインスタンス
      */
-    void GenerateBlendShader(CubismShaderSet* shaderSet, const csmString& vertShaderFileName, const csmString& fragShaderFileName, const csmString& vertShaderSrc, const csmString& fragShaderSrc, id<MTLDevice> device, CubismRenderer_Metal* renderer);
+    void GenerateBlendShader(CubismShaderSet* shaderSet, const csmString& vertShaderFileName, const csmString& fragShaderFileName, const csmString& vertShaderSrc, const csmString& fragShaderSrc, id<MTLDevice> device);
 
     /**
      * @brief   CubismMatrix44をsimd::float4x4の形式に変換する
@@ -284,10 +311,43 @@ private:
 
     id<MTLRenderPipelineState> MakeRenderPipelineState(id<MTLDevice> device, ShaderProgram* shaderProgram, int blendMode);
     id<MTLDepthStencilState> MakeDepthStencilState(id<MTLDevice> device);
-    id<MTLSamplerState> MakeSamplerState(id<MTLDevice> device, CubismRenderer_Metal* renderer);
 
+    /**
+     * @brief   アートメッシュ用のサンプラーを作成する。
+     *
+     * @param[in]   device   ->  デバイスのインスタンス
+     * @param[in]   anisotropy ->  異方性フィルタリング
+     *
+     * @return  サンプラーを返す
+     */
+    id<MTLSamplerState> MakeDrawableSamplerState(id<MTLDevice> device, csmFloat32 anisotropy);
+
+    /**
+     * @brief   アートメッシュ以外用のサンプラーを作成する。
+     *
+     * @param[in]   device   ->  デバイスのインスタンス
+     * @param[in]   anisotropy ->  異方性フィルタリング
+     *
+     * @return  サンプラーを返す
+     */
+    id<MTLSamplerState> MakeOtherSamplerState(id<MTLDevice> device, csmFloat32 anisotropy);
+
+    /**
+     * @brief   サンプラーを初期設定する。
+     *
+     * @param[in]   device  ->  デバイスのインスタンス
+     * @param[in]   anisotropy ->  異方性フィルタリング
+     * @param[in]   useDrawable -> 画像の読み込みとしてDrawableを使用するか
+     */
+    void InitializeSampler(id<MTLDevice> device, csmFloat32 anisotropy, const csmBool useDrawable);
+
+    /**
+     * @brief   サンプラーを開放する。
+     */
+    void ReleaseSampler();
 
     csmVector<CubismShaderSet*> _shaderSets;   ///< ロードしたシェーダプログラムを保持する変数
+    csmFloat32 _anisotropy;
 
 };
 

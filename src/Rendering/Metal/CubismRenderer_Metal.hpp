@@ -148,6 +148,14 @@ public:
     void StartFrame(id<MTLCommandBuffer> commandBuffer, MTLRenderPassDescriptor* renderPassDescriptor);
 
     /**
+     * @brief  モデル描画時に適用するビューポートを設定
+     *          設定しない場合はMetalのデフォルト値を使用
+     *
+     * @param[in]    viewport-> ビューポート
+     */
+    void SetRenderViewport(MTLViewport viewport);
+
+    /**
      * @brief    レンダラの初期化処理を実行する
      *           引数に渡したモデルからレンダラの初期化処理に必要な情報を取り出すことができる
      *
@@ -531,6 +539,8 @@ private:
 
     CubismCommandBuffer_Metal::DrawCommandBuffer* _copyCommandBuffer;
 
+    MTLViewport _renderViewport;    ///< モデル描画時に使用するビューポート
+    csmBool _renderViewportIsSet;   ///< ビューポートが設定済みかどうか
 };
 
 }}}}

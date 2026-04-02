@@ -114,7 +114,6 @@ csmInt32 CubismShader_Metal::GetShaderNamesBegin(const csmBlendMode blendMode)
 #undef CSM_GET_SHADER_NAME
 }
 
-
 //// SetupMask
 static const csmChar* VertShaderSrcSetupMask = "VertShaderSrcSetupMask";
 
@@ -155,23 +154,57 @@ static const csmChar* FragShaderSrcMaskInvertedPremultipliedAlpha = "FragShaderS
 static const csmChar* ShaderLibsDir = "FrameworkMetallibs";
 
 CubismShader_Metal::CubismShader_Metal()
+    : _anisotropy(0.0f)
 {
 }
 
 CubismShader_Metal::~CubismShader_Metal()
 {
+    ReleaseSampler();
 }
 
-void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
+void CubismShader_Metal::SetupShader(id<MTLDevice> device)
 {
+    GenerateShaders(device);
+}
+
+void CubismShader_Metal::SetSampler(id<MTLDevice> device, csmFloat32 anisotropy, const csmBool useDrawable)
+{
+    if (_shaderSets.GetSize() == 0)
+    {
+        return;
+    }
+
+    if (_anisotropy != anisotropy)
+    {
+        // 異方性フィルタリングが違うならサンプラを作成しなおす
+        InitializeSampler(device, anisotropy, useDrawable);
+    }
+    else
+    {
+        // 同じならサンプラーを入れ替える
+        for (csmInt32 i = ShaderNames_Normal; i < ShaderNames_ShaderCount; ++i)
+        {
+            _shaderSets[i]->MainSamplerState = useDrawable ?
+                _shaderSets[ShaderNames_SetupMask]->MainSamplerState :
+                _shaderSets[ShaderNames_Copy]->MainSamplerState;
+        }
+    }
+}
+
+void CubismShader_Metal::GenerateShaders(id<MTLDevice> device)
+{
+    if (_shaderSets.GetSize() > 0)
+    {
+        return;
+    }
+
     for (csmInt32 i = 0; i < ShaderNames_ShaderCount; ++i)
     {
         _shaderSets.PushBack(CSM_NEW CubismShaderSet());
     }
 
     //シェーダライブラリのロード（.metal）
-    id <MTLDevice> device = renderer->GetDevice();
-
     NSString *subDir = [NSString stringWithCString:ShaderLibsDir encoding:NSUTF8StringEncoding];
     NSURL *libraryURL = [[NSBundle mainBundle] URLForResource:@"MetalShaders" withExtension:@"metallib" subdirectory:subDir];
     id<MTLLibrary> shaderLib = [device newLibraryWithURL:libraryURL error:nil];
@@ -194,10 +227,8 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
     _shaderSets[ShaderNames_NormalMaskedInvertedPremultipliedAlpha]->ShaderProgram = LoadShaderProgram(VertShaderSrcMasked, FragShaderSrcMaskInvertedPremultipliedAlpha, shaderLib);
 
     _shaderSets[ShaderNames_SetupMask]->RenderPipelineState = MakeRenderPipelineState(device, _shaderSets[ShaderNames_SetupMask]->ShaderProgram, CubismRenderer::CubismBlendMode_Mask);
-    _shaderSets[ShaderNames_SetupMask]->SamplerState = MakeSamplerState(device, renderer);
 
     _shaderSets[ShaderNames_Copy]->RenderPipelineState = MakeRenderPipelineState(device, _shaderSets[ShaderNames_Copy]->ShaderProgram, CubismRenderer::CubismBlendMode_Normal);
-    _shaderSets[ShaderNames_Copy]->SamplerState = MakeSamplerState(device, renderer);
     _shaderSets[ShaderNames_Copy]->DepthStencilState = MakeDepthStencilState(device);
 
     _shaderSets[ShaderNames_Normal]->RenderPipelineState = MakeRenderPipelineState(device, _shaderSets[ShaderNames_Normal]->ShaderProgram, CubismRenderer::CubismBlendMode_Normal);
@@ -213,13 +244,6 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
     _shaderSets[ShaderNames_NormalPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
     _shaderSets[ShaderNames_NormalMaskedPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
     _shaderSets[ShaderNames_NormalMaskedInvertedPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
-
-    _shaderSets[ShaderNames_Normal]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_NormalMasked]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_NormalMaskedInverted]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_NormalPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_NormalMaskedPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_NormalMaskedInvertedPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
 
     // 加算も通常と同じシェーダーを利用する
     _shaderSets[ShaderNames_Add]->ShaderProgram = _shaderSets[ShaderNames_Normal]->ShaderProgram;
@@ -243,13 +267,6 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
     _shaderSets[ShaderNames_AddMaskedPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
     _shaderSets[ShaderNames_AddMaskedInvertedPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
 
-    _shaderSets[ShaderNames_Add]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_AddMasked]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_AddMaskedInverted]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_AddPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_AddMaskedPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_AddMaskedInvertedPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-
     // 乗算も通常と同じシェーダーを利用する
     _shaderSets[ShaderNames_Mult]->ShaderProgram = _shaderSets[ShaderNames_Normal]->ShaderProgram;
     _shaderSets[ShaderNames_MultMasked]->ShaderProgram = _shaderSets[ShaderNames_NormalMasked]->ShaderProgram;
@@ -271,13 +288,6 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
     _shaderSets[ShaderNames_MultPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
     _shaderSets[ShaderNames_MultMaskedPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
     _shaderSets[ShaderNames_MultMaskedInvertedPremultipliedAlpha]->DepthStencilState = _shaderSets[ShaderNames_Normal]->DepthStencilState;
-
-    _shaderSets[ShaderNames_Mult]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_MultMasked]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_MultMaskedInverted]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_MultPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_MultMaskedPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
-    _shaderSets[ShaderNames_MultMaskedInvertedPremultipliedAlpha]->SamplerState = _shaderSets[ShaderNames_SetupMask]->SamplerState;
 
     // 5.3以降
     // ブレンドモードの組み合わせ分作成
@@ -307,8 +317,7 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
                                     fragShaderFileName,
                                     vertShaderFileName,
                                     baseFragShaderFileName,
-                                    device,
-                                    renderer);
+                                    device);
 
                 vertShaderFileName = csmString("VertShaderSrcMaskedBlend");
                 baseFragShaderFileName = csmString("FragShaderSrcMaskBlend");
@@ -318,8 +327,7 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
                                     fragShaderFileName,
                                     vertShaderFileName,
                                     baseFragShaderFileName,
-                                    device,
-                                    renderer);
+                                    device);
 
                 vertShaderFileName = csmString("VertShaderSrcMaskedBlend");
                 baseFragShaderFileName = csmString("FragShaderSrcMaskInvertedBlend");
@@ -329,8 +337,7 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
                                     fragShaderFileName,
                                     vertShaderFileName,
                                     baseFragShaderFileName,
-                                    device,
-                                    renderer);
+                                    device);
 
                 vertShaderFileName = csmString("VertShaderSrcBlend");
                 baseFragShaderFileName = csmString("FragShaderSrcPremultipliedAlphaBlend");
@@ -340,8 +347,7 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
                                     fragShaderFileName,
                                     vertShaderFileName,
                                     baseFragShaderFileName,
-                                    device,
-                                    renderer);
+                                    device);
 
                 vertShaderFileName = csmString("VertShaderSrcMaskedBlend");
                 baseFragShaderFileName = csmString("FragShaderSrcMaskPremultipliedAlphaBlend");
@@ -351,8 +357,7 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
                                     fragShaderFileName,
                                     vertShaderFileName,
                                     baseFragShaderFileName,
-                                    device,
-                                    renderer);
+                                    device);
 
                 vertShaderFileName = csmString("VertShaderSrcMaskedBlend");
                 baseFragShaderFileName = csmString("FragShaderSrcMaskInvertedPremultipliedAlphaBlend");
@@ -362,23 +367,28 @@ void CubismShader_Metal::GenerateShaders(CubismRenderer_Metal* renderer)
                                     fragShaderFileName,
                                     vertShaderFileName,
                                     baseFragShaderFileName,
-                                    device,
-                                    renderer);
+                                    device);
             }
         }
     }
+
+    // サンプラーの初期化
+    InitializeSampler(device, _anisotropy, true);
 }
 
-void CubismShader_Metal::GenerateBlendShader(CubismShaderSet* shaderSet, const csmString& vertShaderFileName, const csmString& fragShaderFileName, const csmString& vertShaderSrc, const csmString& fragShaderSrc, id<MTLDevice> device, CubismRenderer_Metal* renderer)
+void CubismShader_Metal::GenerateBlendShader(CubismShaderSet* shaderSet, const csmString& vertShaderFileName, const csmString& fragShaderFileName, const csmString& vertShaderSrc, const csmString& fragShaderSrc, id<MTLDevice> device)
 {
     shaderSet->ShaderProgram = LoadShaderProgramFromFile(vertShaderFileName,
                                                          fragShaderFileName,
                                                          vertShaderFileName,
                                                          fragShaderSrc,
                                                          device);
+    if (shaderSet->ShaderProgram == NULL)
+    {
+        return;
+    }
     shaderSet->RenderPipelineState = MakeRenderPipelineState(device, shaderSet->ShaderProgram, 10);
 
-    shaderSet->SamplerState = MakeSamplerState(device, renderer);
     shaderSet->DepthStencilState = MakeDepthStencilState(device);
 }
 
@@ -414,11 +424,10 @@ void CubismShader_Metal::SetVertexBufferForVerticesAndUvs(CubismCommandBuffer_Me
 void CubismShader_Metal::SetupShaderProgramForDrawable(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
                                                   , CubismRenderer_Metal* renderer, const CubismModel& model, const csmInt32 index, id<MTLTexture> blendTexture)
 {
-    // シェーダー生成
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders(renderer);
-    }
+    // サンプラーの設定
+    id<MTLDevice> device = renderer->GetDevice();
+    CubismDeviceInfo_Metal* deviceInfo = CubismDeviceInfo_Metal::GetDeviceInfo(device);
+    deviceInfo->GetShader()->SetSampler(device, renderer->GetAnisotropy(), true);
 
     // シェーダーセットの設定
     const csmBool masked = renderer->GetClippingContextBufferForDrawable() != NULL;
@@ -494,8 +503,9 @@ void CubismShader_Metal::SetupShaderProgramForDrawable(CubismCommandBuffer_Metal
         // ブレンドモードを使用しない場合はDrawable単位でモデルカラーを処理する
         baseColor = renderer->GetModelColorWithOpacity(model.GetDrawableOpacity(index));
     }
-    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColor(index);
-    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColor(index);
+    const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+    CubismRenderer::CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetDrawableMultiplyColor(index);
+    CubismRenderer::CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetDrawableScreenColor(index);
 
     shaderUniforms.baseColor = (vector_float4){ baseColor.R, baseColor.G, baseColor.B, baseColor.A };
     shaderUniforms.multiplyColor = (vector_float4){ multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
@@ -504,7 +514,11 @@ void CubismShader_Metal::SetupShaderProgramForDrawable(CubismCommandBuffer_Metal
     // 転送
     [renderEncoder setVertexBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
     [renderEncoder setFragmentBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-    [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
+    [renderEncoder setFragmentSamplerState:shaderSet->MainSamplerState atIndex:0];
+    if (masked || isBlendMode)
+    {
+        [renderEncoder setFragmentSamplerState:shaderSet->SubSamplerState atIndex:1];
+    }
     [renderEncoder setDepthStencilState:shaderSet->DepthStencilState];
 
     drawCommandBuffer->GetCommandDraw()->SetRenderPipelineState(shaderSet->RenderPipelineState);
@@ -513,11 +527,10 @@ void CubismShader_Metal::SetupShaderProgramForDrawable(CubismCommandBuffer_Metal
 void CubismShader_Metal::SetupShaderProgramForMask(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
                                                 , CubismRenderer_Metal* renderer, const CubismModel& model, const csmInt32 index)
 {
-    // シェーダー生成
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders(renderer);
-    }
+    // サンプラーの設定
+    id<MTLDevice> device = renderer->GetDevice();
+    CubismDeviceInfo_Metal* deviceInfo = CubismDeviceInfo_Metal::GetDeviceInfo(device);
+    deviceInfo->GetShader()->SetSampler(device, renderer->GetAnisotropy(), true);
 
     // シェーダーセットの設定
     CubismShaderSet* shaderSet = _shaderSets[ShaderNames_SetupMask];
@@ -546,7 +559,7 @@ void CubismShader_Metal::SetupShaderProgramForMask(CubismCommandBuffer_Metal::Dr
     // 転送
     [renderEncoder setVertexBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
     [renderEncoder setFragmentBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-    [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
+    [renderEncoder setFragmentSamplerState:shaderSet->MainSamplerState atIndex:0];
 
     drawCommandBuffer->GetCommandDraw()->SetRenderPipelineState(shaderSet->RenderPipelineState);
 }
@@ -570,10 +583,10 @@ void CubismShader_Metal::SetupShaderProgramForRenderTarget(CubismCommandBuffer_M
 void CubismShader_Metal::CopyTexture(id<MTLTexture> texture, CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
                                 , CubismRenderer_Metal* renderer)
 {
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders(renderer);
-    }
+    // サンプラーの設定
+    id<MTLDevice> device = renderer->GetDevice();
+    CubismDeviceInfo_Metal* deviceInfo = CubismDeviceInfo_Metal::GetDeviceInfo(device);
+    deviceInfo->GetShader()->SetSampler(device, renderer->GetAnisotropy(), false);
 
     CubismShaderSet* shaderSet = _shaderSets[ShaderNames_Copy];
 
@@ -584,7 +597,7 @@ void CubismShader_Metal::CopyTexture(id<MTLTexture> texture, CubismCommandBuffer
     SetVertexBufferForVerticesAndUvs(drawCommandBuffer, renderEncoder);
 
     // 転送
-    [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
+    [renderEncoder setFragmentSamplerState:shaderSet->MainSamplerState atIndex:0];
     [renderEncoder setDepthStencilState:shaderSet->DepthStencilState];
 
     drawCommandBuffer->GetCommandDraw()->SetRenderPipelineState(shaderSet->RenderPipelineState);
@@ -593,13 +606,12 @@ void CubismShader_Metal::CopyTexture(id<MTLTexture> texture, CubismCommandBuffer
 void CubismShader_Metal::SetupShaderProgramForOffscreen(CubismCommandBuffer_Metal::DrawCommandBuffer* drawCommandBuffer, id <MTLRenderCommandEncoder> renderEncoder
                                 , CubismRenderer_Metal* renderer, const CubismModel& model, const CubismOffscreenRenderTarget_Metal* offscreen, id<MTLTexture> blendTexture)
 {
-    // シェーダー生成
-    if (_shaderSets.GetSize() == 0)
-    {
-        GenerateShaders(renderer);
-    }
-
     csmInt32 offscreenIndex = offscreen->GetOffscreenIndex();
+
+    // サンプラーの設定
+    id<MTLDevice> device = renderer->GetDevice();
+    CubismDeviceInfo_Metal* deviceInfo = CubismDeviceInfo_Metal::GetDeviceInfo(device);
+    deviceInfo->GetShader()->SetSampler(device, renderer->GetAnisotropy(), false);
 
     // シェーダーセットの設定
     const csmBool masked = renderer->GetClippingContextBufferForOffscreen() != NULL;
@@ -663,8 +675,9 @@ void CubismShader_Metal::SetupShaderProgramForOffscreen(CubismCommandBuffer_Meta
     // オフスクリーンはPMA前提
     csmFloat32 offscreenOpacity = model.GetOffscreenOpacity(offscreenIndex);
     CubismRenderer::CubismTextureColor baseColor(offscreenOpacity, offscreenOpacity, offscreenOpacity, offscreenOpacity);
-    CubismRenderer::CubismTextureColor multiplyColor = model.GetMultiplyColorOffscreen(offscreenIndex);
-    CubismRenderer::CubismTextureColor screenColor = model.GetScreenColorOffscreen(offscreenIndex);
+    const CubismModelMultiplyAndScreenColor& overrideMultiplyAndScreenColor = model.GetOverrideMultiplyAndScreenColor();
+    CubismRenderer::CubismTextureColor multiplyColor = overrideMultiplyAndScreenColor.GetOffscreenMultiplyColor(offscreenIndex);
+    CubismRenderer::CubismTextureColor screenColor = overrideMultiplyAndScreenColor.GetOffscreenScreenColor(offscreenIndex);
 
     shaderUniforms.baseColor = (vector_float4){ baseColor.R, baseColor.G, baseColor.B, baseColor.A };
     shaderUniforms.multiplyColor = (vector_float4){ multiplyColor.R, multiplyColor.G, multiplyColor.B, multiplyColor.A };
@@ -673,7 +686,8 @@ void CubismShader_Metal::SetupShaderProgramForOffscreen(CubismCommandBuffer_Meta
     // 転送
     [renderEncoder setVertexBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
     [renderEncoder setFragmentBytes:&shaderUniforms length:sizeof(CubismShaderUniforms) atIndex:MetalVertexInputIndexUniforms];
-    [renderEncoder setFragmentSamplerState:shaderSet->SamplerState atIndex:0];
+    [renderEncoder setFragmentSamplerState:shaderSet->MainSamplerState atIndex:0];
+    [renderEncoder setFragmentSamplerState:shaderSet->SubSamplerState atIndex:1];
     [renderEncoder setDepthStencilState:shaderSet->DepthStencilState];
 
     drawCommandBuffer->GetCommandDraw()->SetRenderPipelineState(shaderSet->RenderPipelineState);
@@ -757,6 +771,7 @@ CubismShader_Metal::ShaderProgram* CubismShader_Metal::LoadShaderProgramFromFile
    if([vertShaderData length] == 0)
    {
        NSLog(@"ERROR: File is loaded but file size is zero : %@", [vertShaderFileLibURL absoluteString]);
+       return nil;
    }
     NSUInteger vertShaderByteLen = [vertShaderData length];
     Byte* vertShaderByteData = (Byte*)malloc(vertShaderByteLen);
@@ -766,7 +781,7 @@ CubismShader_Metal::ShaderProgram* CubismShader_Metal::LoadShaderProgramFromFile
     if(!vertShaderLib)
     {
         NSLog(@" ERROR: Couldnt create a vertex shader library");
-        return;
+        return nil;
     }
 
     // フラグメントシェーダの取得
@@ -779,6 +794,7 @@ CubismShader_Metal::ShaderProgram* CubismShader_Metal::LoadShaderProgramFromFile
    if([fragShaderData length] == 0)
    {
        NSLog(@"ERROR: File is loaded but file size is zero : %@", [fragShaderFileLibURL absoluteString]);
+       return nil;
    }
     NSUInteger fragShaderByteLen = [fragShaderData length];
     Byte* fragShaderByteData = (Byte*)malloc(fragShaderByteLen);
@@ -788,7 +804,7 @@ CubismShader_Metal::ShaderProgram* CubismShader_Metal::LoadShaderProgramFromFile
     if(!fragShaderLib)
     {
         NSLog(@" ERROR: Couldnt create a frag shader library");
-        return;
+        return nil;
     }
   ShaderProgram* shaderProgram = LoadShaderProgram(vertShaderSrc, fragShaderSrc, vertShaderLib, fragShaderLib);
   return shaderProgram;
@@ -861,7 +877,7 @@ id<MTLDepthStencilState> CubismShader_Metal::MakeDepthStencilState(id<MTLDevice>
     return [device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
 }
 
-id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device, CubismRenderer_Metal* renderer)
+id<MTLSamplerState> CubismShader_Metal::MakeDrawableSamplerState(id<MTLDevice> device, const csmFloat32 anisotropy)
 {
     MTLSamplerDescriptor* samplerDescriptor = [[[MTLSamplerDescriptor alloc] init] autorelease];
 
@@ -873,12 +889,79 @@ id<MTLSamplerState> CubismShader_Metal::MakeSamplerState(id<MTLDevice> device, C
     samplerDescriptor.mipFilter = MTLSamplerMipFilterLinear;
 
     //異方性フィルタリング
-    if (renderer->GetAnisotropy() >= 1.0f)
+    if (anisotropy >= 1.0f)
     {
-        samplerDescriptor.maxAnisotropy = renderer->GetAnisotropy();
+        samplerDescriptor.maxAnisotropy = anisotropy;
     }
 
     return [device newSamplerStateWithDescriptor:samplerDescriptor];
+}
+
+id<MTLSamplerState> CubismShader_Metal::MakeOtherSamplerState(id<MTLDevice> device, const csmFloat32 anisotropy)
+{
+    MTLSamplerDescriptor* samplerDescriptor = [[[MTLSamplerDescriptor alloc] init] autorelease];
+
+    samplerDescriptor.rAddressMode = MTLSamplerAddressModeRepeat;
+    samplerDescriptor.sAddressMode = MTLSamplerAddressModeRepeat;
+    samplerDescriptor.tAddressMode = MTLSamplerAddressModeRepeat;
+    samplerDescriptor.minFilter = MTLSamplerMinMagFilterNearest;
+    samplerDescriptor.magFilter = MTLSamplerMinMagFilterNearest;
+    samplerDescriptor.mipFilter = MTLSamplerMipFilterNotMipmapped;
+
+    //異方性フィルタリング
+    if (anisotropy >= 1.0f)
+    {
+        samplerDescriptor.maxAnisotropy = anisotropy;
+    }
+
+    return [device newSamplerStateWithDescriptor:samplerDescriptor];
+}
+
+void CubismShader_Metal::InitializeSampler(id<MTLDevice> device, csmFloat32 anisotropy, const csmBool useDrawable)
+{
+    if (_shaderSets.GetSize() == 0)
+    {
+        return;
+    }
+
+    ReleaseSampler();
+
+    id<MTLSamplerState> drawableSampler = MakeDrawableSamplerState(device, anisotropy);
+    id<MTLSamplerState> otherSampler = MakeOtherSamplerState(device, anisotropy);
+
+    _shaderSets[ShaderNames_SetupMask]->MainSamplerState = drawableSampler;
+    _shaderSets[ShaderNames_Copy]->MainSamplerState = otherSampler;
+
+    for (csmInt32 i = ShaderNames_Normal; i < ShaderNames_ShaderCount; ++i)
+    {
+        _shaderSets[i]->MainSamplerState = useDrawable ? drawableSampler : otherSampler;
+        _shaderSets[i]->SubSamplerState = otherSampler;
+    }
+    _anisotropy = anisotropy;
+}
+
+void CubismShader_Metal::ReleaseSampler()
+{
+    if (_shaderSets.GetSize() == 0)
+    {
+        return;
+    }
+
+    if (_shaderSets[ShaderNames_SetupMask]->MainSamplerState != nil)
+    {
+        [_shaderSets[ShaderNames_SetupMask]->MainSamplerState release];
+    }
+
+    if (_shaderSets[ShaderNames_Copy]->MainSamplerState != nil)
+    {
+        [_shaderSets[ShaderNames_Copy]->MainSamplerState release];
+    }
+
+    for (csmInt32 i = ShaderNames_SetupMask; i < ShaderNames_ShaderCount; ++i)
+    {
+        _shaderSets[i]->MainSamplerState = nil;
+        _shaderSets[i]->SubSamplerState = nil;
+    }
 }
 
 }}}}
