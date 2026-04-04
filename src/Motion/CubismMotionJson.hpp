@@ -11,6 +11,8 @@
 #include "CubismJsonHolder.hpp"
 #include "Utils/CubismJson.hpp"
 #include "Id/CubismId.hpp"
+#include <memory>
+#include <tuple>
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
@@ -32,7 +34,7 @@ public:
      * @param buffer buffer containing the loaded motion file
      * @param size size of the buffer in bytes
      */
-    CubismMotionJson(const csmByte* buffer, csmSizeInt size);
+    CubismMotionJson(const csmByte* buffer, csmSizeInt size, bool trustUserBounds = false);
 
     /**
      * Destructor
@@ -228,6 +230,17 @@ public:
      * @return value of the user data event
      */
     const csmChar* GetEventValue(csmInt32 userDataIndex) const;
+
+private:
+    csmInt32 GetRecoveredTotal(csmChar const key) const;
+    csmInt32 CountCurves() const;
+    csmInt32 CountSegments() const;
+    csmInt32 CountPoints() const;
+    // I would rather have std::optional or even an std::variant with std::monostate, but we're in c++14
+    std::unique_ptr<std::tuple<csmInt32,csmInt32,csmInt32>> recoveredTotals;
+    void RecoverTotals();
+
+    bool _trustUserBounds = false;
 };
 
 }}}
