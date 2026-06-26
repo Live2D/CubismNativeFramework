@@ -8,17 +8,12 @@
 #pragma once
 
 #include "CubismNativeInclude_D3D9.hpp"
-
-#include "../CubismRenderer.hpp"
 #include "CubismType_D3D9.hpp"
+#include "Type/csmString.hpp"
 #include "CubismFramework.hpp"
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
-
-//  前方宣言
-class CubismRenderer_D3D9;
-class CubismClippingContext_D3D9;
 
 /**
  * @bref    DX9シェーダエフェクト
@@ -68,25 +63,35 @@ public:
     ID3DXEffect* GetShaderEffect() const;
 
     /**
-     * @brief   頂点宣言のデバイスへの設定、シェーダがまだ未設定ならロード
+     * @brief   シェーダのロード
+     *
+     * @param[in]   device      使用デバイス
      */
     void SetupShader(LPDIRECT3DDEVICE9 pD3dDevice);
 
+    /**
+     * @brief   頂点宣言のデバイスへの設定
+     *
+     * @param[in]   device      使用デバイス
+     */
+    void BindShader(LPDIRECT3DDEVICE9 pD3dDevice);
+
 private:
+    /**
+     * @brief   シェーダプログラムをロード
+     *
+     * @param[in]   pD3dDevice      使用デバイス
+     * @param[in]   shaderSrc       シェーダソースコード
+     * @param[in]   effectPtr       シェーダエフェクトのポインタ
+     *
+     * @return  成功時はtrue、失敗時はfalse
+     */
+    static csmBool LoadShaderProgram(LPDIRECT3DDEVICE9 pD3dDevice, const csmString& shaderSrc, ID3DXEffect** effectPtr);
 
     /**
      * @brief   シェーダプログラムを初期化する
      */
     void GenerateShaders(LPDIRECT3DDEVICE9 pD3dDevice);
-
-    /**
-     * @brief   シェーダプログラムをロード
-     *
-     * @param[in]   pD3dDevice      使用デバイス
-     *
-     * @return  成功時はtrue、失敗時はfalse
-     */
-    Csm::csmBool LoadShaderProgram(LPDIRECT3DDEVICE9 pD3dDevice);
 
 
     ID3DXEffect*                    _shaderEffect; ///< CubismD3dでは一つのシェーダで内部テクニックの変更をする

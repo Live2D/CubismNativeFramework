@@ -176,22 +176,28 @@ void CubismImageVulkan::CreateView(VkDevice device, VkFormat format, VkImageAspe
     }
 }
 
-void CubismImageVulkan::CreateSampler(VkDevice device, csmFloat32 maxAnistropy,
-                                      csmUint32 mipLevel)
+void CubismImageVulkan::CreateSampler(
+    VkDevice device,
+    VkSamplerAddressMode addressMode,
+    VkFilter magFilter,
+    VkFilter minFilter,
+    VkSamplerMipmapMode mipmapMode,
+    csmFloat32 maxAnistropy,
+    csmUint32 mipLevel)
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeU = addressMode;
+    samplerInfo.addressModeV = addressMode;
+    samplerInfo.addressModeW = addressMode;
+    samplerInfo.magFilter = magFilter;
+    samplerInfo.minFilter = minFilter;
+    samplerInfo.mipmapMode = mipmapMode;
     samplerInfo.maxAnisotropy = maxAnistropy;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = static_cast<csmFloat32>(mipLevel);
     samplerInfo.mipLodBias = 0.0f;

@@ -8,52 +8,85 @@
 #pragma once
 
 #include "CubismNativeInclude_D3D11.hpp"
-
-#include "../CubismRenderer.hpp"
 #include "CubismType_D3D11.hpp"
+#include "Type/csmString.hpp"
 #include "CubismFramework.hpp"
 #include "Type/csmVector.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
     enum ShaderNames
     {
+#define CSM_CREATE_SHADER_NAMES(NAME) \
+    ShaderNames_ ## NAME, \
+    ShaderNames_ ## NAME ## Masked, \
+    ShaderNames_ ## NAME ## MaskedInverted, \
+    ShaderNames_ ## NAME ## PremultipliedAlpha, \
+    ShaderNames_ ## NAME ## MaskedPremultipliedAlpha, \
+    ShaderNames_ ## NAME ## MaskedInvertedPremultipliedAlpha
+
+#define CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(COLOR) \
+    CSM_CREATE_SHADER_NAMES(COLOR ## Over), \
+    CSM_CREATE_SHADER_NAMES(COLOR ## Atop), \
+    CSM_CREATE_SHADER_NAMES(COLOR ## Out), \
+    CSM_CREATE_SHADER_NAMES(COLOR ## ConjointOver), \
+    CSM_CREATE_SHADER_NAMES(COLOR ## DisjointOver)
+
+        // Copy
+        ShaderNames_Copy,
         // SetupMask
         ShaderNames_SetupMask,
 
-        //Normal
-        ShaderNames_Normal,
-        ShaderNames_NormalMasked,
-        ShaderNames_NormalMaskedInverted,
-        ShaderNames_NormalPremultipliedAlpha,
-        ShaderNames_NormalMaskedPremultipliedAlpha,
-        ShaderNames_NormalMaskedInvertedPremultipliedAlpha,
-
-        //Add
-        ShaderNames_Add,
-        ShaderNames_AddMasked,
-        ShaderNames_AddMaskedInverted,
-        ShaderNames_AddPremultipliedAlpha,
-        ShaderNames_AddMaskedPremultipliedAlpha,
-        ShaderNames_AddMaskedInvertedPremultipliedAlpha,
-
-        //Mult
-        ShaderNames_Mult,
-        ShaderNames_MultMasked,
-        ShaderNames_MultMaskedInverted,
-        ShaderNames_MultPremultipliedAlpha,
-        ShaderNames_MultMaskedPremultipliedAlpha,
-        ShaderNames_MultMaskedInvertedPremultipliedAlpha,
+        // Normal
+        CSM_CREATE_SHADER_NAMES(Normal),
+        // Add
+        CSM_CREATE_SHADER_NAMES(Add),
+        // Mult
+        CSM_CREATE_SHADER_NAMES(Mult),
+        // 通常
+        CSM_CREATE_SHADER_NAMES(NormalAtop),
+        CSM_CREATE_SHADER_NAMES(NormalOut),
+        CSM_CREATE_SHADER_NAMES(NormalConjointOver),
+        CSM_CREATE_SHADER_NAMES(NormalDisjointOver),
+        // 加算
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Add),
+        // 加算(発光)
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(AddGlow),
+        // 比較(暗)
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Darken),
+        // 乗算
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Multiply),
+        // 焼き込みカラー
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(ColorBurn),
+        // 焼き込み(リニア)
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(LinearBurn),
+        // 比較(明)
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Lighten),
+        // スクリーン
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Screen),
+        // 覆い焼きカラー
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(ColorDodge),
+        // オーバーレイ
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Overlay),
+        // ソフトライト
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(SoftLight),
+        // ハードライト
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(HardLight),
+        // リニアライト
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(LinearLight),
+        // 色相
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Hue),
+        // カラー
+        CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES(Color),
 
         ShaderNames_Max,
+
+#undef CSM_CREATE_BLEND_OVERLAP_SHADER_NAMES
+#undef CSM_CREATE_SHADER_NAMES
     };
 }}}
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
-
-//  前方宣言
-class CubismRenderer_D3D11;
-class CubismClippingContext;
 
 /**
  * @bref    D3D11シェーダ管理
@@ -62,13 +95,15 @@ class CubismShaderSet
 {
 public:
     CubismShaderSet()
-        : _vertexShader(NULL)
-        , _pixelShader(NULL)
+        : VertexShader(NULL)
+        , PixelShader(NULL)
+        , IsOriginalVertexData(false)
     {
     }
 
-    ID3D11VertexShader*     _vertexShader;
-    ID3D11PixelShader*      _pixelShader;
+    ID3D11VertexShader*     VertexShader;
+    ID3D11PixelShader*      PixelShader;
+    csmBool IsOriginalVertexData; // 頂点シェーダの解放可能性
 };
 
 /**
@@ -111,11 +146,19 @@ public:
 
     /**
      * @brief   頂点宣言のデバイスへの設定、シェーダがまだ未設定ならロード
+     *
+     * @param[in]   device      使用デバイス
      */
-    void SetupShader(ID3D11Device* device, ID3D11DeviceContext* renderContext);
+    void SetupShader(ID3D11Device* device);
+
+    /**
+     * @brief   コンテキストにシェーダを設定する
+     *
+     * @param[in]   context      コンテキスト
+     */
+    void BindShader(ID3D11DeviceContext* context);
 
 private:
-
     /**
      * @brief   シェーダプログラムを初期化する
      */
@@ -128,13 +171,9 @@ private:
      *
      * @return  成功時はtrue、失敗時はfalse
      */
-    Csm::csmBool LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, const csmChar* entryPoint);
+    csmBool LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, const csmChar* entryPoint, const csmString& shaderSrc, csmBool isFormat = false);
 
-    csmVector<CubismShaderSet*> _shaderSets;   ///< ロードしたシェーダプログラムを保持する変数
-
-    csmVector<ID3D11VertexShader*> _shaderSetsVS;     ///< ロードしたシェーダプログラムを保持する変数(VS)
-    csmVector<ID3D11PixelShader*> _shaderSetsPS;      ///< ロードしたシェーダプログラムを保持する変数(PS)
-
+    csmVector<CubismShaderSet> _shaderSets;   ///< ロードしたシェーダプログラムを保持する変数
     ID3D11InputLayout*    _vertexFormat; ///< 描画で使用する型宣言
 };
 

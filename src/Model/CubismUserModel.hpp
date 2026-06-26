@@ -10,6 +10,7 @@
 #include "Effect/CubismPose.hpp"
 #include "Effect/CubismEyeBlink.hpp"
 #include "Effect/CubismBreath.hpp"
+#include "Effect/CubismLook.hpp"
 #include "Math/CubismModelMatrix.hpp"
 #include "Math/CubismTargetPoint.hpp"
 #include "Model/CubismMoc.hpp"
@@ -20,6 +21,7 @@
 #include "Rendering/CubismRenderer.hpp"
 #include "Model/CubismModelUserData.hpp"
 #include "Motion/CubismExpressionMotionManager.hpp"
+#include "Motion/CubismUpdateScheduler.hpp"
 
 namespace Live2D { namespace Cubism { namespace Framework {
 
@@ -66,6 +68,14 @@ public:
      * @param v Update state. true if updated.
      */
     virtual void            IsUpdating(csmBool v);
+
+    /**
+     * Set the offscreen buffer size.
+     *
+     * @param width Width of the offscreen buffer
+     * @param height Height of the offscreen buffer
+     */
+    void SetRenderTargetSize(csmUint32 width, csmUint32 height);
 
     /**
      * Sets the information during mouse dragging.
@@ -129,7 +139,7 @@ public:
      */
     virtual ACubismMotion*  LoadMotion(const csmByte* buffer, csmSizeInt size, const csmChar* name,
                                        ACubismMotion::FinishedMotionCallback onFinishedMotionHandler = NULL, ACubismMotion::BeganMotionCallback onBeganMotionHandler = NULL,
-                                       ICubismModelSetting* modelSetting = NULL, const csmChar* group = NULL, const csmInt32 index = -1);
+                                       ICubismModelSetting* modelSetting = NULL, const csmChar* group = NULL, const csmInt32 index = -1, csmBool shouldCheckMotionConsistency = false);
 
     /**
      * Loads expression from an expression configuration file.
@@ -185,6 +195,16 @@ public:
     CubismModel*            GetModel() const;
 
     /**
+     * Returns the version of the unload MOC file.
+     *
+     * @param buffer Buffer where the MOC3 file is loaded
+     * @param size Number of bytes in the buffer
+     *
+     * @return Version
+     */
+    static Core::csmMocVersion GetMocVersionFromBuffer(const csmByte* buffer, csmSizeInt size);
+
+    /**
      * Returns the renderer.
      *
      * @return Instance of the renderer
@@ -193,8 +213,12 @@ public:
 
     /**
      * Makes the renderer.
+     *
+     * @param width Width of the buffer where the model is rendered
+     * @param height Height of the buffer where the model is rendered
+     * @param maskBufferCount Number of buffers used for masking
      */
-    void CreateRenderer(csmInt32 maskBufferCount = 1);
+    void CreateRenderer(csmUint32 width, csmUint32 height, csmInt32 maskBufferCount = 1);
 
     /**
      * Destroys the renderer.
@@ -225,6 +249,8 @@ protected:
     CubismMoc*              _moc;
     CubismModel*            _model;
 
+    CubismUpdateScheduler _updateScheduler;
+
     CubismMotionManager*    _motionManager;
     CubismExpressionMotionManager*    _expressionManager;
     CubismEyeBlink*         _eyeBlink;
@@ -234,18 +260,17 @@ protected:
     CubismTargetPoint*      _dragManager;
     CubismPhysics*          _physics;
     CubismModelUserData*    _modelUserData;
+    CubismLook*             _look;
 
     csmBool     _initialized;
     csmBool     _updating;
     csmFloat32  _opacity;
-    csmBool     _lipSync;
     csmFloat32  _lastLipSyncValue;
-    csmFloat32  _dragX;
-    csmFloat32  _dragY;
     csmFloat32  _accelerationX;
     csmFloat32  _accelerationY;
     csmFloat32  _accelerationZ;
     csmBool     _mocConsistency;
+    csmBool     _motionConsistency;
     csmBool     _debugMode;
 
 private:

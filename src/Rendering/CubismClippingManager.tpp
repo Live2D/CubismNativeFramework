@@ -8,8 +8,8 @@
 #pragma once
 
 // template で宣言下 CubismClippingManager の実装を記述
-template <class T_ClippingContext, class T_OffscreenSurface>
-CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::CubismClippingManager() :
+template <class T_ClippingContext, class T_RenderTarget>
+CubismClippingManager<T_ClippingContext, T_RenderTarget>::CubismClippingManager() :
                                                                     _clippingMaskBufferSize(256, 256)
 {
     CubismRenderer::CubismTextureColor* tmp = NULL;
@@ -39,22 +39,27 @@ CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::CubismClippingMana
     _channelColors.PushBack(tmp);
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::~CubismClippingManager()
+template <class T_ClippingContext, class T_RenderTarget>
+CubismClippingManager<T_ClippingContext, T_RenderTarget>::~CubismClippingManager()
 {
-    for (csmUint32 i = 0; i < _clippingContextListForMask.GetSize(); i++)
+    for (csmUint32 i = 0; i < _clippingContextListForMask.GetSize(); ++i)
     {
         if (_clippingContextListForMask[i]) CSM_DELETE_SELF(T_ClippingContext, _clippingContextListForMask[i]);
         _clippingContextListForMask[i] = NULL;
     }
 
     // _clippingContextListForDrawは_clippingContextListForMaskにあるインスタンスを指している。上記の処理により要素ごとのDELETEは不要。
-    for (csmUint32 i = 0; i < _clippingContextListForDraw.GetSize(); i++)
+    for (csmUint32 i = 0; i < _clippingContextListForDraw.GetSize(); ++i)
     {
         _clippingContextListForDraw[i] = NULL;
     }
 
-    for (csmUint32 i = 0; i < _channelColors.GetSize(); i++)
+    for (csmUint32 i = 0; i < _clippingContextListForOffscreen.GetSize(); ++i)
+    {
+        _clippingContextListForOffscreen[i] = NULL;
+    }
+
+    for (csmUint32 i = 0; i < _channelColors.GetSize(); ++i)
     {
         if (_channelColors[i]) CSM_DELETE(_channelColors[i]);
         _channelColors[i] = NULL;
@@ -67,8 +72,8 @@ CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::~CubismClippingMan
     }
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::Initialize(CubismModel& model, const csmInt32 maskBufferCount)
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::Initialize(CubismModel& model, const csmInt32 maskBufferCount, CubismRenderer::DrawableObjectType drawableObjectType)
 {
     _renderTextureCount = maskBufferCount;
 
@@ -78,37 +83,68 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::Initialize(Cu
         _clearedMaskBufferFlags.PushBack(false);
     }
 
+    csmInt32 objectCount = 0;
+    const csmInt32* objectMaskCounts = nullptr;
+    const csmInt32** objectMasks = nullptr;
+    csmVector<T_ClippingContext*>* objectClippingContextList = nullptr;
+
+    switch (drawableObjectType)
+    {
+    case CubismRenderer::DrawableObjectType_Drawable:
+    default:
+        objectCount = model.GetDrawableCount();
+        objectMaskCounts = model.GetDrawableMaskCounts();
+        objectMasks = model.GetDrawableMasks();
+        objectClippingContextList = &_clippingContextListForDraw;
+        break;
+    case CubismRenderer::DrawableObjectType_Offscreen:
+        objectCount = model.GetOffscreenCount();
+        objectMaskCounts = model.GetOffscreenMaskCounts();
+        objectMasks = model.GetOffscreenMasks();
+        objectClippingContextList = &_clippingContextListForOffscreen;
+        break;
+    }
+
     //クリッピングマスクを使う描画オブジェクトを全て登録する
     //クリッピングマスクは、通常数個程度に限定して使うものとする
-    for (csmInt32 i = 0; i < model.GetDrawableCount(); i++)
+    for (csmInt32 i = 0; i < objectCount; ++i)
     {
-        if (model.GetDrawableMaskCounts()[i] <= 0)
+        if (objectMaskCounts[i] <= 0)
         {
-            //クリッピングマスクが使用されていないアートメッシュ（多くの場合使用しない）
-            _clippingContextListForDraw.PushBack(NULL);
+            //クリッピングマスクが使用されていない描画オブジェクト（多くの場合使用しない）
+            objectClippingContextList->PushBack(NULL);
             continue;
         }
 
         // 既にあるClipContextと同じかチェックする
-        T_ClippingContext* cc = FindSameClip(model.GetDrawableMasks()[i], model.GetDrawableMaskCounts()[i]);
+        T_ClippingContext* cc = FindSameClip(objectMasks[i], objectMaskCounts[i]);
         if (cc == NULL)
         {
             // 同一のマスクが存在していない場合は生成する
-            cc = CSM_NEW T_ClippingContext(this, model, model.GetDrawableMasks()[i], model.GetDrawableMaskCounts()[i]);
+            cc = CSM_NEW T_ClippingContext(this, model, objectMasks[i], objectMaskCounts[i]);
             _clippingContextListForMask.PushBack(cc);
         }
 
-        cc->AddClippedDrawable(i);
+        switch (drawableObjectType)
+        {
+        case CubismRenderer::DrawableObjectType_Drawable:
+        default:
+            cc->AddClippedDrawable(i);
+            break;
+        case CubismRenderer::DrawableObjectType_Offscreen:
+            cc->AddClippedOffscreen(i);
+            break;
+        }
 
-        _clippingContextListForDraw.PushBack(cc);
+        objectClippingContextList->PushBack(cc);
     }
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-T_ClippingContext* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::FindSameClip(const csmInt32* drawableMasks, csmInt32 drawableMaskCounts) const
+template <class T_ClippingContext, class T_RenderTarget>
+T_ClippingContext* CubismClippingManager<T_ClippingContext, T_RenderTarget>::FindSameClip(const csmInt32* drawableMasks, csmInt32 drawableMaskCounts) const
 {
     // 作成済みClippingContextと一致するか確認
-    for (csmUint32 i = 0; i < _clippingContextListForMask.GetSize(); i++)
+    for (csmUint32 i = 0; i < _clippingContextListForMask.GetSize(); ++i)
     {
         T_ClippingContext* cc = _clippingContextListForMask[i];
         const csmInt32 count = cc->_clippingIdCount;
@@ -116,14 +152,14 @@ T_ClippingContext* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>:
         csmInt32 samecount = 0;
 
         // 同じIDを持つか確認。配列の数が同じなので、一致した個数が同じなら同じ物を持つとする。
-        for (csmInt32 j = 0; j < count; j++)
+        for (csmInt32 j = 0; j < count; ++j)
         {
             const csmInt32 clipId = cc->_clippingIdList[j];
-            for (csmInt32 k = 0; k < count; k++)
+            for (csmInt32 k = 0; k < count; ++k)
             {
                 if (drawableMasks[k] == clipId)
                 {
-                    samecount++;
+                    ++samecount;
                     break;
                 }
             }
@@ -136,27 +172,28 @@ T_ClippingContext* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>:
     return NULL; //見つからなかった
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupMatrixForHighPrecision(CubismModel& model, csmBool isRightHanded)
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::SetupMatrixForHighPrecision(CubismModel& model, csmBool isRightHanded, CubismRenderer::DrawableObjectType drawableObjectType, const CubismMatrix44& mvp)
 {
     // 全てのクリッピングを用意する
     // 同じクリップ（複数の場合はまとめて１つのクリップ）を使う場合は１度だけ設定する
     csmInt32 usingClipCount = 0;
-    for (csmUint32 clipIndex = 0; clipIndex < _clippingContextListForMask.GetSize(); clipIndex++)
+    for (csmUint32 clipIndex = 0; clipIndex < _clippingContextListForMask.GetSize(); ++clipIndex)
     {
         // １つのクリッピングマスクに関して
         T_ClippingContext* cc = _clippingContextListForMask[clipIndex];
 
         // このクリップを利用する描画オブジェクト群全体を囲む矩形を計算
-        CalcClippedDrawTotalBounds(model, cc);
+        CalcClippedTotalBounds(model, cc, drawableObjectType);
 
         if (cc->_isUsing)
         {
-            usingClipCount++; //使用中としてカウント
+            ++usingClipCount; //使用中としてカウント
         }
     }
 
-    if (usingClipCount <= 0) {
+    if (usingClipCount <= 0)
+    {
         return;
     }
     // マスク行列作成処理
@@ -183,7 +220,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupMatrixFo
 
     // 実際にマスクを生成する
     // 全てのマスクをどの様にレイアウトして描くかを決定し、ClipContext , ClippedDrawContext に記憶する
-    for (csmUint32 clipIndex = 0; clipIndex < _clippingContextListForMask.GetSize(); clipIndex++)
+    for (csmUint32 clipIndex = 0; clipIndex < _clippingContextListForMask.GetSize(); ++clipIndex)
     {
         // --- 実際に１つのマスクを描く ---
         T_ClippingContext* clipContext = _clippingContextListForMask[clipIndex];
@@ -219,17 +256,23 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupMatrixFo
             scaleY = ppu / physicalMaskHeight;
         }
 
-
         // マスク生成時に使う行列を求める
-        createMatrixForMask(isRightHanded, layoutBoundsOnTex01, scaleX, scaleY);
+        CreateMatrixForMask(isRightHanded, layoutBoundsOnTex01, scaleX, scaleY);
 
         clipContext->_matrixForMask.SetMatrix(_tmpMatrixForMask.GetArray());
         clipContext->_matrixForDraw.SetMatrix(_tmpMatrixForDraw.GetArray());
+
+        if (CubismRenderer::DrawableObjectType_Offscreen == drawableObjectType)
+        {
+            // clipCpntext * mvp^-1
+            CubismMatrix44 invertMvp = mvp.GetInvert();
+            clipContext->_matrixForDraw.MultiplyByMatrix(&invertMvp);
+        }
     }
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::createMatrixForMask(csmBool isRightHanded, csmRectF* layoutBoundsOnTex01, csmFloat32 scaleX, csmFloat32 scaleY)
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::CreateMatrixForMask(csmBool isRightHanded, csmRectF* layoutBoundsOnTex01, csmFloat32 scaleX, csmFloat32 scaleY)
 {
     _tmpMatrix.LoadIdentity();
     {
@@ -256,8 +299,8 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::createMatrixF
     _tmpMatrixForDraw.SetMatrix(_tmpMatrix.GetArray());
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBounds(csmInt32 usingClipCount) const
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::SetupLayoutBounds(csmInt32 usingClipCount) const
 {
     const csmInt32 useClippingMaskMaxCount = _renderTextureCount <= 1
         ? ClippingMaskMaxCountOnDefault
@@ -274,7 +317,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
         }
 
         // この場合は一つのマスクターゲットを毎回クリアして使用する
-        for (csmUint32 index = 0; index < _clippingContextListForMask.GetSize(); index++)
+        for (csmUint32 index = 0; index < _clippingContextListForMask.GetSize(); ++index)
         {
             T_ClippingContext* cc = _clippingContextListForMask[index];
             cc->_layoutChannelIndex = 0; // どうせ毎回消すので固定で良い
@@ -302,9 +345,9 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
     // RGBAそれぞれのチャンネルを用意していく(0:R , 1:G , 2:B, 3:A, )
     csmInt32 curClipIndex = 0; //順番に設定していく
 
-    for (csmInt32 renderTextureIndex = 0; renderTextureIndex < _renderTextureCount; renderTextureIndex++)
+    for (csmInt32 renderTextureIndex = 0; renderTextureIndex < _renderTextureCount; ++renderTextureIndex)
     {
-        for (csmInt32 channelIndex = 0; channelIndex < ColorChannelCount; channelIndex++)
+        for (csmInt32 channelIndex = 0; channelIndex < ColorChannelCount; ++channelIndex)
         {
             // このチャンネルにレイアウトする数
             // NOTE: レイアウト数 = 1チャンネルに配置する基本のマスク + 余りのマスクを置くチャンネルなら1つ追加
@@ -339,7 +382,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
             }
             else if (layoutCount == 2)
             {
-                for (csmInt32 i = 0; i < layoutCount; i++)
+                for (csmInt32 i = 0; i < layoutCount; ++i)
                 {
                     const csmInt32 xpos = i % 2;
 
@@ -357,7 +400,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
             else if (layoutCount <= 4)
             {
                 //4分割して使う
-                for (csmInt32 i = 0; i < layoutCount; i++)
+                for (csmInt32 i = 0; i < layoutCount; ++i)
                 {
                     const csmInt32 xpos = i % 2;
                     const csmInt32 ypos = i / 2;
@@ -375,7 +418,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
             else if (layoutCount <= layoutCountMaxValue)
             {
                 //9分割して使う
-                for (csmInt32 i = 0; i < layoutCount; i++)
+                for (csmInt32 i = 0; i < layoutCount; ++i)
                 {
                     const csmInt32 xpos = i % 3;
                     const csmInt32 ypos = i / 3;
@@ -404,7 +447,7 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
 
                 // 引き続き実行する場合、 SetupShaderProgramでオーバーアクセスが発生するので仕方なく適当に入れておく
                 // もちろん描画結果はろくなことにならない
-                for (csmInt32 i = 0; i < layoutCount; i++)
+                for (csmInt32 i = 0; i < layoutCount; ++i)
                 {
                     T_ClippingContext* cc = _clippingContextListForMask[curClipIndex++];
                     cc->_layoutChannelIndex = 0;
@@ -419,8 +462,8 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetupLayoutBo
     }
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::CalcClippedDrawTotalBounds(CubismModel& model, T_ClippingContext* clippingContext)
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::CalcClippedTotalBounds(CubismModel& model, T_ClippingContext* clippingContext, CubismRenderer::DrawableObjectType drawableObjectType)
 {
     // 被クリッピングマスク（マスクされる描画オブジェクト）の全体の矩形
     csmFloat32 clippedDrawTotalMinX = FLT_MAX, clippedDrawTotalMinY = FLT_MAX;
@@ -429,14 +472,53 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::CalcClippedDr
     // このマスクが実際に必要か判定する
     // このクリッピングを利用する「描画オブジェクト」がひとつでも使用可能であればマスクを生成する必要がある
 
-    const csmInt32 clippedDrawCount = clippingContext->_clippedDrawableIndexList->GetSize();
-    for (csmInt32 clippedDrawableIndex = 0; clippedDrawableIndex < clippedDrawCount; clippedDrawableIndex++)
+    csmInt32 clippedDrawCount = 0;
+    csmVector<csmInt32> clippedOffscreenChildDrawableIndexList;
+    switch (drawableObjectType)
+    {
+    case CubismRenderer::DrawableObjectType_Drawable:
+    default:
+        clippedDrawCount = clippingContext->_clippedDrawableIndexList->GetSize();
+        break;
+    case CubismRenderer::DrawableObjectType_Offscreen:
+    {
+        const csmInt32 clippedOffscreenCount = clippingContext->_clippedOffscreenIndexList->GetSize();
+
+        for (csmInt32 clippedOffscreenIndex = 0; clippedOffscreenIndex < clippedOffscreenCount; ++clippedOffscreenIndex)
+        {
+            // マスクを使用する描画オブジェクトの描画される矩形を求める
+            const csmInt32 offscreenIndex = (*clippingContext->_clippedOffscreenIndexList)[clippedOffscreenIndex];
+
+            CollectOffscreenChildDrawableIndexList(model, offscreenIndex, clippedOffscreenChildDrawableIndexList);
+        }
+
+        clippedDrawCount = clippedOffscreenChildDrawableIndexList.GetSize();
+    }
+        break;
+    }
+
+    for (csmInt32 clippedObjectIndex = 0; clippedObjectIndex < clippedDrawCount; ++clippedObjectIndex)
     {
         // マスクを使用する描画オブジェクトの描画される矩形を求める
-        const csmInt32 drawableIndex = (*clippingContext->_clippedDrawableIndexList)[clippedDrawableIndex];
-
-        csmInt32 drawableVertexCount = model.GetDrawableVertexCount(drawableIndex);
-        csmFloat32* drawableVertexes = const_cast<csmFloat32*>(model.GetDrawableVertices(drawableIndex));
+        csmInt32 drawableVertexCount = 0;
+        const csmFloat32* drawableVertexes = nullptr;
+        switch (drawableObjectType)
+        {
+        case CubismRenderer::DrawableObjectType_Drawable:
+        default:
+        {
+            const csmInt32 drawableIndex = (*clippingContext->_clippedDrawableIndexList)[clippedObjectIndex];
+            drawableVertexCount = model.GetDrawableVertexCount(drawableIndex);
+            drawableVertexes = model.GetDrawableVertices(drawableIndex);
+        }
+            break;
+        case CubismRenderer::DrawableObjectType_Offscreen:
+        {
+            drawableVertexCount = model.GetDrawableVertexCount(clippedOffscreenChildDrawableIndexList[clippedObjectIndex]);
+            drawableVertexes = model.GetDrawableVertices(clippedOffscreenChildDrawableIndexList[clippedObjectIndex]);
+        }
+            break;
+        }
 
         csmFloat32 minX = FLT_MAX, minY = FLT_MAX;
         csmFloat32 maxX = -FLT_MAX, maxY = -FLT_MAX;
@@ -446,21 +528,49 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::CalcClippedDr
         {
             csmFloat32 x = drawableVertexes[pi];
             csmFloat32 y = drawableVertexes[pi + 1];
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
+            if (x < minX)
+            {
+                minX = x;
+            }
+            if (x > maxX)
+            {
+                maxX = x;
+            }
+            if (y < minY)
+            {
+                minY = y;
+            }
+            if (y > maxY)
+            {
+                maxY = y;
+            }
         }
 
-        //
-        if (minX == FLT_MAX) continue; //有効な点がひとつも取れなかったのでスキップする
+        if (minX == FLT_MAX)
+        {
+            // 有効な点がひとつも取れなかったのでスキップする
+            continue;
+        }
 
         // 全体の矩形に反映
-        if (minX < clippedDrawTotalMinX) clippedDrawTotalMinX = minX;
-        if (minY < clippedDrawTotalMinY) clippedDrawTotalMinY = minY;
-        if (maxX > clippedDrawTotalMaxX) clippedDrawTotalMaxX = maxX;
-        if (maxY > clippedDrawTotalMaxY) clippedDrawTotalMaxY = maxY;
+        if (minX < clippedDrawTotalMinX)
+        {
+            clippedDrawTotalMinX = minX;
+        }
+        if (minY < clippedDrawTotalMinY)
+        {
+            clippedDrawTotalMinY = minY;
+        }
+        if (maxX > clippedDrawTotalMaxX)
+        {
+            clippedDrawTotalMaxX = maxX;
+        }
+        if (maxY > clippedDrawTotalMaxY)
+        {
+            clippedDrawTotalMaxY = maxY;
+        }
     }
+
     if (clippedDrawTotalMinX == FLT_MAX)
     {
         clippingContext->_allClippedDrawRect->X = 0.0f;
@@ -481,32 +591,60 @@ void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::CalcClippedDr
     }
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-csmVector<T_ClippingContext*>* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetClippingContextListForDraw()
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::CollectOffscreenChildDrawableIndexList(CubismModel& model, csmInt32 offscreenIndex, csmVector<csmInt32>& childDrawableIndexList)
+{
+    // 親オブジェクトを取得
+    const csmInt32 ownerIndex = model.GetOffscreenOwnerIndices()[offscreenIndex];
+    CollectPartChildDrawableIndexList(model, ownerIndex, childDrawableIndexList);
+}
+
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::CollectPartChildDrawableIndexList(CubismModel& model, csmInt32 partIndex, csmVector<csmInt32>& childDrawableIndexList)
+{
+    PartChildDrawObjects childDrawObjects = model.GetPartsHierarchy()[partIndex].ChildDrawObjects;
+    for (csmInt32 i = 0; i < childDrawObjects.DrawableIndices.GetSize(); ++i)
+    {
+        childDrawableIndexList.PushBack(childDrawObjects.DrawableIndices[i]);
+    }
+    for (csmInt32 i = 0; i < childDrawObjects.OffscreenIndices.GetSize(); ++i)
+    {
+        CollectOffscreenChildDrawableIndexList(model, childDrawObjects.OffscreenIndices[i], childDrawableIndexList);
+    }
+}
+
+template <class T_ClippingContext, class T_RenderTarget>
+csmVector<T_ClippingContext*>* CubismClippingManager<T_ClippingContext, T_RenderTarget>::GetClippingContextListForDraw()
 {
     return &_clippingContextListForDraw;
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-CubismVector2 CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetClippingMaskBufferSize() const
+template <class T_ClippingContext, class T_RenderTarget>
+csmVector<T_ClippingContext*>* CubismClippingManager<T_ClippingContext, T_RenderTarget>::GetClippingContextListForOffscreen()
+{
+    return &_clippingContextListForOffscreen;
+}
+
+template <class T_ClippingContext, class T_RenderTarget>
+CubismVector2 CubismClippingManager<T_ClippingContext, T_RenderTarget>::GetClippingMaskBufferSize() const
 {
     return _clippingMaskBufferSize;
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-csmInt32 CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetRenderTextureCount()
+template <class T_ClippingContext, class T_RenderTarget>
+csmInt32 CubismClippingManager<T_ClippingContext, T_RenderTarget>::GetRenderTextureCount()
 {
     return _renderTextureCount;
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-CubismRenderer::CubismTextureColor* CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::GetChannelFlagAsColor(csmInt32 channelIndex)
+template <class T_ClippingContext, class T_RenderTarget>
+CubismRenderer::CubismTextureColor* CubismClippingManager<T_ClippingContext, T_RenderTarget>::GetChannelFlagAsColor(csmInt32 channelIndex)
 {
     return _channelColors[channelIndex];
 }
 
-template <class T_ClippingContext, class T_OffscreenSurface>
-void CubismClippingManager<T_ClippingContext, T_OffscreenSurface>::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
+template <class T_ClippingContext, class T_RenderTarget>
+void CubismClippingManager<T_ClippingContext, T_RenderTarget>::SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height)
 {
     _clippingMaskBufferSize = CubismVector2(width, height);
 }

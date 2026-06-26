@@ -14,7 +14,7 @@ CubismMoc* CubismMoc::Create(const csmByte* mocBytes, csmSizeInt size, csmBool s
 {
     CubismMoc* cubismMoc = NULL;
 
-    void* alignedBuffer = CSM_MALLOC_ALLIGNED(size, Core::csmAlignofMoc);
+    void* alignedBuffer = CSM_MALLOC_ALIGNED(size, Core::csmAlignofMoc);
     memcpy(alignedBuffer, mocBytes, size);
 
     if (shouldCheckMocConsistency)
@@ -23,7 +23,7 @@ CubismMoc* CubismMoc::Create(const csmByte* mocBytes, csmSizeInt size, csmBool s
         csmBool consistency = HasMocConsistency(alignedBuffer, size);
         if (!consistency)
         {
-            CSM_FREE_ALLIGNED(alignedBuffer);
+            CSM_FREE_ALIGNED(alignedBuffer);
 
             // 整合性が確認できなければ処理しない
             CubismLogError("Inconsistent MOC3.");
@@ -58,14 +58,14 @@ CubismMoc::~CubismMoc()
 {
     CSM_ASSERT(_modelCount == 0);
 
-    CSM_FREE_ALLIGNED(_moc);
+    CSM_FREE_ALIGNED(_moc);
 }
 
 CubismModel* CubismMoc::CreateModel()
 {
     CubismModel*     cubismModel = NULL;
     const csmUint32  modelSize = Core::csmGetSizeofModel(_moc);
-    void*            modelMemory = CSM_MALLOC_ALLIGNED(modelSize, Core::csmAlignofModel);
+    void*            modelMemory = CSM_MALLOC_ALIGNED(modelSize, Core::csmAlignofModel);
 
     Core::csmModel* model = Core::csmInitializeModelInPlace(_moc, modelMemory, modelSize);
 
@@ -96,6 +96,25 @@ Core::csmMocVersion CubismMoc::GetMocVersion()
     return _mocVersion;
 }
 
+Core::csmMocVersion CubismMoc::GetMocVersionFromBuffer(const csmByte* mocBytes, csmSizeInt size)
+{
+    if (mocBytes == nullptr || size == 0)
+    {
+        CubismLogError("Invalid mocBytes or size.");
+        return 0;
+    }
+    void* alignedBuffer = CSM_MALLOC_ALIGNED(size, Core::csmAlignofMoc);
+    if (alignedBuffer == nullptr)
+    {
+        CubismLogError("Failed to allocate aligned memory.");
+        return 0;
+    }
+    memcpy(alignedBuffer, mocBytes, size);
+    const Core::csmMocVersion version = Core::csmGetMocVersion(alignedBuffer, size);
+    CSM_FREE_ALIGNED(alignedBuffer);
+    return version;
+}
+
 csmBool CubismMoc::HasMocConsistency(void* address, const csmUint32 size)
 {
     csmInt32 isConsistent = Core::csmHasMocConsistency(address, size);
@@ -104,12 +123,12 @@ csmBool CubismMoc::HasMocConsistency(void* address, const csmUint32 size)
 
 csmBool CubismMoc::HasMocConsistencyFromUnrevivedMoc(const csmByte* mocBytes, csmSizeInt size)
 {
-    void* alignedBuffer = CSM_MALLOC_ALLIGNED(size, Core::csmAlignofMoc);
+    void* alignedBuffer = CSM_MALLOC_ALIGNED(size, Core::csmAlignofMoc);
     memcpy(alignedBuffer, mocBytes, size);
 
     csmBool consistency = CubismMoc::HasMocConsistency(alignedBuffer, size);
 
-    CSM_FREE_ALLIGNED(alignedBuffer);
+    CSM_FREE_ALIGNED(alignedBuffer);
 
     return consistency;
 }

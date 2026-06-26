@@ -30,6 +30,7 @@
 #include <cstdlib>
 #endif
 
+#include <string>
 
 //========================================================
 //  Configurations of Memory Allocator.
@@ -43,7 +44,7 @@ class CubismAllocationAlignedTag
 { };
 
 static CubismAllocationTag GlobalTag;
-static CubismAllocationAlignedTag GloabalAlignedTag;
+static CubismAllocationAlignedTag GlobalAlignedTag;
 
 }}}
 
@@ -106,9 +107,9 @@ void CsmDelete(T* address)
 #define CSM_DELETE_SELF(type, obj)       do { if (!obj){ break; } obj->~type(); operator delete(obj, Live2D::Cubism::Framework::GlobalTag); } while(0)
 #define CSM_DELETE(obj)                  CsmDelete(obj)
 #define CSM_MALLOC(size)                 Live2D::Cubism::Framework::CubismFramework::Allocate(size)
-#define CSM_MALLOC_ALLIGNED(size, align) Live2D::Cubism::Framework::CubismFramework::AllocateAligned(size, align)
+#define CSM_MALLOC_ALIGNED(size, align) Live2D::Cubism::Framework::CubismFramework::AllocateAligned(size, align)
 #define CSM_FREE(ptr)                    Live2D::Cubism::Framework::CubismFramework::Deallocate(ptr)
-#define CSM_FREE_ALLIGNED(ptr)           Live2D::Cubism::Framework::CubismFramework::DeallocateAligned(ptr)
+#define CSM_FREE_ALIGNED(ptr)           Live2D::Cubism::Framework::CubismFramework::DeallocateAligned(ptr)
 
 #endif
 
@@ -175,6 +176,10 @@ namespace Csm = Live2D::Cubism::Framework;
 //--------- LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework {
 
+/** Typedef for file loader */
+typedef csmByte* (*csmLoadFileFunction)(const std::string filePath, csmSizeInt* outSize);
+typedef void (*csmReleaseBytesFunction)(Csm::csmByte* byteData);
+
 /**
  * Constants.
  */
@@ -235,6 +240,12 @@ public:
 
         /** Logging level */
         LogLevel LoggingLevel;
+
+        /** File reading function */
+       csmLoadFileFunction LoadFileFunction;
+
+       /** Release bytes function */
+       csmReleaseBytesFunction ReleaseBytesFunction;
     };
 
     /**
@@ -303,6 +314,22 @@ public:
      * @return Logging level setting
      */
     static Option::LogLevel GetLoggingLevel();
+
+    /**
+     * Returns the loading file function.
+     *
+     * @return Function to read the file as csmByte*.
+     */
+    static csmLoadFileFunction GetLoadFileFunction();
+
+    /**
+     * Returns the memory release function.
+     *
+     * @return Function to free memory allocated by csmByte*.
+     *
+     * @note Memory allocated by GetLoadFileFunction() must be released with this function.
+     */
+    static csmReleaseBytesFunction GetReleaseBytesFunction();
 
     /**
      * Returns the instance of CubismIdManager.

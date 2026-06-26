@@ -39,10 +39,12 @@ public:
      * @param buf buffer containing the loaded motion file
      * @param size size of the buffer in bytes
      * @param onFinishedMotionHandler callback function for when motion playback ends
+     * @param onBeganMotionHandler callback function for when motion playback starts
+     * @param shouldCheckMotionConsistency flag to validate the consistency of motion3.json
      *
      * @return created instance
      */
-    static CubismMotion* Create(const csmByte* buffer, csmSizeInt size, FinishedMotionCallback onFinishedMotionHandler = NULL, BeganMotionCallback onBeganMotionHandler = NULL);
+    static CubismMotion* Create(const csmByte* buffer, csmSizeInt size, FinishedMotionCallback onFinishedMotionHandler = NULL, BeganMotionCallback onBeganMotionHandler = NULL, csmBool shouldCheckMotionConsistency = false);
 
     /**
      * Updates the model parameters.
@@ -53,46 +55,6 @@ public:
      * @param motionQueueEntry motion managed by the CubismMotionQueueManager
      */
     virtual void        DoUpdateParameters(CubismModel* model, csmFloat32 userTimeSeconds, csmFloat32 fadeWeight, CubismMotionQueueEntry* motionQueueEntry);
-
-    /**
-     * @deprecated Not recommended due to the relocation of _isLoop to the base class.
-     *             Use ACubismMotion.SetLoop(csmBool loop) instead.
-     *
-     * Sets whether the motion should loop.
-     *
-     * @param loop true to set the motion to loop
-     */
-    void                IsLoop(csmBool loop);
-
-    /**
-     * @deprecated Not recommended due to the relocation of _isLoop to the base class.
-     *             Use ACubismMotion.GetLoop() instead.
-     *
-     * Checks whether the motion is set to loop.
-     *
-     * @return true if the motion is set to loop; otherwise false.
-     */
-    csmBool             IsLoop() const;
-
-    /**
-     * @deprecated Not recommended due to the relocation of _isLoopFadeIn to the base class.
-     *             Use ACubismMotion.SetLoopFadeIn(csmBool loopFadeIn) instead.
-     *
-     * Sets whether to perform fade-in for looping motion.
-     *
-     * @param loopFadeIn true to perform fade-in for looping motion
-     */
-    void                IsLoopFadeIn(csmBool loopFadeIn);
-
-    /**
-     * @deprecated Not recommended due to the relocation of _isLoopFadeIn to the base class.
-     *             Use ACubismMotion.GetLoopFadeIn() instead.
-     *
-     * Checks the setting for fade-in of looping motion.
-     *
-     * @return true if fade-in for looping motion is set; otherwise false.
-     */
-    csmBool             IsLoopFadeIn() const;
 
     /**
      * Sets the version of the Motion Behavior.
@@ -215,7 +177,7 @@ private:
 
     void UpdateForNextLoop(CubismMotionQueueEntry* motionQueueEntry, const csmFloat32 userTimeSeconds, const csmFloat32 time);
 
-    void Parse(const csmByte* motionJson, const csmSizeInt size);
+    void Parse(const csmByte* motionJson, const csmSizeInt size, csmBool shouldCheckMotionConsistency);
 
     csmFloat32      _sourceFrameRate;
     csmFloat32      _loopDurationSeconds;

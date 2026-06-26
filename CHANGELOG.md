@@ -5,6 +5,164 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [5-r.5] - 2026-04-02
+
+### Added
+
+* Add the `SetRenderViewport` method to `CubismRenderer_Metal` to set the viewport when drawing the model.
+* Add functionality to change motion calculation order.
+* Add `cubismlook` class that implements the target tracking feature.
+  * The target tracking feature can now specify parameter IDs through the `Framework`.
+
+### Changed
+
+* Change Vulkan renderer to use `CubismDeviceInfo_Vulkan` instead of singletons for pipeline and offscreen manager.
+  * Rename `InitializeConstantSettings` to `SetConstantSettings` in Vulkan renderer.
+* Change the access level of the private members in the `CubismMoc` and `CubismModel` classes to protected.
+* Change multiply and screen color functions to separate class with renamed methods.
+* Change shader generation from draw loop to Initialize() in OpenGL, D3D9, D3D11 and Metal.
+* Change to unify sampler settings across all graphics APIs, except for OpenGL ES on Android and iOS.
+
+### Fixed
+
+* Fix a validation error on Vulkan.
+* Fix unnecessary multiply color and screen color settings in mask drawing.
+* Fix a memory leak in `CubismRenderer_D3D11::ReleaseCommandBuffer()` where `_indexBuffers` and `_vertexBuffers` were not freed due to a copy-paste bug.
+* Fix a memory leak in `CubismRenderer_Vulkan::CreatePipelines()` where `PipelineResource` objects allocated for Add/Mult blend modes were overwritten and leaked.
+* Fix missing null checks after loading shader source files in OpenGL, D3D9 and D3D11 renderers.
+* Fix a resource leak in `CubismShader_D3D11::GenerateShaders()` where Copy and SetupMask shaders were loaded twice, causing the first set of COM objects to leak.
+* Fix redundant matrix transpose in D3D11 renderer.
+* Improve the viewport save and restore process on OpenGL.
+
+### Removed
+
+* Remove unnecessary shader processing in D3D11 and D3D9.
+* Remove deprecated functions from CubismModel:
+ * `GetDrawableTextureIndices(csmInt32 drawableIndex)` (use `GetDrawableTextureIndex(csmInt32 drawableIndex)` instead)
+ * `GetDrawableBlendMode(csmInt32 drawableIndex)` (use `GetDrawableBlendModeType(csmInt32 drawableIndex)` instead)
+ * `SetOverwriteFlagForModelCullings(csmBool value)` (use `SetOverrideFlagForModelCullings(csmBool value)` instead)
+ * `GetOverwriteFlagForModelCullings()` (use `GetOverwriteFlagForModelCullings()` instead)
+ * `SetOverwriteFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)` (use `SetOverrideFlagForDrawableCullings(csmUint32 drawableIndex, csmBool value)` instead)
+ * `GetOverwriteFlagForDrawableCullings(csmInt32 drawableIndex)` (use `GetOverrideFlagForDrawableCullings(csmInt32 drawableIndex)` instead)
+* Remove deprecated functions from CubismExpressionMotion:
+ * `GetFadeWeight()` (use `CubismExpressionMotionManager.GetFadeWeight(csmInt32 index)` instead)
+* Remove deprecated fields from CubismExpressionMotion:
+ * `_fadeWeight` (priority is not used in expression motion playback)
+* Remove deprecated functions from CubismExpressionMotionManager:
+ * `GetCurrentPriority()` (priority is not used in expression motion playback)
+ * `SetReservePriority(csmInt32 priority)` (priority is not used in expression motion playback)
+ * `GetReservePriority()` (priority is not used in expression motion playback)
+ * `StartMotionPriority(ACubismMotion* motion, csmBool autoDelete, csmInt32 priority)` (use `CubismMotionQueueManager::StartMotion(ACubismMotion* motion, csmBool autoDelete)` instead)
+* Remove deprecated fields from CubismExpressionMotionManager:
+ * `_currentPriority` (priority is not used in expression motion playback)
+ * `_reservePriority` (priority is not used in expression motion playback)
+* Remove deprecated functions from CubismMotion:
+ * `IsLoop(csmBool loop)` (use `ACubismMotion.SetLoop(csmBool loop)` instead)
+ * `IsLoop()` (use `ACubismMotion.GetLoop()` instead)
+ * `IsLoopFadeIn(csmBool loopFadeIn)` (use `ACubismMotion.SetLoopFadeIn(csmBool loopFadeIn)` instead)
+ * `IsLoopFadeIn()` (use `ACubismMotion.GetLoopFadeIn()` instead)
+* Remove deprecated functions from CubismMotionQueueManager:
+ * `StartMotion(ACubismMotion* motion, csmBool autoDelete, csmFloat32 userTimeSeconds)` (use `StartMotion(ACubismMotion* motion, csmBool autoDelete)` instead)
+
+
+## [5-r.5-beta.3.1] - 2026-02-19
+
+### Added
+
+* Add missing default labels in switch statements of `CubismShader_OpenGLES2` and `CubismRenderer_Vulkan`.
+
+### Fixed
+
+* Fix incorrect implementation of `csmVector::Insert`.
+* Fix a bug where rendering results were not as expected when using Blend mode on semi-transparent objects.
+
+
+## [5-r.5-beta.3] - 2026-01-29
+
+### Added
+
+* Add the classes `CubismOffscreenRenderTarget_XXX` and `CubismOffscreenManager_XXX`, as well as the interfaces `ICubismOffscreenRenderTarget` and `ICubismOffscreenManager`, in order to reuse `CubismRenderTarget_XXX` for Offscreen rendering.
+* Add support for Blend mode and Offscreen drawing in Vulkan.
+
+### Fixed
+
+* Fix an issue that caused performance degradation on Metal.
+* Fix clipping mask pre-processing by consolidating functions.
+* Fix unused macros in OpenGL.
+* Fix incomplete OpenGL shader issue.
+* Fix incorrect UV coordinates when using masks with D3D9 and D3D11.
+* Fix typos in `CubismFramework.hpp`.
+
+
+## [5-r.5-beta.2] - 2025-10-30
+
+### Added
+
+* Add support for Blend modes and Offscreen rendering.
+  * In `5-r.5-beta.2`, the D3D9, D3D11 and Metal renderers have also been added.
+* Add `GetMocVersionFromBuffer()`function.
+  * Support for retrieving MOC version from unsupported new MOC3 files.
+
+### Changed
+
+* Rename CubismOffscreenSurface_D3D9 class to CubismRenderTarget_D3D9.
+* Rename CubismOffscreenSurface_D3D11 class to CubismRenderTarget_D3D11.
+* Rename CubismOffscreenSurface_Metal class to CubismRenderTarget_Metal.
+* Change to the implementation now enables support for multiple devices instead of a single one.
+  * In Metal, the `CubismRenderingInstanceSingleton_Metal` class has been removed.
+
+### Fixed
+
+* Fix by removing unnecessary comments and unused structs.
+* Fix the application crashing when shader files could not be loaded.
+* Fix warnings occurs during build on OpenGL-Android.
+* Fix D3D11 anisotropic filtering not working correctly.
+* Fix to correct pixel alignment for all shaders on D3D9.
+* Fix incorrect mask type selection on OpenGL, selecting `MaskTypeMaskedInvertedPremultipliedAlpha` instead of `MaskTypeMaskedPremultipliedAlpha`.
+
+
+## [5-r.5-beta.1] - 2025-08-26
+
+### Added
+
+* Add support for Blend mode and Offscreen drawing.
+  * In `5-r.5-beta.1`, the OpenGL renderer works only on Windows, macOS, iOS, and Android. The SDK does not function in other environments. Please check `NOTICE.md`.
+
+### Changed
+
+* Rename CubismOffscreenSurface_OpenGLES2 class to CubismRenderTarget_OpenGLES2.
+* Change the API called to retrieve the drawable render order from `GetDrawableRenderOrder()` to `GetRenderOrder()` in CubismCore.
+
+
+## [5-r.4.1] - 2025-07-17
+
+### Fixed
+
+* Fix app crashing when shader files could not be loaded.
+
+
+## [5-r.4] - 2025-05-29
+
+### Added
+
+* Add parameter repeat processing that connects the right and left ends of the parameter to create a loop, allowing the motion to repeat.
+  * Add the variable `_isOverriddenParameterRepeat` to the `CubismModel` class for managing parameter repeat flags at the model level.
+  * Add the variable `_userParameterRepeatDataList` to the `CubismModel` class for managing parameter repeat flags for each parameter.
+* Add a flag to the arguments of the following methods to enable the function that verifies the consistency of `motion3.json`:
+  * `CubismUserModel.LoadMotion()`
+  * `CubismMotion.Create()`
+  * `CubismMotion.Parse()`
+* Add a `GetPartParentPartIndices()` function.
+
+### Changed
+
+* Change shader code to be used separately.
+
+### Removed
+
+* Remove the usage of `_DEBUG`.
+
+
 ## [5-r.3] - 2025-02-18
 
 ### Added
@@ -41,6 +199,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+* Change an expression "overwrite" to "override" for multiply color, screen color, and culling to adapt the actual behavior.
 * Change to permit to overwrite motion fade by the value specified in .model3.json on `CubismUserModel::LoadMotion()`.
 * Change the threshold for enabling anisotropic filtering in all renderers.
 * Change `CubismJson` to not use character masking.
@@ -447,6 +606,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fix invalid expressions of `CubismCdiJson`.
 
 
+[5-r.5]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.3.1...5-r.5
+[5-r.5-beta.3.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.3...5-r.5-beta.3.1
+[5-r.5-beta.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.2...5-r.5-beta.3
+[5-r.5-beta.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.5-beta.1...5-r.5-beta.2
+[5-r.5-beta.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4.1...5-r.5-beta.1
+[5-r.4.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.4...5-r.4.1
+[5-r.4]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.3...5-r.4
 [5-r.3]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.2...5-r.3
 [5-r.2]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1...5-r.2
 [5-r.1]: https://github.com/Live2D/CubismNativeFramework/compare/5-r.1-beta.4...5-r.1

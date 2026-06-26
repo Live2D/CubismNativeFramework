@@ -60,24 +60,6 @@ public:
     CubismMotionQueueEntryHandle    StartMotion(ACubismMotion* motion, csmBool autoDelete);
 
     /**
-     * @deprecated Not recommended as the third parameter userTimeSeconds is not used within the function.
-     *             Use StartMotion(ACubismMotion* motion, csmBool autoDelete) instead.
-     *
-     * Plays the motion.<br>
-     * If a motion of the same type is already playing, it ends the currently playing motion and starts fading it out.
-     *
-     * @param motion motion to play
-     * @param autoDelete true to delete the instance of the motion when playback ends
-     * @param userTimeSeconds current time in seconds
-     *
-     * @return ID of the played motion.<br>
-     *         -1 if the motion could not be started.
-     *
-     * @note The return value can be used as an argument to IsFinished() to determine if the motion has finished playing.
-     */
-    CubismMotionQueueEntryHandle    StartMotion(ACubismMotion* motion, csmBool autoDelete, csmFloat32 userTimeSeconds);
-
-    /**
      * Checks whether all motions have finished playing.
      *
      * @return true if all motions have finished playing; otherwise false.

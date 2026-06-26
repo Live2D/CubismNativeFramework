@@ -6,140 +6,11 @@
  */
 
 #include "CubismShader_D3D11.hpp"
-
 #include "CubismRenderer_D3D11.hpp"
 #include <d3dcompiler.h>
 
 //------------ LIVE2D NAMESPACE ------------
 namespace Live2D { namespace Cubism { namespace Framework { namespace Rendering {
-
-static const csmChar* CubismShaderEffectSrc =
-    "cbuffer ConstantBuffer {"\
-        "float4x4 projectMatrix;"\
-        "float4x4 clipMatrix;"\
-        "float4 baseColor;"\
-        "float4 multiplyColor;"\
-        "float4 screenColor;"\
-        "float4 channelFlag;"\
-    "}"\
-    "Texture2D mainTexture : register(t0);"\
-    "SamplerState mainSampler : register(s0);"\
-    "Texture2D maskTexture : register(t1);"\
-    \
-    "struct VS_IN {"\
-        "float2 pos : POSITION;"\
-        "float2 uv : TEXCOORD0;"\
-    "};"\
-    "struct VS_OUT {"\
-        "float4 Position : SV_POSITION;"\
-        "float2 uv : TEXCOORD0;"\
-        "float4 clipPosition : TEXCOORD1;"\
-    "};"\
-    \
-"/* Setup mask shader */"\
-    "VS_OUT VertSetupMask(VS_IN In) {"\
-        "VS_OUT Out = (VS_OUT)0;"\
-        "Out.Position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);"\
-        "Out.clipPosition = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);"\
-        "Out.uv.x = In.uv.x;"\
-        "Out.uv.y = 1.0f - +In.uv.y;"\
-        "return Out;"\
-    "}"\
-    "float4 PixelSetupMask(VS_OUT In) : SV_Target{"\
-        "float isInside ="\
-        "step(baseColor.x, In.clipPosition.x / In.clipPosition.w)"\
-        "* step(baseColor.y, In.clipPosition.y / In.clipPosition.w)"\
-        "* step(In.clipPosition.x / In.clipPosition.w, baseColor.z)"\
-        "* step(In.clipPosition.y / In.clipPosition.w, baseColor.w);"\
-        "return channelFlag * mainTexture.Sample(mainSampler, In.uv).a * isInside;"\
-    "}"\
-    \
-"/* Vertex Shader */"\
-    "/* normal */"\
-    "VS_OUT VertNormal(VS_IN In) {"\
-        "VS_OUT Out = (VS_OUT)0;"\
-        "Out.Position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);"\
-        "Out.uv.x = In.uv.x;"\
-        "Out.uv.y = 1.0f - +In.uv.y;"\
-        "return Out;"\
-    "}"\
-    "/* masked */"\
-    "VS_OUT VertMasked(VS_IN In) {"\
-        "VS_OUT Out = (VS_OUT)0;"\
-        "Out.Position = mul(float4(In.pos, 0.0f, 1.0f), projectMatrix);"\
-        "Out.clipPosition = mul(float4(In.pos, 0.0f, 1.0f), clipMatrix);"\
-        "Out.uv.x = In.uv.x;"\
-        "Out.uv.y = 1.0f - In.uv.y;"\
-        "return Out;"\
-    "}"\
-    \
-"/* Pixel Shader */"\
-    "/* normal */"\
-    "float4 PixelNormal(VS_OUT In) : SV_Target{"\
-        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
-        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
-        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
-        "float4 color = texColor * baseColor;"\
-        "color.xyz *= color.w;"\
-        "return color;"\
-    "}"\
-    \
-    "/* normal premult alpha */"\
-    "float4 PixelNormalPremult(VS_OUT In) : SV_Target{"\
-        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
-        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
-        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
-        "float4 color = texColor * baseColor;"\
-        "return color;"\
-    "}"\
-    \
-    "/* masked */\n"\
-    "float4 PixelMasked(VS_OUT In) : SV_Target{\n"\
-        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
-        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
-        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
-        "float4 color = texColor * baseColor;"\
-        "color.xyz *= color.w;\n"\
-        "float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
-        "color = color * maskVal;\n"\
-        "return color;\n"\
-    "}"\
-    "/* masked inverted*/\n"\
-    "float4 PixelMaskedInverted(VS_OUT In) : SV_Target{\n"\
-        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
-        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
-        "texColor.rgb = (texColor.rgb + screenColor.rgb) - (texColor.rgb * screenColor.rgb);"\
-        "float4 color = texColor * baseColor;"\
-        "color.xyz *= color.w;\n"\
-        "float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
-        "color = color * (1.0f - maskVal);\n"\
-        "return color;\n"\
-    "}"\
-    "/* masked premult alpha */\n"\
-    "float4 PixelMaskedPremult(VS_OUT In) : SV_Target{\n"\
-        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
-        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
-        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
-        "float4 color = texColor * baseColor;\n"\
-        "float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
-        "color = color * maskVal;\n"\
-        "return color;\n"\
-    "}"\
-    "/* masked inverted premult alpha */\n"\
-    "float4 PixelMaskedInvertedPremult(VS_OUT In) : SV_Target{\n"\
-        "float4 texColor = mainTexture.Sample(mainSampler, In.uv);"\
-        "texColor.rgb = texColor.rgb * multiplyColor.rgb;"\
-        "texColor.rgb = (texColor.rgb + screenColor.rgb * texColor.a) - (texColor.rgb * screenColor.rgb);"\
-        "float4 color = texColor * baseColor;\n"\
-        "float4 clipMask = (1.0f - maskTexture.Sample(mainSampler, In.clipPosition.xy / In.clipPosition.w)) * channelFlag;\n"\
-        "float maskVal = clipMask.r + clipMask.g + clipMask.b + clipMask.a;\n"\
-        "color = color * (1.0f - maskVal);\n"\
-        "return color;\n"\
-    "}\n";
-
 
 void CubismShader_D3D11::ReleaseShaderProgram()
 {
@@ -153,16 +24,20 @@ void CubismShader_D3D11::ReleaseShaderProgram()
     // 器はそのまま
     for (csmInt32 i = 0; i < ShaderNames_Max; i++)
     {
-        if(_shaderSetsVS[i])
+        if(_shaderSets[i].VertexShader)
         {
-            _shaderSetsVS[i]->Release();
-            _shaderSetsVS[i] = NULL;
+            if (_shaderSets[i].IsOriginalVertexData)
+            {
+                _shaderSets[i].VertexShader->Release();
+                _shaderSets[i].IsOriginalVertexData = false;
+            }
+            _shaderSets[i].VertexShader = NULL;
         }
 
-        if (_shaderSetsPS[i])
+        if (_shaderSets[i].PixelShader)
         {
-            _shaderSetsPS[i]->Release();
-            _shaderSetsPS[i] = NULL;
+            _shaderSets[i].PixelShader->Release();
+            _shaderSets[i].PixelShader = NULL;
         }
     }
 }
@@ -171,10 +46,10 @@ CubismShader_D3D11::CubismShader_D3D11()
     : _vertexFormat(NULL)
 {
     // 器作成
+    _shaderSets.PrepareCapacity(ShaderNames_Max);
     for (csmInt32 i = 0; i < ShaderNames_Max; i++)
     {
-        _shaderSetsVS.PushBack(NULL);
-        _shaderSetsPS.PushBack(NULL);
+        _shaderSets.PushBack(CubismShaderSet());
     }
 }
 
@@ -183,8 +58,7 @@ CubismShader_D3D11::~CubismShader_D3D11()
     ReleaseShaderProgram();
 
     // 器の削除
-    _shaderSetsVS.Clear();
-    _shaderSetsPS.Clear();
+    _shaderSets.Clear();
 }
 
 void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
@@ -201,127 +75,214 @@ void CubismShader_D3D11::GenerateShaders(ID3D11Device* device)
     csmBool isSuccess = false;
     do
     {
+        // シェーダーソースコードが記述されているファイルを読み込み
+        const csmChar* frameworkShaderPath = "FrameworkShaders/CubismEffect.fx";
+        const csmChar* frameworkBlendShaderPath = "FrameworkShaders/CubismBlendMode.fx";
+        csmLoadFileFunction fileLoader = CubismFramework::GetLoadFileFunction();
+        csmReleaseBytesFunction bytesReleaser = CubismFramework::GetReleaseBytesFunction();
+
+        if (!fileLoader)
+        {
+            CubismLogError("File loader is not set.");
+            break;
+        }
+
+        if (!bytesReleaser)
+        {
+            CubismLogError("Byte releaser is not set.");
+            break;
+        }
+
+        csmSizeInt effectShaderSize;
+        csmByte* effectShaderSrc = fileLoader(frameworkShaderPath, &effectShaderSize);
+        if (effectShaderSrc == NULL)
+        {
+            CubismLogError("Failed to load effect shader");
+            break;
+        }
+
+        csmSizeInt blendShaderSize;
+        csmByte* blendShaderSrc = fileLoader(frameworkBlendShaderPath, &blendShaderSize);
+        if (blendShaderSrc == NULL)
+        {
+            CubismLogError("Failed to load blend shader");
+            bytesReleaser(effectShaderSrc);
+            break;
+        }
+
+        csmString shaderString = csmString(reinterpret_cast<const csmChar*>(effectShaderSrc), effectShaderSize);
+        shaderString += csmString(reinterpret_cast<const csmChar*>(blendShaderSrc), blendShaderSize);
+
+        // ファイル読み込みで確保したバイト列を開放
+        bytesReleaser(effectShaderSrc);
+        bytesReleaser(blendShaderSrc);
+
+        // コピー
+        if (!LoadShaderProgram(device, false, ShaderNames_Copy, "VertCopy", shaderString))
+        {
+            break;
+        }
+        if (!LoadShaderProgram(device, true, ShaderNames_Copy, "PixelCopy", shaderString))
+        {
+            break;
+        }
+
         // マスク
-        if(!LoadShaderProgram(device, false, ShaderNames_SetupMask, static_cast<const csmChar*>("VertSetupMask")))
+        if(!LoadShaderProgram(device, false, ShaderNames_SetupMask, "VertSetupMask", shaderString))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_SetupMask, static_cast<const csmChar*>("PixelSetupMask")))
-        {
-            break;
-        }
-
-        // 頂点シェーダ
-        if (!LoadShaderProgram(device, false, ShaderNames_Normal, static_cast<const csmChar*>("VertNormal")))
-        {
-            break;
-        }
-        if (!LoadShaderProgram(device, false, ShaderNames_NormalMasked, static_cast<const csmChar*>("VertMasked")))
+        if (!LoadShaderProgram(device, true, ShaderNames_SetupMask, "PixelSetupMask", shaderString))
         {
             break;
         }
 
-        // ピクセルシェーダ
-        if (!LoadShaderProgram(device, true, ShaderNames_Normal, static_cast<const csmChar*>("PixelNormal")))
+        // 他描画用シェーダ
+#define CSM_LOAD_SHADER_PROGRAM(VERT_NAME, SHADER_NAME, PIXEL_ENTRY_POINT_SRC) {\
+        _shaderSets[SHADER_NAME].VertexShader = _shaderSets[VERT_NAME].VertexShader; \
+        if (!LoadShaderProgram(device, true, SHADER_NAME, #PIXEL_ENTRY_POINT_SRC, shaderString)) \
+        { \
+            break; \
+        } \
+    }
+
+#define CSM_SET_SHADER_52(TYPE) {\
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_Normal, ShaderNames_ ## TYPE, PixelNormal) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_ ## TYPE ## Masked, PixelMasked) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_ ## TYPE ## MaskedInverted, PixelMaskedInverted) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_Normal, ShaderNames_ ## TYPE ## PremultipliedAlpha, PixelNormalPremult) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_ ## TYPE ## MaskedPremultipliedAlpha, PixelMaskedPremult) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_ ## TYPE ## MaskedInvertedPremultipliedAlpha, PixelMaskedInvertedPremult) \
+    }
+
+#define CSM_SET_SHADER_53(COLOR, ALPHA) {\
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtop, ShaderNames_ ## COLOR ## ALPHA, PixelNormalBlend ## COLOR ## ALPHA) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_ ## COLOR ## ALPHA ## Masked, PixelMaskedBlend ## COLOR ## ALPHA) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_ ## COLOR ## ALPHA ## MaskedInverted, PixelMaskedInvertedBlend ## COLOR ## ALPHA) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtop, ShaderNames_ ## COLOR ## ALPHA ## PremultipliedAlpha, PixelNormalPremultBlend ## COLOR ## ALPHA) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_ ## COLOR ## ALPHA ## MaskedPremultipliedAlpha, PixelMaskedPremultBlend ## COLOR ## ALPHA) \
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_ ## COLOR ## ALPHA ## MaskedInvertedPremultipliedAlpha, PixelMaskedInvertedPremultBlend ## COLOR ## ALPHA) \
+    }
+
+#define CSM_SET_BLEND_OVERLAP_SHADER(COLOR) {\
+        CSM_SET_SHADER_53(COLOR, Over) \
+        CSM_SET_SHADER_53(COLOR, Atop) \
+        CSM_SET_SHADER_53(COLOR, Out) \
+        CSM_SET_SHADER_53(COLOR, ConjointOver) \
+        CSM_SET_SHADER_53(COLOR, DisjointOver) \
+    }
+
+        // 5.2以前 normal
+        if (!LoadShaderProgram(device, false, ShaderNames_Normal, "VertNormal", shaderString, true))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalMasked, static_cast<const csmChar*>("PixelMasked")))
+        if (!LoadShaderProgram(device, true, ShaderNames_Normal, "PixelNormal", shaderString))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalMaskedInverted, static_cast<csmChar*>("PixelMaskedInverted")))
+        if (!LoadShaderProgram(device, false, ShaderNames_NormalMasked, "VertMasked", shaderString))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalPremultipliedAlpha, static_cast<csmChar*>("PixelNormalPremult")))
+        if (!LoadShaderProgram(device, true, ShaderNames_NormalMasked, "PixelMasked", shaderString))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalMaskedPremultipliedAlpha, static_cast<const csmChar*>("PixelMaskedPremult")))
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_NormalMaskedInverted, PixelMaskedInverted)
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_Normal, ShaderNames_NormalPremultipliedAlpha, PixelNormalPremult)
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_NormalMaskedPremultipliedAlpha, PixelMaskedPremult)
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalMasked, ShaderNames_NormalMaskedInvertedPremultipliedAlpha, PixelMaskedInvertedPremult)
+        // 5.2以前 add
+        CSM_SET_SHADER_52(Add)
+        // 5.2以前 mult
+        CSM_SET_SHADER_52(Mult)
+
+        // 5.3以降 normal
+        if (!LoadShaderProgram(device, false, ShaderNames_NormalAtop, "VertNormalBlend", shaderString))
         {
             break;
         }
-        if (!LoadShaderProgram(device, true, ShaderNames_NormalMaskedInvertedPremultipliedAlpha, static_cast<csmChar*>("PixelMaskedInvertedPremult")))
+        if (!LoadShaderProgram(device, true, ShaderNames_NormalAtop, "PixelNormalBlendNormalAtop", shaderString))
         {
             break;
         }
+        if (!LoadShaderProgram(device, false, ShaderNames_NormalAtopMasked, "VertMaskedBlend", shaderString))
+        {
+            break;
+        }
+        if (!LoadShaderProgram(device, true, ShaderNames_NormalAtopMasked, "PixelMaskedBlendNormalAtop", shaderString))
+        {
+            break;
+        }
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_NormalAtopMaskedInverted, PixelMaskedInvertedBlendNormalAtop)
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtop, ShaderNames_NormalAtopPremultipliedAlpha, PixelNormalPremultBlendNormalAtop)
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_NormalAtopMaskedPremultipliedAlpha, PixelMaskedPremultBlendNormalAtop)
+        CSM_LOAD_SHADER_PROGRAM(ShaderNames_NormalAtopMasked, ShaderNames_NormalAtopMaskedInvertedPremultipliedAlpha, PixelMaskedInvertedPremultBlendNormalAtop)
+        CSM_SET_SHADER_53(Normal, Out)
+        CSM_SET_SHADER_53(Normal, ConjointOver)
+        CSM_SET_SHADER_53(Normal, DisjointOver)
+        // 5.3以降 add
+        CSM_SET_BLEND_OVERLAP_SHADER(Add)
+        // 5.3以降 add(glow)
+        CSM_SET_BLEND_OVERLAP_SHADER(AddGlow)
+        // 5.3以降 darken
+        CSM_SET_BLEND_OVERLAP_SHADER(Darken)
+        // 5.3以降 multiply
+        CSM_SET_BLEND_OVERLAP_SHADER(Multiply)
+        // 5.3以降 color burn
+        CSM_SET_BLEND_OVERLAP_SHADER(ColorBurn)
+        // 5.3以降 linear burn
+        CSM_SET_BLEND_OVERLAP_SHADER(LinearBurn)
+        // 5.3以降 lighten
+        CSM_SET_BLEND_OVERLAP_SHADER(Lighten)
+        // 5.3以降 screen
+        CSM_SET_BLEND_OVERLAP_SHADER(Screen)
+        // 5.3以降 color dodge
+        CSM_SET_BLEND_OVERLAP_SHADER(ColorDodge)
+        // 5.3以降 overlay
+        CSM_SET_BLEND_OVERLAP_SHADER(Overlay)
+        // 5.3以降 soft light
+        CSM_SET_BLEND_OVERLAP_SHADER(SoftLight)
+        // 5.3以降 hard light
+        CSM_SET_BLEND_OVERLAP_SHADER(HardLight)
+        // 5.3以降 linear light
+        CSM_SET_BLEND_OVERLAP_SHADER(LinearLight)
+        // 5.3以降 hue
+        CSM_SET_BLEND_OVERLAP_SHADER(Hue)
+        // 5.3以降 color
+        CSM_SET_BLEND_OVERLAP_SHADER(Color)
+
+#undef CSM_SET_BLEND_OVERLAP_SHADER
+#undef CSM_SET_SHADER53
+#undef CSM_SET_SHADER52
+#undef CSM_LOAD_SHADER_PROGRAM
 
         // 成功
         isSuccess = true;
     } while (0);
 
-    if(!isSuccess)
+    if (!isSuccess)
     {
         CubismLogError("Fail Compile shader");
         CSM_ASSERT(0);
         return;
     }
-
-
-// シェーダーコードからレイアウト取得
-
-    UINT compileFlag = 0;
-#ifdef CSM_DEBUG
-    // デバッグならば
-    compileFlag |= D3DCOMPILE_DEBUG;
-#endif
-
-    ID3DBlob* layoutError = NULL;
-    ID3DBlob* layoutBlobr = NULL;
-    HRESULT hr = D3DCompile(
-        CubismShaderEffectSrc,              // メモリー内のシェーダーへのポインターです。
-        strlen(CubismShaderEffectSrc),      // メモリー内のシェーダーのサイズです。
-        NULL,                               // シェーダー コードが格納されているファイルの名前です。
-        NULL,                               // マクロ定義の配列へのポインターです
-        NULL,                               // インクルード ファイルを扱うインターフェイスへのポインターです
-        "VertNormal",                       // シェーダーの実行が開始されるシェーダー エントリポイント関数の名前です。
-        "vs_4_0",                           // シェーダー モデルを指定する文字列。
-        compileFlag,                        // シェーダーコンパイルフラグ
-        0,                                  // シェーダーエフェクトのフラグ
-        &layoutBlobr,                       // 結果
-        &layoutError);                     // エラーが出る場合はここで
-    if (FAILED(hr))
-    {
-        CubismLogError("Fail create input layout");
-        CSM_ASSERT(0);
-    }
-    else
-    {
-        // この描画で使用する頂点フォーマット
-        D3D11_INPUT_ELEMENT_DESC elems[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
-        hr = device->CreateInputLayout(elems, ARRAYSIZE(elems), layoutBlobr->GetBufferPointer(), layoutBlobr->GetBufferSize(), &_vertexFormat);
-
-        if (FAILED(hr))
-        {
-            CubismLogWarning("CreateVertexDeclaration failed");
-        }
-    }
-
-    // blobの開放
-    if (layoutError)
-    {
-        layoutError->Release();
-    }
-    if (layoutBlobr)
-    {
-        layoutBlobr->Release();
-    }
 }
 
-Csm::csmBool CubismShader_D3D11::LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, const csmChar* entryPoint)
+csmBool CubismShader_D3D11::LoadShaderProgram(ID3D11Device* device, bool isPs, csmInt32 assign, const csmChar* entryPoint, const csmString& shaderSrc, csmBool isFormat)
 {
     csmBool bRet = false;
-    if (!device) return false;
+    if (!device)
+    {
+        return false;
+    }
 
     ID3DBlob* errorBlob = NULL;
     ID3DBlob* vertexBlob = NULL;
 
-    ID3D11VertexShader*     vertexShader = NULL;
-    ID3D11PixelShader*      pixelShader = NULL;
+    ID3D11VertexShader* vertexShader = NULL;
+    ID3D11PixelShader* pixelShader = NULL;
 
     HRESULT hr = S_OK;
     do
@@ -333,43 +294,59 @@ Csm::csmBool CubismShader_D3D11::LoadShaderProgram(ID3D11Device* device, bool is
 #endif
 
         hr = D3DCompile(
-            CubismShaderEffectSrc,              // メモリー内のシェーダーへのポインターです。
-            strlen(CubismShaderEffectSrc),      // メモリー内のシェーダーのサイズです。
+            shaderSrc.GetRawString(),           // メモリー内のシェーダーへのポインターです。
+            shaderSrc.GetLength(),              // メモリー内のシェーダーのサイズです。
             NULL,                               // シェーダー コードが格納されているファイルの名前です。
             NULL,                               // マクロ定義の配列へのポインターです
             NULL,                               // インクルード ファイルを扱うインターフェイスへのポインターです
             entryPoint,                         // シェーダーの実行が開始されるシェーダー エントリポイント関数の名前です。
-            isPs ? "ps_4_0" :"vs_4_0",          // シェーダー モデルを指定する文字列。
-            compileFlag,                          // シェーダーコンパイルフラグ
+            isPs ? "ps_4_0" : "vs_4_0",         // シェーダー モデルを指定する文字列。
+            compileFlag,                        // シェーダーコンパイルフラグ
             0,                                  // シェーダーエフェクトのフラグ
             &vertexBlob,
-            &errorBlob);                              // エラーが出る場合はここで
+            &errorBlob);              // エラーが出る場合はここで
         if (FAILED(hr))
         {
-            CubismLogWarning("Fail Compile Shader : %s", entryPoint==NULL ? "" : entryPoint);
+            CubismLogWarning("Fail Compile Shader : %s", entryPoint == NULL ? "" : entryPoint);
             break;
         }
-        hr = isPs ? device->CreatePixelShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &pixelShader) :
-            device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &vertexShader);
+        hr = isPs ? device->CreatePixelShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &pixelShader)
+                  : device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &vertexShader);
         if (FAILED(hr))
         {
             CubismLogWarning("Fail Create Shader");
             break;
         }
 
-        if(isPs)
+        if (isFormat)
         {
-            _shaderSetsPS[assign] = pixelShader;
+            // この描画で使用する頂点フォーマット
+            D3D11_INPUT_ELEMENT_DESC elems[] = {
+                { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            };
+            HRESULT hr = device->CreateInputLayout(elems, ARRAYSIZE(elems), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &_vertexFormat);
+
+            if (FAILED(hr))
+            {
+                CubismLogWarning("CreateVertexDeclaration failed");
+            }
+        }
+
+        if (isPs)
+        {
+            _shaderSets[assign].PixelShader = pixelShader;
         }
         else
         {
-            _shaderSetsVS[assign] = vertexShader;
+            _shaderSets[assign].VertexShader = vertexShader;
+            _shaderSets[assign].IsOriginalVertexData = true;
         }
         // 成功
         bRet = true;
     } while (0);
 
-    if(errorBlob)
+    if (errorBlob)
     {
         errorBlob->Release();
     }
@@ -385,7 +362,7 @@ ID3D11VertexShader* CubismShader_D3D11::GetVertexShader(csmUint32 assign)
 {
     if(assign<ShaderNames_Max)
     {
-        return _shaderSetsVS[assign];
+        return _shaderSets[assign].VertexShader;
     }
 
     return NULL;
@@ -395,20 +372,27 @@ ID3D11PixelShader* CubismShader_D3D11::GetPixelShader(csmUint32 assign)
 {
     if (assign<ShaderNames_Max)
     {
-        return _shaderSetsPS[assign];
+        return _shaderSets[assign].PixelShader;
     }
 
     return NULL;
 }
 
-void CubismShader_D3D11::SetupShader(ID3D11Device* device, ID3D11DeviceContext* renderContext)
+void CubismShader_D3D11::SetupShader(ID3D11Device* device)
 {
     // まだシェーダ・頂点宣言未作成ならば作成する
     GenerateShaders(device);
+}
 
-    if (!renderContext || !_vertexFormat) return;
+void CubismShader_D3D11::BindShader(ID3D11DeviceContext* context)
+{
 
-    renderContext->IASetInputLayout(_vertexFormat);
+    if (!context || !_vertexFormat)
+    {
+        return;
+    }
+
+    context->IASetInputLayout(_vertexFormat);
 }
 
 }}}}

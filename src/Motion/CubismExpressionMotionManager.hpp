@@ -41,46 +41,6 @@ public:
     virtual ~CubismExpressionMotionManager();
 
     /**
-     * Returns the priority of the playing facial expression motion.
-     *
-     * @deprecated This function is deprecated because a priority value is not actually used during expression motion playback.
-     *
-     * @return priority of the facial expression motion
-     */
-    csmInt32 GetCurrentPriority() const;
-
-    /**
-     * Returns the priority of the reserved facial expression motion.
-     *
-     * @deprecated This function is deprecated because a priority value is not actually used during expression motion playback.
-     *
-     * @return priority of the facial expression motion
-     */
-    csmInt32 GetReservePriority() const;
-
-    /**
-     * Sets the priority of the reserved facial expression motion.
-     *
-     * @deprecated This function is deprecated because a priority value is not actually used during expression motion playback.
-     *
-     * @param[in] priority priority to set
-     */
-    void SetReservePriority(csmInt32 priority);
-
-    /**
-     * Starts the facial expression motion with the specified priority.
-     *
-     * @deprecated This function is deprecated because a priority value is not actually used during expression motion playback.
-     *             Use CubismMotionQueueManager::StartMotion(ACubismMotion* motion, csmBool autoDelete) instead.
-     *
-     * @param[in] motion motion
-     * @param[in] autoDelete true to delete the instance of the motion when playback ends
-     * @param[in] priority priority
-     * @return identifier of the started motion. Use this as an argument to IsFinished() to determine if the individual motion has finished. Returns -1 if the motion could not be started.
-     */
-    CubismMotionQueueEntryHandle StartMotionPriority(ACubismMotion* motion, csmBool autoDelete, csmInt32 priority);
-
-    /**
      * Updates the facial expression motion and reflects the parameter values on the model.
      *
      * @param[in] model target model
@@ -113,9 +73,6 @@ private:
 
     // Weights of the currently playing expression
     csmVector<csmFloat32>* _fadeWeights;
-
-    csmInt32 _currentPriority;    ///< @deprecated This variable is deprecated because a priority value is not actually used during expression motion playback.
-    csmInt32 _reservePriority;    ///< @deprecated This variable is deprecated because a priority value is not actually used during expression motion playback.
 };
 
 }}}

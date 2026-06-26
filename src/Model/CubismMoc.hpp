@@ -66,6 +66,16 @@ public:
     Core::csmMocVersion GetMocVersion();
 
     /**
+     * Returns the version of the unload MOC file.
+     *
+     * @param mocBytes Buffer containing the loaded MOC file
+     * @param size Size of the buffer in bytes
+     *
+     * @return Version
+     */
+    static Core::csmMocVersion GetMocVersionFromBuffer(const csmByte* mocBytes, csmSizeInt size);
+
+    /**
      * Checks the consistency of the MOC file.
      *
      * @param address Address of the un-restored MOC file. The address must be aligned to 'csmAlignofMoc'.
@@ -85,7 +95,17 @@ public:
      */
     static csmBool HasMocConsistencyFromUnrevivedMoc(const csmByte* mocBytes, csmSizeInt size);
 
-private:
+    /**
+     * Delete copy constructor.
+     */
+    CubismMoc(const CubismMoc&) = delete;
+
+    /**
+     * Delete copy assignment operator.
+     */
+    CubismMoc& operator=(const CubismMoc&) = delete;
+
+protected:
     CubismMoc(Core::csmMoc* moc);
 
     virtual ~CubismMoc();

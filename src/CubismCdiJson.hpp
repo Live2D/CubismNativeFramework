@@ -153,7 +153,7 @@ private:
     /**
      * Returns whether parameter groups exist in the Display Information File.
      *
-     * @return true if parameters on paramter groups exist; otherwise false.
+     * @return true if parameters on parameter groups exist; otherwise false.
      */
     csmBool IsExistParameterGroups() const;
 

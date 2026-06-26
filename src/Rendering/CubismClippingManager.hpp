@@ -28,7 +28,7 @@ const csmInt32 ClippingMaskMaxCountOnMultiRenderTexture = 32;   // フレーム�
 }
 #endif
 
-template <class T_ClippingContext, class T_OffscreenSurface>
+template <class T_ClippingContext, class T_RenderTarget>
 class CubismClippingManager
 {
 public:
@@ -44,12 +44,13 @@ public:
 
     /**
      * @brief    マネージャの初期化処理<br>
-     *           クリッピングマスクを使う描画オブジェクトの登録を行う
+     *           クリッピングマスクを使うDrawableオブジェクトの登録を行う
      *
      * @param[in]   model           ->  モデルのインスタンス
      * @param[in]   maskBufferCount ->  バッファの生成数
+     * @param[in]   drawableObjectType ->  処理するオブジェクトタイプ
      */
-    void Initialize(CubismModel& model, const csmInt32 maskBufferCount);
+    void Initialize(CubismModel& model, const csmInt32 maskBufferCount, CubismRenderer::DrawableObjectType drawableObjectType);
 
     /**
      * @brief   既にマスクを作っているかを確認。<br>
@@ -63,12 +64,14 @@ public:
     T_ClippingContext* FindSameClip(const csmInt32* drawableMasks, csmInt32 drawableMaskCounts) const;
 
     /**
-     * @brief   高精細マスク処理用の行列を計算する
+     * @brief   Drawableの高精細マスク処理用の行列を計算する
      *
      * @param[in]   model         ->  モデルのインスタンス
      * @param[in]   isRightHanded ->  処理が右手系であるか
+     * @param[in]   drawableObjectType ->  処理するオブジェクトタイプ
+     * @param[in]   mvp ->  MVP行列
      */
-    void SetupMatrixForHighPrecision(CubismModel& model, csmBool isRightHanded);
+    void SetupMatrixForHighPrecision(CubismModel& model, csmBool isRightHanded, CubismRenderer::DrawableObjectType drawableObjectType, const CubismMatrix44& mvp = CubismMatrix44());
 
     /**
      * @brief   マスク作成・描画用の行列を作成する。
@@ -78,7 +81,7 @@ public:
      * @param[in]   scaleX               ->  描画オブジェクトの伸縮率
      * @param[in]   scaleY               ->  描画オブジェクトの伸縮率
      */
-    void createMatrixForMask(csmBool isRightHanded, csmRectF* layoutBoundsOnTex01, csmFloat32 scaleX, csmFloat32 scaleY);
+    void CreateMatrixForMask(csmBool isRightHanded, csmRectF* layoutBoundsOnTex01, csmFloat32 scaleX, csmFloat32 scaleY);
 
     /**
      * @brief   クリッピングコンテキストを配置するレイアウト。<br>
@@ -90,12 +93,31 @@ public:
     void SetupLayoutBounds(csmInt32 usingClipCount) const;
 
     /**
-     * @brief   マスクされる描画オブジェクト群全体を囲む矩形(モデル座標系)を計算する
+     * @brief   マスクされるdrawableの描画オブジェクト群全体を囲む矩形(モデル座標系)を計算する
      *
      * @param[in]   model            ->  モデルのインスタンス
      * @param[in]   clippingContext  ->  クリッピングマスクのコンテキスト
+     * @param[in]   drawableObjectType ->  処理するオブジェクトタイプ
      */
-    void CalcClippedDrawTotalBounds(CubismModel& model, T_ClippingContext* clippingContext);
+    void CalcClippedTotalBounds(CubismModel& model, T_ClippingContext* clippingContext, CubismRenderer::DrawableObjectType drawableObjectType);
+
+    /**
+     * @brief   offscreenに紐づいているpartの子のdrawableを格納先に格納する
+     *
+     * @param[in]   model                    ->  モデルのインスタンス
+     * @param[in]   offscreenIndex           ->  オフスクリーンのインデックス
+     * @param[in]   childDrawableIndexList   ->  対象になったdrawableの格納先
+     */
+    void CollectOffscreenChildDrawableIndexList(CubismModel& model, csmInt32 offscreenIndex, csmVector<csmInt32>& childDrawableIndexList);
+
+    /**
+     * @brief   partの子のdrawableを格納先に格納する
+     *
+     * @param[in]   model                    ->  モデルのインスタンス
+     * @param[in]   partIndex                ->  パーツのインデックス
+     * @param[in]   childDrawableIndexList   ->  対象になったdrawableの格納先
+     */
+    void CollectPartChildDrawableIndexList(CubismModel& model, csmInt32 partIndex, csmVector<csmInt32>& childDrawableIndexList);
 
     /**
      * @brief   画面描画に使用するクリッピングマスクのリストを取得する
@@ -104,6 +126,12 @@ public:
      */
     csmVector<T_ClippingContext*>* GetClippingContextListForDraw();
 
+        /**
+     * @brief   オフスクリーン描画に使用するクリッピングマスクのリストを取得する
+     *
+     * @return  オフスクリーン描画に使用するクリッピングマスクのリスト
+     */
+    csmVector<T_ClippingContext*>* GetClippingContextListForOffscreen();
     /**
      *@brief  クリッピングマスクバッファのサイズを取得する
      *
@@ -134,12 +162,13 @@ public:
     void SetClippingMaskBufferSize(csmFloat32 width, csmFloat32 height);
 
 protected:
-    T_OffscreenSurface* _currentMaskBuffer; /// オフスクリーンサーフェイスのアドレス
+    T_RenderTarget* _currentMaskBuffer; /// オフスクリーンサーフェイスのアドレス
     csmVector<csmBool> _clearedMaskBufferFlags; /// マスクのクリアフラグの配列
 
     csmVector<CubismRenderer::CubismTextureColor*> _channelColors;
     csmVector<T_ClippingContext*> _clippingContextListForMask;   ///< マスク用クリッピングコンテキストのリスト
     csmVector<T_ClippingContext*> _clippingContextListForDraw;   ///< 描画用クリッピングコンテキストのリスト
+    csmVector<T_ClippingContext*> _clippingContextListForOffscreen;   ///< オフスクリーン用クリッピングコンテキストのリスト
     CubismVector2 _clippingMaskBufferSize;       ///< クリッピングマスクのバッファサイズ（初期値:256）
     csmInt32 _renderTextureCount;           ///< 生成するレンダーテクスチャの枚数
 
