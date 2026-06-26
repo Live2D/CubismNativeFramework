@@ -32,9 +32,8 @@ CubismPose::PartData::~PartData()
 CubismPose::PartData::PartData(const PartData& v)
                                             : ParameterIndex(0)
                                             , PartIndex(0)
+                                            , PartId(v.PartId)
 {
-    PartId = v.PartId;
-
     for (csmVector<PartData>::const_iterator ite = v.Link.Begin(); ite != v.Link.End(); ++ite)
     {
         Link.PushBack(*ite);

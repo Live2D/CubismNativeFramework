@@ -442,13 +442,13 @@ void UpdateOutputParameterValue(csmFloat32* parameterValue, csmFloat32 parameter
 
 CubismPhysics::CubismPhysics()
     : _physicsRig(NULL)
+    , _currentRemainTime(0.0f)
 {
     // set default options.
     _options.Gravity.Y = -1.0f;
     _options.Gravity.X = 0;
     _options.Wind.X = 0;
     _options.Wind.Y = 0;
-    _currentRemainTime = 0.0f;
 }
 
 CubismPhysics::~CubismPhysics()

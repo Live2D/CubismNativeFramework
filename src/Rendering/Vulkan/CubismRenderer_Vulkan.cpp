@@ -394,7 +394,7 @@ VkShaderModule CubismPipeline_Vulkan::PipelineResource::CreateShaderModule(VkDev
     return shaderModule;
 }
 
-csmBool CubismPipeline_Vulkan::PipelineResource::CreateGraphicsPipeline(csmString vertFileName, csmString fragFileName,
+csmBool CubismPipeline_Vulkan::PipelineResource::CreateGraphicsPipeline(const csmString vertFileName, const csmString fragFileName,
                                                                      VkDescriptorSetLayout descriptorSetLayout,
                                                                      csmUint32 shaderName,
                                                                      csmInt32 colorBlendMode, csmInt32 alphaBlendMode)

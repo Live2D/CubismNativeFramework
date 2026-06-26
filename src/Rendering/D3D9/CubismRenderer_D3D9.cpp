@@ -373,6 +373,8 @@ CubismRenderer_D3D9::CubismRenderer_D3D9(csmUint32 width, csmUint32 height)
     , _clippingContextBufferForDrawable(NULL)
     , _clippingContextBufferForOffscreen(NULL)
     , _currentOffscreen(NULL)
+    , _commandBufferNum(0)
+    , _commandBufferCurrent(0)
 {
     // テクスチャ対応マップの容量を確保しておく.
     _textures.PrepareCapacity(32, true);
